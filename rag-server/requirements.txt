@@ -1,0 +1,37 @@
+# API Server
+fastapi
+uvicorn
+
+# Vector DB
+qdrant-client
+
+# Embedding / Re-ranking
+FlagEmbedding
+sentence-transformers
+transformers
+torch
+
+# Keyword / Hybrid Search
+rank-bm25
+scikit-learn
+
+# Java Source Parsing
+tree-sitter
+tree-sitter-java
+
+# File / Encoding
+chardet
+charset-normalizer
+
+# Data Processing
+numpy
+pandas
+tqdm
+
+# LLM API
+openai
+
+# Config / Validation
+python-dotenv
+pydantic
+PyYAML

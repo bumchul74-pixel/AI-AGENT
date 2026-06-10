@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: AI-AGENT
+
+server:
+  port: 8081
+
+llm:
+  provider: openai
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: gpt-5
+  base-url: https://api.openai.com/v1
+
+rag:
+  base-url: ${RAG_SERVER_BASE_URL:http://localhost:8000}
+  search-path: /api/search
+  top-k: ${RAG_SEARCH_TOP_K:5}
+  watch:
+    enabled: ${RAG_WATCH_ENABLED:true}
+    directory: ${RAG_WATCH_DIR:rag-server/inbox}
+    interval-seconds: ${RAG_WATCH_INTERVAL_SECONDS:30}
+    source: ${RAG_WATCH_SOURCE:backend-source}
+    chunk-size: ${RAG_CHUNK_SIZE:1200}
+    overlap: ${RAG_CHUNK_OVERLAP:150}
+    min-file-age-seconds: ${RAG_WATCH_MIN_FILE_AGE_SECONDS:2}

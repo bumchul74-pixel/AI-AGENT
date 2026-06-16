@@ -1,17 +1,25 @@
-import { Bot, FileStack, MessageSquareText, ScrollText } from 'lucide-react';
+import { Bot, DatabaseZap, FileStack, MessageSquareText, ScrollText } from 'lucide-react';
 
 const items = [
-  { id: 'generate', label: 'Generate', icon: Bot },
-  { id: 'chat', label: 'Chat', icon: MessageSquareText },
-  { id: 'documents', label: 'Documents', icon: FileStack },
-  { id: 'history', label: 'History', icon: ScrollText },
+  { id: 'generate', label: 'Generate', description: '소스 생성', icon: Bot },
+  { id: 'chat', label: 'Chat', description: 'AI 질의', icon: MessageSquareText },
+  { id: 'rag', label: 'Rag조회', description: 'VectorDB 검색', icon: DatabaseZap },
+  { id: 'documents', label: 'Documents', description: '표준 문서', icon: FileStack },
+  { id: 'history', label: 'History', description: '생성 이력', icon: ScrollText },
 ];
 
 export function Sidebar({ activePage, onNavigate }) {
   return (
     <aside className="sidebar">
-      <div className="brand-mark">AI</div>
-      <nav>
+      <div className="sidebar-brand">
+        <div className="brand-mark">AI</div>
+        <div>
+          <strong>AI Agent</strong>
+          <span>RAG Console</span>
+        </div>
+      </div>
+
+      <nav className="sidebar-nav" aria-label="Main navigation">
         {items.map((item) => (
           <button
             className={activePage === item.id ? 'nav-item active' : 'nav-item'}
@@ -20,7 +28,10 @@ export function Sidebar({ activePage, onNavigate }) {
             onClick={() => onNavigate(item.id)}
           >
             <item.icon size={18} />
-            <span>{item.label}</span>
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.description}</small>
+            </span>
           </button>
         ))}
       </nav>

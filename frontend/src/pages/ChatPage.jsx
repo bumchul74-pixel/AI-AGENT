@@ -4,7 +4,7 @@ import { ChatMessage } from '../components/chat/ChatMessage.jsx';
 import { useChat } from '../hooks/useChat.js';
 
 const promptExamples = [
-  'User 업무의 Controller, Service, DTO 구조를 추천해줘.',
+  'User 업무용 Controller, Service, DTO 구조를 추천해줘.',
   '현재 generation feature 구조에서 보완할 점을 알려줘.',
   'RAG 검색 결과를 기반으로 Mapper 생성 규칙을 정리해줘.',
 ];
@@ -22,20 +22,20 @@ export function ChatPage() {
 
   return (
     <section className="chat-page">
-      <header className="chat-hero">
+      <div className="page-heading">
         <div>
           <span className="eyebrow">LLM CHAT</span>
-          <h1>프로젝트 컨텍스트 기반 대화</h1>
-          <p>Spring Boot 구조, RAG 검색 결과, 코드 생성 규칙을 한 화면에서 질의합니다.</p>
+          <h1>프로젝트 컨텍스트 기반 질의</h1>
+          <p>Spring Boot 구조, RAG 검색 결과, 코드 생성 규칙을 같은 화면에서 질의합니다.</p>
         </div>
-        <div className="chat-model-badge">
+        <div className="status-badge">
           <Sparkles size={16} />
           <span>OpenAI / RAG ready</span>
         </div>
-      </header>
+      </div>
 
       <div className="chat-layout">
-        <aside className="chat-context-panel">
+        <aside className="card chat-context-panel">
           <h2>Prompt Examples</h2>
           <div className="prompt-example-list">
             {promptExamples.map((prompt) => (
@@ -46,7 +46,7 @@ export function ChatPage() {
           </div>
         </aside>
 
-        <div className="chat-thread-panel">
+        <div className="card chat-thread-panel">
           <div className="chat-thread">
             {chat.messages.map((message) => (
               <ChatMessage key={message.id} message={message} />

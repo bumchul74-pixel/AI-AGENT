@@ -1,10 +1,16 @@
+import { ScrollText } from 'lucide-react';
 import { formatDateTime } from '../utils/dateUtils.js';
 
 export function HistoryPage({ history = [] }) {
   return (
-    <section className="page-panel">
-      <h1>History</h1>
-      <p>현재 브라우저 세션에서 생성한 코드 이력을 확인합니다.</p>
+    <section className="card page-panel">
+      <div className="panel-title">
+        <ScrollText size={18} />
+        <div>
+          <h1>History</h1>
+          <p>현재 브라우저 세션에서 생성한 코드 이력을 확인합니다.</p>
+        </div>
+      </div>
 
       {history.length === 0 ? (
         <div className="empty-result">

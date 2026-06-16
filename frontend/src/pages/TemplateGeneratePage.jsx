@@ -4,8 +4,7 @@ import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { Modal } from '../components/common/Modal.jsx';
-import { Header } from '../components/layout/Header.jsx';
-import { Sidebar } from '../components/layout/Sidebar.jsx';
+import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { ChatInput } from '../components/chat/ChatInput.jsx';
 import { ChatResult } from '../components/chat/ChatResult.jsx';
 import { GENERATION_TARGETS } from '../constants/apiConstants.js';
@@ -15,13 +14,14 @@ import { formatDateTime } from '../utils/dateUtils.js';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
+import { RagSearchPage } from './RagSearchPage.jsx';
 
 export function TemplateGeneratePage() {
   const generation = useGenerate();
   const generationStore = useGenerationStore();
   const [activePage, setActivePage] = useState('generate');
   const [targetType, setTargetType] = useState(GENERATION_TARGETS[0]);
-  const [prompt, setPrompt] = useState('User 업무의 Controller, Service, DTO 구조를 생성해줘.');
+  const [prompt, setPrompt] = useState('User 업무용 Controller, Service, DTO 구조를 생성해줘.');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   async function handleGenerate() {
@@ -46,19 +46,26 @@ export function TemplateGeneratePage() {
       return <DocumentManagePage />;
     }
 
+    if (activePage === 'rag') {
+      return <RagSearchPage />;
+    }
+
     if (activePage === 'history') {
       return <HistoryPage history={generationStore.history} />;
     }
 
     return (
       <section className="work-grid">
-        <div className="request-panel">
+        <div className="card request-panel">
           <div className="panel-title">
             <Sparkles size={18} />
-            <h1>Java Source Generator</h1>
+            <div>
+              <h1>Java Source Generator</h1>
+              <p>RAG 검색 결과를 기반으로 표준 패턴의 Java 소스를 생성합니다.</p>
+            </div>
           </div>
 
-          <div className="target-grid">
+          <div className="target-grid" aria-label="생성 대상 선택">
             {GENERATION_TARGETS.map((target) => (
               <button
                 className={targetType === target ? 'target-chip selected' : 'target-chip'}
@@ -91,10 +98,13 @@ export function TemplateGeneratePage() {
           </div>
         </div>
 
-        <div className="result-panel">
+        <div className="card result-panel">
           <div className="panel-title">
             <FileCode2 size={18} />
-            <h2>Generated Source</h2>
+            <div>
+              <h2>Generated Source</h2>
+              <p>생성된 Java 코드가 이 영역에 표시됩니다.</p>
+            </div>
           </div>
 
           {generation.isLoading ? <Loading /> : <ChatResult result={generation.result} />}
@@ -104,12 +114,8 @@ export function TemplateGeneratePage() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
-      <main className="workspace">
-        <Header />
-        {renderPage()}
-      </main>
+    <MainLayout activePage={activePage} onNavigate={setActivePage}>
+      {renderPage()}
 
       <Modal title="생성 이력" open={isHistoryOpen} onClose={() => setIsHistoryOpen(false)}>
         {generationStore.history.length === 0 ? (
@@ -126,6 +132,6 @@ export function TemplateGeneratePage() {
           </div>
         )}
       </Modal>
-    </div>
+    </MainLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileCode2, History, Play, Sparkles } from 'lucide-react';
 import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
@@ -23,6 +23,12 @@ export function TemplateGeneratePage() {
   const [targetType, setTargetType] = useState(GENERATION_TARGETS[0]);
   const [prompt, setPrompt] = useState('User 업무용 Controller, Service, DTO 구조를 생성해줘.');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (activePage === 'generate') {
+      generation.clearError();
+    }
+  }, [activePage]);
 
   async function handleGenerate() {
     const response = await generation.submit({ targetType, prompt });

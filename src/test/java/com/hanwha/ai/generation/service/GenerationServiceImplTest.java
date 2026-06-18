@@ -48,7 +48,7 @@ class GenerationServiceImplTest {
         LlmClientFactory llmClientFactory = new LlmClientFactory(
                 new LlmProperties("openai"),
                 List.of(new OpenAiLlmClient(
-                        new OpenAiProperties("test-api-key", "gpt-test", "https://api.openai.test/v1"),
+                        new OpenAiProperties("test-api-key", "gpt-test", "https://api.openai.test/v1", null),
                         llmRestClientBuilder
                 ))
         );

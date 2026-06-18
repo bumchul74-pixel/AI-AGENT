@@ -22,10 +22,15 @@ export function useGenerate() {
     }
   }
 
+  function clearError() {
+    setError('');
+  }
+
   return {
     result,
     error,
     isLoading,
     submit,
+    clearError,
   };
 }

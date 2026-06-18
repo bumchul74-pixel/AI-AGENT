@@ -1,0 +1,4 @@
+# Minimal dependencies for MCP stdio mode.
+# The current MCP server uses the local vector_store implementation and does
+# not need torch, transformers, or embedding model packages.
+mcp

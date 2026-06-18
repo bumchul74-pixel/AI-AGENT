@@ -1,6 +1,7 @@
 package com.hanwha.ai.rag.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpMethod.GET;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.test.web.client.ExpectedCount.once;
@@ -14,6 +15,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.hanwha.ai.rag.config.RagProperties;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
+import com.hanwha.ai.rag.dto.RagStatsResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -68,6 +70,48 @@ class PythonRagClientTest {
         RagSearchResponse response = client.search(new RagSearchRequest("Create User Controller", 5));
 
         assertThat(response.documents()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void statsCallsPythonRagServerAndMapsJavaFileCount() {
+        RestClient.Builder restClientBuilder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
+        PythonRagClient client = new PythonRagClient(
+                restClientBuilder,
+                new RagProperties("http://localhost:8000", "/api/search", 5)
+        );
+
+        server.expect(once(), requestTo("http://localhost:8000/api/stats"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                          "java_file_count": 12
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        RagStatsResponse response = client.stats();
+
+        assertThat(response.javaFileCount()).isEqualTo(12);
+        server.verify();
+    }
+
+    @Test
+    void statsReturnsEmptyResponseWhenPythonRagServerFails() {
+        RestClient.Builder restClientBuilder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
+        PythonRagClient client = new PythonRagClient(
+                restClientBuilder,
+                new RagProperties("http://localhost:8000", "/api/search", 5)
+        );
+
+        server.expect(once(), requestTo("http://localhost:8000/api/stats"))
+                .andExpect(method(GET))
+                .andRespond(withServerError());
+
+        RagStatsResponse response = client.stats();
+
+        assertThat(response.javaFileCount()).isZero();
         server.verify();
     }
 }

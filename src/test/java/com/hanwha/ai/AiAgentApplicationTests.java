@@ -3,8 +3,8 @@ package com.hanwha.ai;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class AIMainTests {
+@SpringBootTest(properties = "spring.ai.mcp.client.enabled=false")
+class AiAgentApplicationTests {
     @Test
     void contextLoads() {
     }

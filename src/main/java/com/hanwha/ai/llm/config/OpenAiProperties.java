@@ -6,6 +6,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record OpenAiProperties(
         String apiKey,
         String model,
-        String baseUrl
+        String baseUrl,
+        Ssl ssl
 ) {
+    public boolean sslTrustAll() {
+        return ssl != null && ssl.trustAll();
+    }
+
+    public record Ssl(boolean trustAll) {
+    }
 }

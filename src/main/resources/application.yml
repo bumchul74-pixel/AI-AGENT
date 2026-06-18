@@ -1,6 +1,26 @@
 spring:
   application:
     name: AI-AGENT
+  ai:
+    mcp:
+      client:
+        enabled: ${MCP_CLIENT_ENABLED:true}
+        name: ai-agent-mcp-client
+        version: 1.0.0
+        request-timeout: 20s
+        type: SYNC
+        stdio:
+          connections:
+            server-filesystem:
+              command: ${MCP_FILESYSTEM_COMMAND:npx.cmd}
+              args:
+                - -y
+                - ${MCP_FILESYSTEM_PACKAGE:@modelcontextprotocol/server-filesystem}
+                - ${MCP_FILESYSTEM_ROOT:d:\workspace\AI-AGENT}
+            rag-server:
+              command: ${RAG_MCP_COMMAND:d:\workspace\AI-AGENT\rag-server\.venv\Scripts\python.exe}
+              args:
+                - ${RAG_MCP_SCRIPT:d:\workspace\AI-AGENT\rag-server\run_mcp_server.py}
 
 server:
   port: 8081
@@ -12,6 +32,8 @@ openai:
   api-key: ${OPENAI_API_KEY:}
   model: gpt-5
   base-url: https://api.openai.com/v1
+  ssl:
+    trust-all: ${OPENAI_SSL_TRUST_ALL:true}
 
 rag:
   base-url: ${RAG_SERVER_BASE_URL:http://localhost:8000}

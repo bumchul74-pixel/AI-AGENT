@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 import asyncio
 
+from json import JSONDecodeError
+
 from fastapi import FastAPI, Request
 
 from app.directory_watcher import DirectoryIngestWatcher
-from app.schemas import DocumentIngestRequest, RagSearchRequest, RagSearchResponse
+from app.schemas import DocumentIngestRequest, RagSearchRequest, RagSearchResponse, RagStatsResponse
 from app.settings import load_watch_settings
 from app.vector_store import LocalVectorStore
 
@@ -50,10 +52,32 @@ def ingest_document(request: DocumentIngestRequest) -> dict[str, int]:
 
 @app.post("/api/search", response_model=RagSearchResponse)
 async def search(request: Request) -> RagSearchResponse:
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except JSONDecodeError:
+        return RagSearchResponse(documents=[])
+
+    if not isinstance(payload, dict):
+        return RagSearchResponse(documents=[])
+
+    query = payload.get("query") or payload.get("message") or ""
+    if not query.strip():
+        return RagSearchResponse(documents=[])
+
+    top_k = payload.get("top_k", 5)
+    try:
+        top_k = max(1, min(20, int(top_k)))
+    except (TypeError, ValueError):
+        top_k = 5
+
     search_request = RagSearchRequest(
-        query=payload.get("query") or payload.get("message") or "",
-        top_k=payload.get("top_k", 5),
+        query=query,
+        top_k=top_k,
     )
     documents = vector_store.search(query=search_request.query, top_k=search_request.top_k)
     return RagSearchResponse(documents=documents)
+
+
+@app.get("/api/stats", response_model=RagStatsResponse)
+def stats() -> RagStatsResponse:
+    return RagStatsResponse(java_file_count=vector_store.java_file_count())

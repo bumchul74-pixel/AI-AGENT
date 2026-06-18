@@ -1,6 +1,22 @@
-INFO:     127.0.0.1:49930 - "POST /api/search HTTP/1.1" 500 Internal Server Error
-INFO:     127.0.0.1:49931 - "POST /api/search HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49975 - "POST /api/search HTTP/1.1" 500 Internal Server Error
-INFO:     127.0.0.1:56776 - "GET / HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:56776 - "GET /favicon.ico HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:56776 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62542 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62548 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62928 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62928 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58843 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58843 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58843 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58843 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62876 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62791 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59301 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59368 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59542 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59603 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65483 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65483 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62625 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62625 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62625 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50322 - "POST /api/search HTTP/1.1" 200 OK

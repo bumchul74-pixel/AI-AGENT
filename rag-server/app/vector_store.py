@@ -61,6 +61,12 @@ class LocalVectorStore:
             if score > 0
         ]
 
+    def java_file_count(self) -> int:
+        with self._lock:
+            sources = {chunk.source for chunk in self.chunks}
+
+        return sum(1 for source in sources if source.lower().endswith(".java"))
+
     def _load(self) -> list[StoredChunk]:
         if not self.store_path.exists():
             return []

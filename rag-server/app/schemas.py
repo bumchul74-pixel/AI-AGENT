@@ -15,3 +15,7 @@ class RagSearchRequest(BaseModel):
 
 class RagSearchResponse(BaseModel):
     documents: list[str]
+
+
+class RagStatsResponse(BaseModel):
+    java_file_count: int

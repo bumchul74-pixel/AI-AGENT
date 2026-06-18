@@ -3,6 +3,7 @@ package com.hanwha.ai.rag.service;
 import com.hanwha.ai.rag.config.RagProperties;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
+import com.hanwha.ai.rag.dto.RagStatsResponse;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -30,6 +31,19 @@ public class PythonRagClient implements RagClient {
             return response == null ? RagSearchResponse.empty() : response;
         } catch (RestClientException exception) {
             return RagSearchResponse.empty();
+        }
+    }
+
+    @Override
+    public RagStatsResponse stats() {
+        try {
+            RagStatsResponse response = restClient.get()
+                    .uri("/api/stats")
+                    .retrieve()
+                    .body(RagStatsResponse.class);
+            return response == null ? RagStatsResponse.empty() : response;
+        } catch (RestClientException exception) {
+            return RagStatsResponse.empty();
         }
     }
 }

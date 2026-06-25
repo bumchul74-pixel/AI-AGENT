@@ -18,6 +18,11 @@ repositories {
     mavenCentral()
 }
 
+val mockitoAgent = configurations.create("mockitoAgent") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencyManagement {
     imports {
         mavenBom("org.springframework.ai:spring-ai-bom:2.0.0")
@@ -31,8 +36,12 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    mockitoAgent("org.mockito:mockito-core") {
+        isTransitive = false
+    }
 }
 
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("-javaagent:${mockitoAgent.asPath}", "-Xshare:off")
 }

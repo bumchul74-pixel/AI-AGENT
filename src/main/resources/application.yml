@@ -9,6 +9,11 @@ spring:
         version: 1.0.0
         request-timeout: 20s
         type: SYNC
+        streamable-http:
+          connections:
+            ai-mcp:
+              url: ${AI_MCP_BASE_URL:http://localhost:8092}
+              endpoint: ${AI_MCP_ENDPOINT:/mcp}
         stdio:
           connections:
             server-filesystem:
@@ -17,16 +22,18 @@ spring:
                 - -y
                 - ${MCP_FILESYSTEM_PACKAGE:@modelcontextprotocol/server-filesystem}
                 - ${MCP_FILESYSTEM_ROOT:d:\workspace\AI-AGENT}
-            rag-server:
-              command: ${RAG_MCP_COMMAND:d:\workspace\AI-AGENT\rag-server\.venv\Scripts\python.exe}
-              args:
-                - ${RAG_MCP_SCRIPT:d:\workspace\AI-AGENT\rag-server\run_mcp_server.py}
 
+generation:
+  project-structures:
+    - name: Management Old Module
+      value: 'D:\workspace\management'
+    - name: Extension Module
+      value: 'D:\workspace\extension'
 server:
   port: 8081
 
 llm:
-  provider: openai
+  provider: ${LLM_PROVIDER:gemini}
 
 openai:
   api-key: ${OPENAI_API_KEY:}
@@ -34,6 +41,11 @@ openai:
   base-url: https://api.openai.com/v1
   ssl:
     trust-all: ${OPENAI_SSL_TRUST_ALL:true}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:AIzaSyDJlKgdDupnrzO4V5zc5VcQF0uWhddeh0M}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
 
 rag:
   base-url: ${RAG_SERVER_BASE_URL:http://localhost:8000}

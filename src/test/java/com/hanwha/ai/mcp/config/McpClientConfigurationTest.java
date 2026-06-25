@@ -16,11 +16,15 @@ class McpClientConfigurationTest {
     private Environment environment;
 
     @Test
-    void loadsServerFilesystemMcpStdioConfiguration() {
+    void loadsMcpClientConfiguration() {
         assertThat(environment.getProperty("spring.ai.mcp.client.name"))
                 .isEqualTo("ai-agent-mcp-client");
         assertThat(environment.getProperty("spring.ai.mcp.client.type"))
                 .isEqualTo("SYNC");
+        assertThat(environment.getProperty("spring.ai.mcp.client.streamable-http.connections.ai-mcp.url"))
+                .isEqualTo("http://localhost:8092");
+        assertThat(environment.getProperty("spring.ai.mcp.client.streamable-http.connections.ai-mcp.endpoint"))
+                .isEqualTo("/mcp");
         assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.command"))
                 .isEqualTo("npx.cmd");
         assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.args[0]"))
@@ -29,14 +33,10 @@ class McpClientConfigurationTest {
                 .isEqualTo("@modelcontextprotocol/server-filesystem");
         assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.args[2]"))
                 .isEqualTo("d:\\workspace\\AI-AGENT");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.rag-server.command"))
-                .isEqualTo("d:\\workspace\\AI-AGENT\\rag-server\\.venv\\Scripts\\python.exe");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.rag-server.args[0]"))
-                .isEqualTo("d:\\workspace\\AI-AGENT\\rag-server\\run_mcp_server.py");
     }
 
     @Test
-    void allowsServerFilesystemMcpConfigurationToBeOverridden() {
+    void allowsMcpConfigurationToBeOverridden() {
         assertThat(environment.getProperty("spring.ai.mcp.client.enabled", Boolean.class))
                 .isFalse();
     }
@@ -53,16 +53,10 @@ class McpClientConfigurationTest {
                 (path, attributes) -> attributes.isRegularFile()
                         && path.endsWith(Path.of("src", "main", "java", "com", "hanwha", "ai", "AiAgentApplication.java"))
         )) {
-        var foundPaths = paths.toList();
-
-        foundPaths.forEach(path -> {
-                System.out.println("found path = " + path);
-        });
-
-        //     assertThat(paths)
-        //             .singleElement()
-        //             .satisfies(path -> assertThat(path.getFileName().toString())
-        //                     .isEqualTo("AiAgentApplication.java"));
+            assertThat(paths.toList())
+                    .singleElement()
+                    .satisfies(path -> assertThat(path.getFileName().toString())
+                            .isEqualTo("AiAgentApplication.java"));
         }
     }
 }

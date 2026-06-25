@@ -1,7 +1,10 @@
 package com.hanwha.ai.generation.dto;
 
+import java.util.List;
+
 public record GenerationRequest(
-        String targetType,
-        String prompt
+        List<String> targetTypes,
+        String prompt,
+        String projectStructure
 ) {
 }

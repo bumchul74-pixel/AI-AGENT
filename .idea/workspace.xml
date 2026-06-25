@@ -4,16 +4,39 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="" />
+    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/ai-agent.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/ai-agent.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rag-server/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/rag-server/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rag-server/app/mcp_server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rag-server/requirements-mcp.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rag-server/run_mcp_server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/llm/domain/LlmProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/llm/domain/LlmProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/McpClientConfigurationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/McpClientConfigurationTest.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 0
-}]]></component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="3FCbdXWJn5oE1q1XQAUq8cmiyRX" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -23,10 +46,26 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration name="AiAgentApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="AI-AGENT.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.hanwha.ai.AiAgentApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -43,7 +82,13 @@
       <option name="presentableId" value="Default" />
       <updated>1781582089388</updated>
       <workItem from="1781582092612" duration="7000" />
+      <workItem from="1781829824273" duration="61000" />
+      <workItem from="1781830152465" duration="2589000" />
+      <workItem from="1782106423407" duration="793000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
 </project>

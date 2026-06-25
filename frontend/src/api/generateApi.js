@@ -1,17 +1,33 @@
-import { API_BASE_URL } from '../constants/apiConstants.js';
+import { apiUrl } from '../constants/apiConstants.js';
 
-export async function generateCode({ targetType, prompt }) {
-  const response = await fetch(`${API_BASE_URL}/api/generations`, {
+export async function fetchProjectStructures() {
+  const response = await fetch(apiUrl('/api/generations/project-structures'));
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(errorBody?.message ?? 'Project structure list request failed.');
+  }
+
+  const projectStructures = await response.json();
+  if (!Array.isArray(projectStructures)) {
+    throw new Error('Project structure list response is invalid.');
+  }
+
+  return projectStructures;
+}
+
+export async function generateCode({ targetTypes, prompt, projectStructure }) {
+  const response = await fetch(apiUrl('/api/generations'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ targetType, prompt }),
+    body: JSON.stringify({ targetTypes, prompt, projectStructure }),
   });
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
-    throw new Error(errorBody?.message ?? '코드 생성 요청에 실패했습니다.');
+    throw new Error(errorBody?.message ?? 'Code generation request failed.');
   }
 
   return response.json();

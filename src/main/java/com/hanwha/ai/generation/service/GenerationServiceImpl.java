@@ -12,6 +12,7 @@ import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
 import com.hanwha.ai.rag.service.RagClient;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -22,83 +23,171 @@ public class GenerationServiceImpl implements GenerationService {
     private final LlmClientFactory llmClientFactory;
     private final GenerationRepository generationRepository;
     private final RagProperties ragProperties;
+    private final ProjectStructureAnalyzer projectStructureAnalyzer;
 
     public GenerationServiceImpl(
             RagClient ragClient,
             LlmClientFactory llmClientFactory,
             GenerationRepository generationRepository,
-            RagProperties ragProperties
+            RagProperties ragProperties,
+            ProjectStructureAnalyzer projectStructureAnalyzer
     ) {
         this.ragClient = ragClient;
         this.llmClientFactory = llmClientFactory;
         this.generationRepository = generationRepository;
         this.ragProperties = ragProperties;
+        this.projectStructureAnalyzer = projectStructureAnalyzer;
     }
 
     @Override
     public GenerationResponse generate(GenerationRequest request) {
         validate(request);
 
+        List<String> targetTypes = selectedTargetTypes(request);
+        String targetTypesText = targetTypesText(targetTypes);
+        String projectPath = request.projectStructure().trim();
+        String analyzedProjectStructure = projectStructureAnalyzer.analyze(projectPath, targetTypes);
         RagSearchResponse ragSearchResponse = ragClient.search(
-                new RagSearchRequest(buildSearchQuery(request), ragProperties.topK())
+                new RagSearchRequest(
+                        buildSearchQuery(request, targetTypesText, projectPath, analyzedProjectStructure),
+                        ragProperties.topK()
+                )
         );
         List<String> ragDocuments = ragSearchResponse.documents();
         if (ragDocuments.isEmpty()) {
             throw new BusinessException("RAG search result is required before source generation.");
         }
 
-        String context = String.join("\n\n--- RAG SOURCE ---\n\n", ragDocuments);
-        String prompt = buildGenerationPrompt(request, context);
+        String ragContext = String.join("\n\n--- RAG SOURCE ---\n\n", ragDocuments);
+        String context = buildLlmContext(projectPath, analyzedProjectStructure, ragContext);
+        String prompt = buildGenerationPrompt(
+                request,
+                targetTypes,
+                targetTypesText,
+                projectPath,
+                analyzedProjectStructure,
+                ragContext
+        );
         String generatedCode = llmClientFactory.current()
                 .generate(new LlmGenerateRequest(prompt, context))
                 .content();
 
         generationRepository.save(new GenerationHistory(
                 null,
-                request.targetType(),
+                targetTypesText,
                 request.prompt(),
                 generatedCode,
                 LocalDateTime.now()
         ));
 
-        return new GenerationResponse(request.targetType(), generatedCode, ragDocuments);
+        return new GenerationResponse(targetTypesText, targetTypes, generatedCode, ragDocuments, analyzedProjectStructure);
     }
 
     private void validate(GenerationRequest request) {
         if (request == null
-                || !StringUtils.hasText(request.targetType())
-                || !StringUtils.hasText(request.prompt())) {
-            throw new BusinessException("targetType and prompt are required.");
+                || selectedTargetTypes(request).isEmpty()
+                || !StringUtils.hasText(request.prompt())
+                || !StringUtils.hasText(request.projectStructure())) {
+            throw new BusinessException("targetTypes, prompt, and projectStructure are required.");
         }
     }
 
-    private String buildSearchQuery(GenerationRequest request) {
-        return """
-                Generate Java %s source.
-                User request: %s
-                Find standard source patterns for Controller, Service, ServiceImpl, Repository, DTO, Mapper, Domain, Exception, and Test Code.
-                """.formatted(request.targetType(), request.prompt());
+    private List<String> selectedTargetTypes(GenerationRequest request) {
+        if (request == null || request.targetTypes() == null) {
+            return List.of();
+        }
+
+        LinkedHashSet<String> selectedTargetTypes = new LinkedHashSet<>();
+        for (String targetType : request.targetTypes()) {
+            if (StringUtils.hasText(targetType)) {
+                selectedTargetTypes.add(targetType.trim());
+            }
+        }
+        return List.copyOf(selectedTargetTypes);
     }
 
-    private String buildGenerationPrompt(GenerationRequest request, String context) {
+    private String targetTypesText(List<String> targetTypes) {
+        return String.join(", ", targetTypes);
+    }
+
+    private String buildSearchQuery(
+            GenerationRequest request,
+            String targetTypesText,
+            String projectPath,
+            String analyzedProjectStructure
+    ) {
+        return """
+                Generate Java source only for these selected target types: %s.
+                User request: %s
+                Selected project full path: %s
+                MCP analyzed project structure:
+                %s
+                Find standard source patterns for the selected target types only. Use other layers only as reference context; do not search for unselected or full-stack generation patterns.
+                """.formatted(targetTypesText, request.prompt(), projectPath, analyzedProjectStructure);
+    }
+
+    private String buildLlmContext(String projectPath, String analyzedProjectStructure, String ragContext) {
+        return """
+                Selected project full path:
+                %s
+
+                MCP analyzed project structure:
+                %s
+
+                Retrieved RAG source:
+                %s
+                """.formatted(projectPath, analyzedProjectStructure, ragContext);
+    }
+
+    private String buildGenerationPrompt(
+            GenerationRequest request,
+            List<String> targetTypes,
+            String targetTypesText,
+            String projectPath,
+            String analyzedProjectStructure,
+            String ragContext
+    ) {
         return """
                 You generate Java source for a Spring Boot project.
 
-                Generation target:
+                Selected generation target types:
                 %s
 
                 User request:
                 %s
 
                 Mandatory rules:
-                1. First derive the source structure from the retrieved RAG source below.
-                2. Prefer package structure, naming style, annotations, method style, DTO shape, mapper/repository style, and exception style found in RAG.
-                3. Do not invent a new project pattern when a matching RAG source pattern exists.
-                4. If the retrieved source is incomplete, complete only the missing parts needed for a compilable result.
-                5. Return only the generated Java source code unless multiple files are required; if multiple files are required, separate them with clear file path headers.
+                1. Generate source only for the selected target types: %s.
+                2. Do not output Java source for any unselected target type. For example, when Controller and DTO are selected, return Controller and DTO code only and do not generate Service, ServiceImpl, Repository, Mapper, Domain, Exception, or Test Code files.
+                3. If the user request mentions unselected target types, treat them only as dependency or design context and do not include their source code in the output.
+                4. Use the MCP analyzed project structure and selected project full path to choose package, module, layer, and file path only for selected target types.
+                5. Use the retrieved RAG source as the primary code pattern for annotations, method style, dependency style, and exception style.
+                6. If retrieved source is incomplete, complete only the missing parts needed for compilable selected-target results.
+                7. %s
+
+                Selected project full path:
+                %s
+
+                MCP analyzed project structure:
+                %s
 
                 Retrieved RAG source:
                 %s
-                """.formatted(request.targetType(), request.prompt(), context);
+                """.formatted(
+                targetTypesText,
+                request.prompt(),
+                targetTypesText,
+                outputFormatRule(targetTypes),
+                projectPath,
+                analyzedProjectStructure,
+                ragContext
+        );
+    }
+
+    private String outputFormatRule(List<String> targetTypes) {
+        if (targetTypes.size() == 1) {
+            return "Return only one Java source code output for the selected target type. Do not include multiple file path headers.";
+        }
+        return "Return one clearly separated Java source section for each selected target type, and do not include sections for unselected target types.";
     }
 }

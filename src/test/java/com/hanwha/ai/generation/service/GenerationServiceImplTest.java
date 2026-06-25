@@ -29,6 +29,7 @@ import com.hanwha.ai.rag.dto.RagSearchResponse;
 import com.hanwha.ai.rag.service.PythonRagClient;
 import com.hanwha.ai.rag.service.RagClient;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -36,6 +37,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 class GenerationServiceImplTest {
+    private static final String PROJECT_PATH = "D:\\workspace\\management";
+
     @Test
     void generateCallsPythonRagServerThenOpenAiLlm() {
         RestClient.Builder ragRestClientBuilder = RestClient.builder();
@@ -56,13 +59,17 @@ class GenerationServiceImplTest {
                 ragClient,
                 llmClientFactory,
                 new GenerationRepository(),
-                ragProperties
+                ragProperties,
+                fakeProjectStructureAnalyzer()
         );
 
         ragServer.expect(once(), requestTo("http://localhost:8000/api/search"))
                 .andExpect(method(POST))
                 .andExpect(jsonPath("$.query", containsString("Controller")))
+                .andExpect(jsonPath("$.query", containsString("selected target types")))
                 .andExpect(jsonPath("$.query", containsString("Create user controller")))
+                .andExpect(jsonPath("$.query", containsString(PROJECT_PATH)))
+                .andExpect(jsonPath("$.query", containsString("MCP project structure analysis")))
                 .andExpect(jsonPath("$.top_k", is(2)))
                 .andRespond(withSuccess("""
                         {
@@ -78,6 +85,12 @@ class GenerationServiceImplTest {
                 .andExpect(header(AUTHORIZATION, "Bearer test-api-key"))
                 .andExpect(jsonPath("$.model", is("gpt-test")))
                 .andExpect(jsonPath("$.input", containsString("Create user controller")))
+                .andExpect(jsonPath("$.input", containsString("Generate source only for the selected target types: Controller")))
+                .andExpect(jsonPath("$.input", containsString("Return only one Java source code output")))
+                .andExpect(jsonPath("$.input", containsString("Selected project full path")))
+                .andExpect(jsonPath("$.input", containsString(PROJECT_PATH)))
+                .andExpect(jsonPath("$.input", containsString("MCP analyzed project structure")))
+                .andExpect(jsonPath("$.input", containsString("Base package: com.hanwha.ai")))
                 .andExpect(jsonPath("$.input", containsString("standard-source/UserController.java")))
                 .andRespond(withSuccess("""
                         {
@@ -85,10 +98,12 @@ class GenerationServiceImplTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        var response = service.generate(new GenerationRequest("Controller", "Create user controller"));
+        var response = service.generate(new GenerationRequest(List.of("Controller"), "Create user controller", PROJECT_PATH));
 
         assertThat(response.targetType()).isEqualTo("Controller");
+        assertThat(response.targetTypes()).containsExactly("Controller");
         assertThat(response.generatedCode()).contains("@RestController");
+        assertThat(response.projectStructure()).contains("MCP project structure analysis", PROJECT_PATH, "Spring Boot: detected");
         assertThat(response.ragDocuments()).containsExactly(
                 "[source: standard-source/UserController.java]\n@RestController public class UserController {}",
                 "[source: standard-source/UserService.java]\npublic interface UserService {}"
@@ -98,11 +113,11 @@ class GenerationServiceImplTest {
     }
 
     @Test
-    void generateUsesRagContextAndConfiguredLlmProvider() {
+    void generateUsesOnlySelectedTargetTypesInPromptAndSearchQuery() {
         AtomicReference<String> ragQuery = new AtomicReference<>();
         RagClient ragClient = request -> {
             ragQuery.set(request.query());
-            return new RagSearchResponse(List.of("sample controller pattern"));
+            return new RagSearchResponse(List.of("sample controller and dto pattern"));
         };
         AtomicReference<LlmGenerateRequest> llmRequest = new AtomicReference<>();
         LlmClientFactory llmClientFactory = new LlmClientFactory(
@@ -113,19 +128,91 @@ class GenerationServiceImplTest {
                 ragClient,
                 llmClientFactory,
                 new GenerationRepository(),
-                new RagProperties("http://localhost:8000", "/api/search", 5)
+                new RagProperties("http://localhost:8000", "/api/search", 5),
+                fakeProjectStructureAnalyzer()
         );
 
-        var response = service.generate(new GenerationRequest("Controller", "Create user controller"));
+        var response = service.generate(new GenerationRequest(
+                List.of("Controller", "DTO"),
+                "Create user API",
+                PROJECT_PATH
+        ));
 
-        assertThat(response.targetType()).isEqualTo("Controller");
-        assertThat(response.generatedCode()).contains("sample controller pattern");
-        assertThat(response.ragDocuments()).containsExactly("sample controller pattern");
-        assertThat(ragQuery.get()).contains("Controller", "Create user controller");
+        assertThat(response.targetType()).isEqualTo("Controller, DTO");
+        assertThat(response.targetTypes()).containsExactly("Controller", "DTO");
+        assertThat(response.generatedCode()).contains("sample controller and dto pattern", "Base package: com.hanwha.ai");
+        assertThat(response.ragDocuments()).containsExactly("sample controller and dto pattern");
+        assertThat(response.projectStructure()).contains("MCP project structure analysis", PROJECT_PATH, "Spring Boot: detected");
+        assertThat(ragQuery.get()).contains(
+                "Controller, DTO",
+                "selected target types only",
+                PROJECT_PATH,
+                "MCP project structure analysis"
+        );
         assertThat(llmRequest.get().prompt()).contains(
-                "First derive the source structure from the retrieved RAG source",
-                "sample controller pattern"
+                "Selected generation target types:",
+                "Controller, DTO",
+                "Generate source only for the selected target types: Controller, DTO",
+                "do not include sections for unselected target types",
+                "Use the MCP analyzed project structure and selected project full path"
         );
+        assertThat(llmRequest.get().context()).contains(
+                "Selected project full path",
+                PROJECT_PATH,
+                "MCP analyzed project structure",
+                "Retrieved RAG source",
+                "sample controller and dto pattern"
+        );
+    }
+
+    @Test
+    void generateStopsWhenTargetTypesAreMissing() {
+        AtomicBoolean ragCalled = new AtomicBoolean(false);
+        RagClient ragClient = request -> {
+            ragCalled.set(true);
+            return new RagSearchResponse(List.of("sample controller pattern"));
+        };
+        LlmClientFactory llmClientFactory = new LlmClientFactory(
+                new LlmProperties("openai"),
+                List.of(fakeLlmClient(new AtomicReference<>()))
+        );
+        GenerationService service = new GenerationServiceImpl(
+                ragClient,
+                llmClientFactory,
+                new GenerationRepository(),
+                new RagProperties("http://localhost:8000", "/api/search", 5),
+                fakeProjectStructureAnalyzer()
+        );
+
+        assertThatThrownBy(() -> service.generate(new GenerationRequest(List.of(), "Create user controller", PROJECT_PATH)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("targetTypes, prompt, and projectStructure are required.");
+        assertThat(ragCalled.get()).isFalse();
+    }
+
+    @Test
+    void generateStopsWhenProjectStructureIsMissing() {
+        AtomicBoolean ragCalled = new AtomicBoolean(false);
+        RagClient ragClient = request -> {
+            ragCalled.set(true);
+            return new RagSearchResponse(List.of("sample controller pattern"));
+        };
+        LlmClientFactory llmClientFactory = new LlmClientFactory(
+                new LlmProperties("openai"),
+                List.of(fakeLlmClient(new AtomicReference<>()))
+        );
+        GenerationService service = new GenerationServiceImpl(
+                ragClient,
+                llmClientFactory,
+                new GenerationRepository(),
+                new RagProperties("http://localhost:8000", "/api/search", 5),
+                fakeProjectStructureAnalyzer()
+        );
+
+        assertThatThrownBy(() -> service.generate(new GenerationRequest(List.of("Controller"), "Create user controller", " ")))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("targetTypes, prompt, and projectStructure are required.");
+        assertThat(ragCalled.get()).isFalse();
     }
 
     @Test
@@ -139,12 +226,29 @@ class GenerationServiceImplTest {
                 ragClient,
                 llmClientFactory,
                 new GenerationRepository(),
-                new RagProperties("http://localhost:8000", "/api/search", 5)
+                new RagProperties("http://localhost:8000", "/api/search", 5),
+                fakeProjectStructureAnalyzer()
         );
 
-        assertThatThrownBy(() -> service.generate(new GenerationRequest("Controller", "Create user controller")))
+        assertThatThrownBy(() -> service.generate(new GenerationRequest(List.of("Controller"), "Create user controller", PROJECT_PATH)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("RAG search result is required before source generation.");
+    }
+
+    private ProjectStructureAnalyzer fakeProjectStructureAnalyzer() {
+        return (projectPath, targetTypes) -> """
+                MCP project structure analysis:
+                Tool: FileSystemProjectStructureAnalyzer
+                Project full path: %s
+                Selected target types: %s
+
+                Analysis result:
+                Spring Boot: detected
+                Base package: com.hanwha.ai
+                Modules:
+                - user/controller
+                - user/dto
+                """.formatted(projectPath, String.join(", ", targetTypes));
     }
 
     private LlmClient fakeLlmClient(AtomicReference<LlmGenerateRequest> llmRequest) {

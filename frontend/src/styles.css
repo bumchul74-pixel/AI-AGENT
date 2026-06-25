@@ -39,6 +39,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -331,6 +332,7 @@ button {
 }
 
 .field input,
+.field select,
 .field textarea,
 .chat-composer textarea {
   width: 100%;
@@ -344,6 +346,7 @@ button {
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus,
 .chat-composer textarea:focus {
   border-color: #8bb2f7;
@@ -354,6 +357,11 @@ button {
   min-height: 224px;
   resize: vertical;
   line-height: 1.55;
+}
+
+.project-structure-field select {
+  min-height: 44px;
+  cursor: pointer;
 }
 
 .action-row {

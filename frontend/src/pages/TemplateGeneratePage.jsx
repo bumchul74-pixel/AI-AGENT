@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FileCode2, History, Play, Sparkles } from 'lucide-react';
 import { Button } from '../components/common/Button.jsx';
-import { Input } from '../components/common/Input.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { ChatInput } from '../components/chat/ChatInput.jsx';
 import { ChatResult } from '../components/chat/ChatResult.jsx';
+import { fetchProjectStructures } from '../api/generateApi.js';
 import { GENERATION_TARGETS } from '../constants/apiConstants.js';
 import { useGenerate } from '../hooks/useGenerate.js';
 import { useGenerationStore } from '../store/appStore.js';
@@ -20,24 +20,72 @@ export function TemplateGeneratePage() {
   const generation = useGenerate();
   const generationStore = useGenerationStore();
   const [activePage, setActivePage] = useState('generate');
-  const [targetType, setTargetType] = useState(GENERATION_TARGETS[0]);
-  const [prompt, setPrompt] = useState('User 업무용 Controller, Service, DTO 구조를 생성해줘.');
+  const [targetTypes, setTargetTypes] = useState([GENERATION_TARGETS[0]]);
+  const [prompt, setPrompt] = useState('User CRUD API를 생성해줘.');
+  const [projectStructure, setProjectStructure] = useState('');
+  const [projectStructureOptions, setProjectStructureOptions] = useState([]);
+  const [projectStructureError, setProjectStructureError] = useState('');
+  const [isProjectStructureLoading, setIsProjectStructureLoading] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadProjectStructures() {
+      setIsProjectStructureLoading(true);
+      setProjectStructureError('');
+
+      try {
+        const options = await fetchProjectStructures();
+        if (ignore) {
+          return;
+        }
+
+        setProjectStructureOptions(options);
+        setProjectStructure((current) => current || options[0]?.value || '');
+      } catch (exception) {
+        if (!ignore) {
+          setProjectStructureError(exception.message);
+        }
+      } finally {
+        if (!ignore) {
+          setIsProjectStructureLoading(false);
+        }
+      }
+    }
+
+    loadProjectStructures();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
   useEffect(() => {
     if (activePage === 'generate') {
       generation.clearError();
     }
   }, [activePage]);
 
+
+  function toggleTargetType(target) {
+    setTargetTypes((current) => {
+      if (current.includes(target)) {
+        return current.filter((item) => item !== target);
+      }
+
+      return [...current, target];
+    });
+  }
   async function handleGenerate() {
-    const response = await generation.submit({ targetType, prompt });
+    const response = await generation.submit({ targetTypes, prompt, projectStructure });
 
     if (response) {
       generationStore.addHistory({
-        targetType,
+        targetType: response.targetType ?? targetTypes.join(', '),
+        targetTypes,
         prompt,
         generatedCode: response.generatedCode,
+        projectStructure,
         createdAt: new Date().toISOString(),
       });
     }
@@ -74,28 +122,41 @@ export function TemplateGeneratePage() {
           <div className="target-grid" aria-label="생성 대상 선택">
             {GENERATION_TARGETS.map((target) => (
               <button
-                className={targetType === target ? 'target-chip selected' : 'target-chip'}
+                className={targetTypes.includes(target) ? 'target-chip selected' : 'target-chip'}
                 key={target}
                 type="button"
-                onClick={() => setTargetType(target)}
+                aria-pressed={targetTypes.includes(target)}
+                onClick={() => toggleTargetType(target)}
               >
                 {target}
               </button>
             ))}
           </div>
 
-          <Input
-            label="생성 대상"
-            value={targetType}
-            onChange={(event) => setTargetType(event.target.value)}
-          />
 
           <ChatInput value={prompt} onChange={setPrompt} />
+
+          <label className="field project-structure-field">
+            <span>Project Structure</span>
+            <select
+              value={projectStructure}
+              onChange={(event) => setProjectStructure(event.target.value)}
+              disabled={isProjectStructureLoading || projectStructureOptions.length === 0}
+            >
+              {projectStructureOptions.length === 0 ? (
+                <option value="">No project structures configured</option>
+              ) : projectStructureOptions.map((option, index) => (
+                <option key={`${option.name}-${index}`} value={option.value}>{option.name}</option>
+              ))}
+            </select>
+          </label>
+
+          {projectStructureError && <p className="error-text">{projectStructureError}</p>}
 
           {generation.error && <p className="error-text">{generation.error}</p>}
 
           <div className="action-row">
-            <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading}>
+            <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading || isProjectStructureLoading || !projectStructure || targetTypes.length === 0}>
               생성
             </Button>
             <Button icon={History} variant="secondary" onClick={() => setIsHistoryOpen(true)}>

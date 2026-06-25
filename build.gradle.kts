@@ -33,7 +33,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-json")
     implementation("org.springframework.ai:spring-ai-starter-mcp-client")
+    implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.0")
     implementation("com.fasterxml.jackson.core:jackson-databind")
+    runtimeOnly("org.postgresql:postgresql")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     mockitoAgent("org.mockito:mockito-core") {

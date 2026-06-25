@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
 import json
@@ -38,6 +38,15 @@ class LocalVectorStore:
             self.chunks.extend(stored_chunks)
             self._save()
         return len(stored_chunks)
+
+    def delete_source(self, source: str) -> int:
+        with self._lock:
+            before_count = len(self.chunks)
+            self.chunks = [chunk for chunk in self.chunks if chunk.source != source]
+            deleted_count = before_count - len(self.chunks)
+            if deleted_count > 0:
+                self._save()
+        return deleted_count
 
     def search(self, query: str, top_k: int) -> list[str]:
         with self._lock:
@@ -124,5 +133,3 @@ def normalize(vector: list[float]) -> list[float]:
 
 def cosine_similarity(left: list[float], right: list[float]) -> float:
     return sum(left_value * right_value for left_value, right_value in zip(left, right))
-
-

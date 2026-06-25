@@ -54,3 +54,4 @@ rag-server/**/__pycache__/
 
 ### Mac OS ###
 .DS_Store
+uploads/

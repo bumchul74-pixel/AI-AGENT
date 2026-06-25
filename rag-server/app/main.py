@@ -3,9 +3,10 @@ import asyncio
 
 from json import JSONDecodeError
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 
 from app.directory_watcher import DirectoryIngestWatcher
+from app.file_text_extractor import extract_text_from_upload
 from app.schemas import DocumentIngestRequest, RagSearchRequest, RagSearchResponse, RagStatsResponse
 from app.settings import load_watch_settings
 from app.vector_store import LocalVectorStore
@@ -48,6 +49,38 @@ def ingest_document(request: DocumentIngestRequest) -> dict[str, int]:
         overlap=request.overlap,
     )
     return {"stored_count": stored_count}
+
+@app.post("/api/documents/upload")
+async def upload_document(
+    source: str = Form(...),
+    file: UploadFile = File(...),
+    chunk_size: int = Form(default=1200),
+    overlap: int = Form(default=150),
+) -> dict[str, int]:
+    if not source.strip():
+        raise HTTPException(status_code=400, detail="source is required")
+
+    try:
+        content = await extract_text_from_upload(file)
+    except ValueError as exception:
+        raise HTTPException(status_code=400, detail=str(exception)) from exception
+
+    stored_count = vector_store.add_document(
+        source=source,
+        content=content,
+        chunk_size=max(200, min(8000, chunk_size)),
+        overlap=max(0, min(2000, overlap)),
+    )
+    return {"stored_count": stored_count}
+
+
+@app.delete("/api/documents/source")
+def delete_document_source(source: str) -> dict[str, int]:
+    if not source.strip():
+        raise HTTPException(status_code=400, detail="source is required")
+
+    deleted_count = vector_store.delete_source(source)
+    return {"deleted_count": deleted_count}
 
 
 @app.post("/api/search", response_model=RagSearchResponse)

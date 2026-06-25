@@ -938,3 +938,139 @@ button {
     min-height: 300px;
   }
 }
+
+.document-page {
+  display: grid;
+  gap: 18px;
+}
+
+.document-upload-panel,
+.document-list-panel {
+  min-width: 0;
+  padding: 20px;
+}
+
+.document-upload-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+  color: #344054;
+  margin: 0 0 16px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.selected-file strong,
+.document-name-cell strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.selected-file span,
+.document-name-cell span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.document-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.document-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.document-table th,
+.document-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.document-table th {
+  background: var(--surface-subtle);
+  color: #344054;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.document-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.document-name-cell {
+  display: grid;
+  gap: 5px;
+}
+
+.document-status {
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.document-status.status-indexed {
+  border-color: #b7e4dc;
+  background: #ecfdf9;
+  color: var(--teal);
+}
+
+.document-status.status-indexing,
+.document-status.status-pending {
+  border-color: #fedf89;
+  background: #fffaeb;
+  color: var(--amber);
+}
+
+.document-status.status-failed {
+  border-color: #fecdca;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.document-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  text-decoration: none;
+}
+
+.icon-button.danger {
+  color: var(--danger);
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 1040px) {
+  .document-upload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .selected-file {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

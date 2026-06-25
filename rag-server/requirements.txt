@@ -35,3 +35,6 @@ openai
 python-dotenv
 pydantic
 PyYAML
+python-multipart
+pypdf
+python-docx

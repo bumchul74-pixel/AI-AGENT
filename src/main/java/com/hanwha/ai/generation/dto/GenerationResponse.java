@@ -7,13 +7,18 @@ public record GenerationResponse(
         List<String> targetTypes,
         String generatedCode,
         List<String> ragDocuments,
-        String projectStructure
+        String projectStructure,
+        Long historyId
 ) {
+    public GenerationResponse(String targetType, List<String> targetTypes, String generatedCode, List<String> ragDocuments, String projectStructure) {
+        this(targetType, targetTypes, generatedCode, ragDocuments, projectStructure, null);
+    }
+
     public GenerationResponse(String targetType, String generatedCode, List<String> ragDocuments) {
-        this(targetType, List.of(targetType), generatedCode, ragDocuments, "");
+        this(targetType, List.of(targetType), generatedCode, ragDocuments, "", null);
     }
 
     public GenerationResponse(String targetType, String generatedCode, List<String> ragDocuments, String projectStructure) {
-        this(targetType, List.of(targetType), generatedCode, ragDocuments, projectStructure);
+        this(targetType, List.of(targetType), generatedCode, ragDocuments, projectStructure, null);
     }
 }

@@ -1,11 +1,27 @@
 import { apiUrl } from '../constants/apiConstants.js';
 
+async function readError(response, fallbackMessage) {
+  const errorBody = await response.json().catch(() => null);
+  return new Error(errorBody?.message ?? fallbackMessage);
+}
+
+function queryString(filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      params.append(key, String(value).trim());
+    }
+  });
+
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
 export async function fetchProjectStructures() {
   const response = await fetch(apiUrl('/api/generations/project-structures'));
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    throw new Error(errorBody?.message ?? 'Project structure list request failed.');
+    throw await readError(response, 'Project structure list request failed.');
   }
 
   const projectStructures = await response.json();
@@ -26,8 +42,32 @@ export async function generateCode({ targetTypes, prompt, projectStructure }) {
   });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    throw new Error(errorBody?.message ?? 'Code generation request failed.');
+    throw await readError(response, 'Code generation request failed.');
+  }
+
+  return response.json();
+}
+
+export async function fetchGenerationHistory(filters = {}) {
+  const response = await fetch(apiUrl(`/api/generations/history${queryString(filters)}`));
+
+  if (!response.ok) {
+    throw await readError(response, 'Generation history request failed.');
+  }
+
+  const history = await response.json();
+  if (!Array.isArray(history)) {
+    throw new Error('Generation history response is invalid.');
+  }
+
+  return history;
+}
+
+export async function fetchGenerationHistoryDetail(id) {
+  const response = await fetch(apiUrl(`/api/generations/history/${id}`));
+
+  if (!response.ok) {
+    throw await readError(response, 'Generation history detail request failed.');
   }
 
   return response.json();

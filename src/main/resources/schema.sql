@@ -22,3 +22,25 @@ CREATE INDEX IF NOT EXISTS idx_rag_document_created_at
 
 CREATE INDEX IF NOT EXISTS idx_rag_document_deleted_at
     ON rag_document (deleted_at);
+
+CREATE TABLE IF NOT EXISTS generation_history (
+    id BIGSERIAL PRIMARY KEY,
+    target_type VARCHAR(255) NOT NULL,
+    target_types JSONB,
+    prompt TEXT NOT NULL,
+    project_structure TEXT,
+    rag_documents JSONB,
+    generated_code TEXT NOT NULL,
+    llm_provider VARCHAR(50),
+    llm_model VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_generation_history_created_at
+    ON generation_history (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_generation_history_target_type
+    ON generation_history (target_type);
+
+CREATE INDEX IF NOT EXISTS idx_generation_history_target_types_gin
+    ON generation_history USING GIN (target_types);

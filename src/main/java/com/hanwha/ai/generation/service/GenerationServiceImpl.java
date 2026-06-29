@@ -1,29 +1,39 @@
 package com.hanwha.ai.generation.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hanwha.ai.generation.domain.GenerationHistory;
+import com.hanwha.ai.generation.dto.GenerationHistoryResponse;
+import com.hanwha.ai.generation.dto.GenerationHistorySearchRequest;
 import com.hanwha.ai.generation.dto.GenerationRequest;
 import com.hanwha.ai.generation.dto.GenerationResponse;
 import com.hanwha.ai.generation.repository.GenerationRepository;
 import com.hanwha.ai.global.exception.BusinessException;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
+import com.hanwha.ai.llm.service.LlmClient;
 import com.hanwha.ai.llm.service.LlmClientFactory;
 import com.hanwha.ai.rag.config.RagProperties;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
 import com.hanwha.ai.rag.service.RagClient;
-import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
 public class GenerationServiceImpl implements GenerationService {
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
+    };
+
     private final RagClient ragClient;
     private final LlmClientFactory llmClientFactory;
     private final GenerationRepository generationRepository;
     private final RagProperties ragProperties;
     private final ProjectStructureAnalyzer projectStructureAnalyzer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GenerationServiceImpl(
             RagClient ragClient,
@@ -40,6 +50,7 @@ public class GenerationServiceImpl implements GenerationService {
     }
 
     @Override
+    @Transactional
     public GenerationResponse generate(GenerationRequest request) {
         validate(request);
 
@@ -68,19 +79,96 @@ public class GenerationServiceImpl implements GenerationService {
                 analyzedProjectStructure,
                 ragContext
         );
-        String generatedCode = llmClientFactory.current()
-                .generate(new LlmGenerateRequest(prompt, context))
-                .content();
+        LlmClient llmClient = llmClientFactory.current();
+        String generatedCode = llmClient.generate(new LlmGenerateRequest(prompt, context)).content();
 
-        generationRepository.save(new GenerationHistory(
-                null,
+        GenerationHistory savedHistory = generationRepository.save(createHistory(
                 targetTypesText,
+                targetTypes,
                 request.prompt(),
+                analyzedProjectStructure,
+                ragDocuments,
                 generatedCode,
-                LocalDateTime.now()
+                llmClient.provider().name()
         ));
+        Long historyId = savedHistory == null ? null : savedHistory.getId();
 
-        return new GenerationResponse(targetTypesText, targetTypes, generatedCode, ragDocuments, analyzedProjectStructure);
+        return new GenerationResponse(targetTypesText, targetTypes, generatedCode, ragDocuments, analyzedProjectStructure, historyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GenerationHistoryResponse> findHistory(GenerationHistorySearchRequest search) {
+        return generationRepository.findAll(search).stream()
+                .map(this::toHistoryResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GenerationHistoryResponse findHistoryById(Long id) {
+        GenerationHistory history = generationRepository.findById(id);
+        if (history == null) {
+            throw new BusinessException("Generation history not found.");
+        }
+
+        return toHistoryResponse(history);
+    }
+
+    private GenerationHistory createHistory(
+            String targetTypesText,
+            List<String> targetTypes,
+            String prompt,
+            String projectStructure,
+            List<String> ragDocuments,
+            String generatedCode,
+            String llmProvider
+    ) {
+        GenerationHistory history = new GenerationHistory();
+        history.setTargetType(targetTypesText);
+        history.setTargetTypesJson(toJson(targetTypes));
+        history.setPrompt(prompt);
+        history.setProjectStructure(projectStructure);
+        history.setRagDocumentsJson(toJson(ragDocuments));
+        history.setGeneratedCode(generatedCode);
+        history.setLlmProvider(llmProvider);
+        history.setLlmModel(null);
+        return history;
+    }
+
+    private GenerationHistoryResponse toHistoryResponse(GenerationHistory history) {
+        return new GenerationHistoryResponse(
+                history.getId(),
+                history.getTargetType(),
+                readJsonList(history.getTargetTypesJson()),
+                history.getPrompt(),
+                history.getProjectStructure(),
+                readJsonList(history.getRagDocumentsJson()),
+                history.getGeneratedCode(),
+                history.getLlmProvider(),
+                history.getLlmModel(),
+                history.getCreatedAt()
+        );
+    }
+
+    private String toJson(List<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException("Failed to serialize generation history.");
+        }
+    }
+
+    private List<String> readJsonList(String json) {
+        if (!StringUtils.hasText(json)) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(json, STRING_LIST_TYPE);
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
     }
 
     private void validate(GenerationRequest request) {

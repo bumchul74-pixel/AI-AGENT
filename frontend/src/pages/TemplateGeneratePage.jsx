@@ -2,31 +2,35 @@ import { useEffect, useState } from 'react';
 import { FileCode2, History, Play, Sparkles } from 'lucide-react';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
-import { Modal } from '../components/common/Modal.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { ChatInput } from '../components/chat/ChatInput.jsx';
 import { ChatResult } from '../components/chat/ChatResult.jsx';
 import { fetchProjectStructures } from '../api/generateApi.js';
 import { GENERATION_TARGETS } from '../constants/apiConstants.js';
 import { useGenerate } from '../hooks/useGenerate.js';
-import { useGenerationStore } from '../store/appStore.js';
-import { formatDateTime } from '../utils/dateUtils.js';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
 
+const TEXT = {
+  defaultPrompt: 'User CRUD API\uB97C \uC0DD\uC131\uD574\uC918.',
+  generatorDescription: 'RAG \uAC80\uC0C9 \uACB0\uACFC\uB97C \uAE30\uBC18\uC73C\uB85C \uD45C\uC900 \uD328\uD134\uC758 Java \uC18C\uC2A4\uB97C \uC0DD\uC131\uD569\uB2C8\uB2E4.',
+  targetSelect: '\uC0DD\uC131 \uB300\uC0C1 \uC120\uD0DD',
+  generate: '\uC0DD\uC131',
+  history: '\uC774\uB825',
+  resultDescription: '\uC0DD\uC131\uB41C Java \uCF54\uB4DC\uAC00 \uC774 \uC601\uC5ED\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+};
+
 export function TemplateGeneratePage() {
   const generation = useGenerate();
-  const generationStore = useGenerationStore();
   const [activePage, setActivePage] = useState('generate');
   const [targetTypes, setTargetTypes] = useState([GENERATION_TARGETS[0]]);
-  const [prompt, setPrompt] = useState('User CRUD API를 생성해줘.');
+  const [prompt, setPrompt] = useState(TEXT.defaultPrompt);
   const [projectStructure, setProjectStructure] = useState('');
   const [projectStructureOptions, setProjectStructureOptions] = useState([]);
   const [projectStructureError, setProjectStructureError] = useState('');
   const [isProjectStructureLoading, setIsProjectStructureLoading] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -60,12 +64,12 @@ export function TemplateGeneratePage() {
       ignore = true;
     };
   }, []);
+
   useEffect(() => {
     if (activePage === 'generate') {
       generation.clearError();
     }
   }, [activePage]);
-
 
   function toggleTargetType(target) {
     setTargetTypes((current) => {
@@ -76,19 +80,9 @@ export function TemplateGeneratePage() {
       return [...current, target];
     });
   }
-  async function handleGenerate() {
-    const response = await generation.submit({ targetTypes, prompt, projectStructure });
 
-    if (response) {
-      generationStore.addHistory({
-        targetType: response.targetType ?? targetTypes.join(', '),
-        targetTypes,
-        prompt,
-        generatedCode: response.generatedCode,
-        projectStructure,
-        createdAt: new Date().toISOString(),
-      });
-    }
+  async function handleGenerate() {
+    await generation.submit({ targetTypes, prompt, projectStructure });
   }
 
   function renderPage() {
@@ -105,7 +99,7 @@ export function TemplateGeneratePage() {
     }
 
     if (activePage === 'history') {
-      return <HistoryPage history={generationStore.history} />;
+      return <HistoryPage />;
     }
 
     return (
@@ -115,11 +109,11 @@ export function TemplateGeneratePage() {
             <Sparkles size={18} />
             <div>
               <h1>Java Source Generator</h1>
-              <p>RAG 검색 결과를 기반으로 표준 패턴의 Java 소스를 생성합니다.</p>
+              <p>{TEXT.generatorDescription}</p>
             </div>
           </div>
 
-          <div className="target-grid" aria-label="생성 대상 선택">
+          <div className="target-grid" aria-label={TEXT.targetSelect}>
             {GENERATION_TARGETS.map((target) => (
               <button
                 className={targetTypes.includes(target) ? 'target-chip selected' : 'target-chip'}
@@ -132,7 +126,6 @@ export function TemplateGeneratePage() {
               </button>
             ))}
           </div>
-
 
           <ChatInput value={prompt} onChange={setPrompt} />
 
@@ -157,10 +150,10 @@ export function TemplateGeneratePage() {
 
           <div className="action-row">
             <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading || isProjectStructureLoading || !projectStructure || targetTypes.length === 0}>
-              생성
+              {TEXT.generate}
             </Button>
-            <Button icon={History} variant="secondary" onClick={() => setIsHistoryOpen(true)}>
-              이력
+            <Button icon={History} variant="secondary" onClick={() => setActivePage('history')}>
+              {TEXT.history}
             </Button>
           </div>
         </div>
@@ -170,7 +163,7 @@ export function TemplateGeneratePage() {
             <FileCode2 size={18} />
             <div>
               <h2>Generated Source</h2>
-              <p>생성된 Java 코드가 이 영역에 표시됩니다.</p>
+              <p>{TEXT.resultDescription}</p>
             </div>
           </div>
 
@@ -183,22 +176,6 @@ export function TemplateGeneratePage() {
   return (
     <MainLayout activePage={activePage} onNavigate={setActivePage}>
       {renderPage()}
-
-      <Modal title="생성 이력" open={isHistoryOpen} onClose={() => setIsHistoryOpen(false)}>
-        {generationStore.history.length === 0 ? (
-          <p className="muted">아직 생성 이력이 없습니다.</p>
-        ) : (
-          <div className="history-list">
-            {generationStore.history.map((item) => (
-              <article className="history-item" key={`${item.createdAt}-${item.targetType}`}>
-                <strong>{item.targetType}</strong>
-                <span>{formatDateTime(item.createdAt)}</span>
-                <p>{item.prompt}</p>
-              </article>
-            ))}
-          </div>
-        )}
-      </Modal>
     </MainLayout>
   );
 }

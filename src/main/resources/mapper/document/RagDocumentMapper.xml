@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.document.mapper.RagDocumentMapper">
+    <resultMap id="ragDocumentResultMap" type="com.hanwha.ai.document.domain.RagDocument">
+        <id column="id" property="id" />
+        <result column="original_file_name" property="originalFileName" />
+        <result column="stored_file_name" property="storedFileName" />
+        <result column="file_path" property="filePath" />
+        <result column="file_size" property="fileSize" />
+        <result column="content_type" property="contentType" />
+        <result column="document_type" property="documentType" />
+        <result column="index_status" property="indexStatus" />
+        <result column="chunk_count" property="chunkCount" />
+        <result column="error_message" property="errorMessage" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="deleted_at" property="deletedAt" />
+    </resultMap>
+
+    <sql id="ragDocumentColumns">
+        id,
+        original_file_name,
+        stored_file_name,
+        file_path,
+        file_size,
+        content_type,
+        document_type,
+        index_status,
+        chunk_count,
+        error_message,
+        created_at,
+        updated_at,
+        deleted_at
+    </sql>
+
+    <insert id="insert"
+            parameterType="com.hanwha.ai.document.domain.RagDocument"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO rag_document (
+            original_file_name,
+            stored_file_name,
+            file_path,
+            file_size,
+            content_type,
+            document_type,
+            index_status,
+            chunk_count,
+            error_message
+        ) VALUES (
+            #{originalFileName},
+            #{storedFileName},
+            #{filePath},
+            #{fileSize},
+            #{contentType},
+            #{documentType},
+            #{indexStatus},
+            #{chunkCount},
+            #{errorMessage}
+        )
+    </insert>
+
+    <select id="findAll" resultMap="ragDocumentResultMap">
+        SELECT
+        <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultMap="ragDocumentResultMap">
+        SELECT
+        <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </select>
+
+    <update id="updateIndexStatus">
+        UPDATE rag_document
+        SET index_status = #{indexStatus},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateIndexResult">
+        UPDATE rag_document
+        SET index_status = #{indexStatus},
+            chunk_count = #{chunkCount},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="markDeleted" parameterType="long">
+        UPDATE rag_document
+        SET index_status = 'DELETED',
+            deleted_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+</mapper>

@@ -21,6 +21,8 @@ class McpClientConfigurationTest {
                 .isEqualTo("ai-agent-mcp-client");
         assertThat(environment.getProperty("spring.ai.mcp.client.type"))
                 .isEqualTo("SYNC");
+        assertThat(environment.getProperty("spring.ai.mcp.client.initialized", Boolean.class))
+                .isFalse();
         assertThat(environment.getProperty("spring.ai.mcp.client.streamable-http.connections.ai-mcp.url"))
                 .isEqualTo("http://localhost:8092");
         assertThat(environment.getProperty("spring.ai.mcp.client.streamable-http.connections.ai-mcp.endpoint"))

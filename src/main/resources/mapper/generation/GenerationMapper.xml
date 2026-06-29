@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.generation.mapper.GenerationMapper">
+    <resultMap id="generationHistoryResultMap" type="com.hanwha.ai.generation.domain.GenerationHistory">
+        <id column="id" property="id" />
+        <result column="target_type" property="targetType" />
+        <result column="target_types_json" property="targetTypesJson" />
+        <result column="prompt" property="prompt" />
+        <result column="project_structure" property="projectStructure" />
+        <result column="rag_documents_json" property="ragDocumentsJson" />
+        <result column="generated_code" property="generatedCode" />
+        <result column="llm_provider" property="llmProvider" />
+        <result column="llm_model" property="llmModel" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <sql id="generationHistoryColumns">
+        id,
+        target_type,
+        target_types::text AS target_types_json,
+        prompt,
+        project_structure,
+        rag_documents::text AS rag_documents_json,
+        generated_code,
+        llm_provider,
+        llm_model,
+        created_at
+    </sql>
+
+    <sql id="generationHistorySummaryColumns">
+        id,
+        target_type,
+        target_types::text AS target_types_json,
+        prompt,
+        NULL AS project_structure,
+        NULL AS rag_documents_json,
+        NULL AS generated_code,
+        llm_provider,
+        llm_model,
+        created_at
+    </sql>
+
+    <sql id="generationHistorySearchWhere">
+        <where>
+            <if test="search != null and search.id != null">
+                AND id = #{search.id}
+            </if>
+            <if test="search != null and search.targetType != null">
+                AND target_type ILIKE CONCAT('%', #{search.targetType}, '%')
+            </if>
+            <if test="search != null and search.targetTypes != null">
+                AND target_types::text ILIKE CONCAT('%', #{search.targetTypes}, '%')
+            </if>
+            <if test="search != null and search.prompt != null">
+                AND prompt ILIKE CONCAT('%', #{search.prompt}, '%')
+            </if>
+            <if test="search != null and search.projectStructure != null">
+                AND project_structure ILIKE CONCAT('%', #{search.projectStructure}, '%')
+            </if>
+            <if test="search != null and search.ragDocuments != null">
+                AND rag_documents::text ILIKE CONCAT('%', #{search.ragDocuments}, '%')
+            </if>
+            <if test="search != null and search.generatedCode != null">
+                AND generated_code ILIKE CONCAT('%', #{search.generatedCode}, '%')
+            </if>
+            <if test="search != null and search.llmProvider != null">
+                AND llm_provider ILIKE CONCAT('%', #{search.llmProvider}, '%')
+            </if>
+            <if test="search != null and search.llmModel != null">
+                AND llm_model ILIKE CONCAT('%', #{search.llmModel}, '%')
+            </if>
+            <if test="search != null and search.createdFrom != null">
+                AND created_at &gt;= #{search.createdFrom}
+            </if>
+            <if test="search != null and search.createdTo != null">
+                AND created_at &lt; #{search.createdTo}
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insert"
+            parameterType="com.hanwha.ai.generation.domain.GenerationHistory"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO generation_history (
+            target_type,
+            target_types,
+            prompt,
+            project_structure,
+            rag_documents,
+            generated_code,
+            llm_provider,
+            llm_model
+        ) VALUES (
+            #{targetType},
+            CAST(#{targetTypesJson} AS jsonb),
+            #{prompt},
+            #{projectStructure},
+            CAST(#{ragDocumentsJson} AS jsonb),
+            #{generatedCode},
+            #{llmProvider},
+            #{llmModel}
+        )
+    </insert>
+
+    <select id="findAll" resultMap="generationHistoryResultMap">
+        SELECT
+        <include refid="generationHistorySummaryColumns" />
+        FROM generation_history
+        <include refid="generationHistorySearchWhere" />
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultMap="generationHistoryResultMap">
+        SELECT
+        <include refid="generationHistoryColumns" />
+        FROM generation_history
+        WHERE id = #{id}
+    </select>
+</mapper>

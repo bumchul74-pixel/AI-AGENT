@@ -5,6 +5,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,6 +21,8 @@ public class AiMcpGatewayService {
     private static final String AI_MCP_SERVER_NAME = "ai-mcp-server";
     private static final String SERVER_INFO_TOOL = "get_server_info";
     private static final String SERVER_INFO_RESOURCE = "server://info";
+    private static final int INITIALIZE_MAX_ATTEMPTS = 3;
+    private static final long INITIALIZE_RETRY_DELAY_MILLIS = 1_000L;
 
     private final ObjectProvider<List<McpSyncClient>> clientsProvider;
 
@@ -94,15 +97,50 @@ public class AiMcpGatewayService {
 
     private boolean isAiMcpClient(McpSyncClient client) {
         try {
-            if (!client.isInitialized()) {
-                client.initialize();
-            }
+            initializeWithRetry(client);
 
             McpSchema.Implementation serverInfo = client.getServerInfo();
             return serverInfo != null && AI_MCP_SERVER_NAME.equals(serverInfo.name());
         } catch (RuntimeException exception) {
             log.debug("Skipping unavailable MCP client while resolving AI-MCP.", exception);
             return false;
+        }
+    }
+
+    private void initializeWithRetry(McpSyncClient client) {
+        if (client.isInitialized()) {
+            return;
+        }
+
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= INITIALIZE_MAX_ATTEMPTS; attempt++) {
+            try {
+                client.initialize();
+                return;
+            } catch (RuntimeException exception) {
+                lastFailure = exception;
+                log.warn(
+                        "MCP client initialization failed. attempt={}/{}",
+                        attempt,
+                        INITIALIZE_MAX_ATTEMPTS,
+                        exception
+                );
+
+                if (attempt < INITIALIZE_MAX_ATTEMPTS) {
+                    sleepBeforeRetry();
+                }
+            }
+        }
+
+        throw lastFailure;
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            TimeUnit.MILLISECONDS.sleep(INITIALIZE_RETRY_DELAY_MILLIS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while retrying MCP client initialization.", exception);
         }
     }
 

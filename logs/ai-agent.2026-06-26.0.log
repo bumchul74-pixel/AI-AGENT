@@ -1,0 +1,314 @@
+2026-06-26 09:40:14.829 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - Starting AiAgentApplication using Java 21.0.11 with PID 23500 (D:\workspace\AI-AGENT\build\classes\java\main started by netroot74 in D:\workspace\AI-AGENT)
+2026-06-26 09:40:14.859 [restartedMain] DEBUG com.hanwha.ai.AiAgentApplication - Running with Spring Boot v4.0.6, Spring v7.0.7
+2026-06-26 09:40:14.861 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-26 09:40:15.114 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-06-26 09:40:15.127 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-06-26 09:40:19.413 [restartedMain] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8081 (http)
+2026-06-26 09:40:19.449 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+2026-06-26 09:40:19.458 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-26 09:40:19.459 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-26 09:40:19.604 [restartedMain] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 4360 ms
+2026-06-26 09:40:20.343 [restartedMain] WARN  c.h.ai.llm.service.OpenAiLlmClient - OpenAI SSL certificate validation is disabled. Use this only for local development or trusted internal networks.
+2026-06-26 09:40:20.499 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-26 09:40:21.620 [restartedMain] WARN  o.s.b.w.s.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'documentController' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\controller\DocumentController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'documentService' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\DocumentService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentRepository' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\RagDocumentRepository.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentMapper' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\mapper\RagDocumentMapper.class]: Cannot resolve reference to bean 'sqlSessionTemplate' while setting bean property 'sqlSessionTemplate'
+2026-06-26 09:40:21.627 [restartedMain] INFO  o.a.catalina.core.StandardService - Stopping service [Tomcat]
+2026-06-26 09:40:21.653 [restartedMain] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-06-26 09:40:21.698 [restartedMain] ERROR o.s.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'documentController' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\controller\DocumentController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'documentService' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\DocumentService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentRepository' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\RagDocumentRepository.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentMapper' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\mapper\RagDocumentMapper.class]: Cannot resolve reference to bean 'sqlSessionTemplate' while setting bean property 'sqlSessionTemplate'
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1218)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1184)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1121)
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:994)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:621)
+	at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:756)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:445)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:321)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
+	at com.hanwha.ai.AiAgentApplication.main(AiAgentApplication.java:11)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:52)
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'documentService' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\DocumentService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentRepository' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\RagDocumentRepository.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentMapper' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\mapper\RagDocumentMapper.class]: Cannot resolve reference to bean 'sqlSessionTemplate' while setting bean property 'sqlSessionTemplate'
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveBean(DefaultListableBeanFactory.java:1225)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1704)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651)
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912)
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
+	... 24 common frames omitted
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'ragDocumentRepository' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\service\RagDocumentRepository.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'ragDocumentMapper' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\mapper\RagDocumentMapper.class]: Cannot resolve reference to bean 'sqlSessionTemplate' while setting bean property 'sqlSessionTemplate'
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804)
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201)
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:229)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1762)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651)
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912)
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
+	... 38 common frames omitted
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'ragDocumentMapper' defined in file [D:\workspace\AI-AGENT\build\classes\java\main\com\hanwha\ai\document\mapper\RagDocumentMapper.class]: Cannot resolve reference to bean 'sqlSessionTemplate' while setting bean property 'sqlSessionTemplate'
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:377)
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveValueIfNecessary(BeanDefinitionValueResolver.java:135)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyPropertyValues(AbstractAutowireCapableBeanFactory.java:1712)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1461)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:602)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201)
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:229)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1762)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651)
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912)
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
+	... 52 common frames omitted
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/jdbc/autoconfigure/DataSourceInitializationAutoConfiguration.class]: Failed to execute database script
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1817)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:603)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:309)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365)
+	... 66 common frames omitted
+Caused by: org.springframework.jdbc.datasource.init.UncategorizedScriptException: Failed to execute database script
+	at org.springframework.jdbc.datasource.init.DatabasePopulatorUtils.execute(DatabasePopulatorUtils.java:67)
+	at org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer.runScripts(DataSourceScriptDatabaseInitializer.java:87)
+	at org.springframework.boot.sql.init.AbstractScriptDatabaseInitializer.runScripts(AbstractScriptDatabaseInitializer.java:159)
+	at org.springframework.boot.sql.init.AbstractScriptDatabaseInitializer.applyScripts(AbstractScriptDatabaseInitializer.java:120)
+	at org.springframework.boot.sql.init.AbstractScriptDatabaseInitializer.applySchemaScripts(AbstractScriptDatabaseInitializer.java:109)
+	at org.springframework.boot.sql.init.AbstractScriptDatabaseInitializer.initializeDatabase(AbstractScriptDatabaseInitializer.java:87)
+	at org.springframework.boot.sql.init.AbstractScriptDatabaseInitializer.afterPropertiesSet(AbstractScriptDatabaseInitializer.java:77)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1864)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1813)
+	... 75 common frames omitted
+Caused by: org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84)
+	at org.springframework.jdbc.datasource.init.DatabasePopulatorUtils.execute(DatabasePopulatorUtils.java:52)
+	... 83 common frames omitted
+Caused by: org.postgresql.util.PSQLException: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:373)
+	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:57)
+	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:290)
+	at org.postgresql.Driver.makeConnection(Driver.java:448)
+	at org.postgresql.Driver.connect(Driver.java:298)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:373)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:210)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:576)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:97)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:111)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118)
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81)
+	... 84 common frames omitted
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:694)
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:542)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:261)
+	at org.postgresql.core.PGStream.<init>(PGStream.java:122)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:146)
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:289)
+	... 98 common frames omitted
+2026-06-26 09:44:34.309 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - Starting AiAgentApplication using Java 21.0.11 with PID 22560 (D:\workspace\AI-AGENT\build\classes\java\main started by netroot74 in D:\workspace\AI-AGENT)
+2026-06-26 09:44:34.334 [restartedMain] DEBUG com.hanwha.ai.AiAgentApplication - Running with Spring Boot v4.0.6, Spring v7.0.7
+2026-06-26 09:44:34.343 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-26 09:44:34.622 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-06-26 09:44:34.628 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-06-26 09:44:38.588 [restartedMain] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8081 (http)
+2026-06-26 09:44:38.622 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+2026-06-26 09:44:38.639 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-26 09:44:38.644 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-26 09:44:38.886 [restartedMain] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 4236 ms
+2026-06-26 09:44:39.651 [restartedMain] WARN  c.h.ai.llm.service.OpenAiLlmClient - OpenAI SSL certificate validation is disabled. Use this only for local development or trusted internal networks.
+2026-06-26 09:44:39.830 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-26 09:44:40.229 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@64f450ca
+2026-06-26 09:44:40.232 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-26 09:44:42.200 [boundedElastic-1] INFO  i.m.c.transport.StdioClientTransport - MCP server starting.
+2026-06-26 09:44:42.443 [boundedElastic-1] INFO  i.m.c.transport.StdioClientTransport - MCP server started
+2026-06-26 09:45:02.269 [restartedMain] WARN  o.s.b.w.s.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mcpSyncClients' defined in class path resource [org/springframework/ai/mcp/client/common/autoconfigure/McpClientAutoConfiguration.class]: Failed to instantiate [java.util.List]: Factory method 'mcpSyncClients' threw exception with message: Client failed to initialize by explicit API call
+2026-06-26 09:45:02.271 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-06-26 09:45:02.281 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-06-26 09:45:02.292 [restartedMain] INFO  o.a.catalina.core.StandardService - Stopping service [Tomcat]
+2026-06-26 09:45:02.328 [restartedMain] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-06-26 09:45:02.375 [restartedMain] ERROR o.s.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mcpSyncClients' defined in class path resource [org/springframework/ai/mcp/client/common/autoconfigure/McpClientAutoConfiguration.class]: Failed to instantiate [java.util.List]: Factory method 'mcpSyncClients' threw exception with message: Client failed to initialize by explicit API call
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657)
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:645)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1362)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1194)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1218)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1184)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1121)
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:994)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:621)
+	at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:756)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:445)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:321)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
+	at com.hanwha.ai.AiAgentApplication.main(AiAgentApplication.java:11)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:52)
+Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [java.util.List]: Factory method 'mcpSyncClients' threw exception with message: Client failed to initialize by explicit API call
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:183)
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiateWithFactoryMethod(SimpleInstantiationStrategy.java:72)
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:152)
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:653)
+	... 24 common frames omitted
+Caused by: java.lang.RuntimeException: Client failed to initialize by explicit API call
+	at io.modelcontextprotocol.client.LifecycleInitializer.lambda$withInitialization$2(LifecycleInitializer.java:287)
+	at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:95)
+	at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:125)
+	at reactor.core.publisher.FluxTimeout$TimeoutMainSubscriber.handleTimeout(FluxTimeout.java:297)
+	at reactor.core.publisher.FluxTimeout$TimeoutMainSubscriber.doTimeout(FluxTimeout.java:282)
+	at reactor.core.publisher.FluxTimeout$TimeoutTimeoutSubscriber.onNext(FluxTimeout.java:423)
+	at reactor.core.publisher.FluxOnErrorReturn$ReturnSubscriber.onNext(FluxOnErrorReturn.java:159)
+	at reactor.core.publisher.MonoDelay$MonoDelayRunnable.propagateDelay(MonoDelay.java:269)
+	at reactor.core.publisher.MonoDelay$MonoDelayRunnable.run(MonoDelay.java:284)
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:72)
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+	Suppressed: java.lang.Exception: #block terminated with an error
+		at reactor.core.publisher.BlockingSingleSubscriber.blockingGet(BlockingSingleSubscriber.java:104)
+		at reactor.core.publisher.Mono.block(Mono.java:1773)
+		at io.modelcontextprotocol.client.McpSyncClient.initialize(McpSyncClient.java:190)
+		at org.springframework.ai.mcp.client.common.autoconfigure.McpClientAutoConfiguration.mcpSyncClients(McpClientAutoConfiguration.java:188)
+		at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+		at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+		at org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:155)
+		at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiateWithFactoryMethod(SimpleInstantiationStrategy.java:72)
+		at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:152)
+		at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:653)
+		at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:645)
+		at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1362)
+		at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1194)
+		at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565)
+		at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525)
+		at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333)
+		at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371)
+		at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331)
+		at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196)
+		at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1218)
+		at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1184)
+		at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1121)
+		at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:994)
+		at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:621)
+		at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143)
+		at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:756)
+		at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:445)
+		at org.springframework.boot.SpringApplication.run(SpringApplication.java:321)
+		at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
+		at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
+		at com.hanwha.ai.AiAgentApplication.main(AiAgentApplication.java:11)
+		at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+		at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+		at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:52)
+Caused by: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 20000ms in 'map' (and no fallback has been configured)
+	... 13 common frames omitted
+2026-06-26 09:45:15.967 [pool-5-thread-1] INFO  i.m.c.transport.StdioClientTransport - STDERR Message received: Secure MCP Filesystem Server running on stdio
+2026-06-26 09:46:40.164 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - Starting AiAgentApplication using Java 21.0.11 with PID 13260 (D:\workspace\AI-AGENT\build\classes\java\main started by netroot74 in D:\workspace\AI-AGENT)
+2026-06-26 09:46:40.173 [restartedMain] DEBUG com.hanwha.ai.AiAgentApplication - Running with Spring Boot v4.0.6, Spring v7.0.7
+2026-06-26 09:46:40.178 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-26 09:46:40.327 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-06-26 09:46:40.329 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-06-26 09:46:44.051 [restartedMain] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8081 (http)
+2026-06-26 09:46:44.087 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+2026-06-26 09:46:44.092 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-26 09:46:44.094 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-26 09:46:44.192 [restartedMain] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 3861 ms
+2026-06-26 09:46:44.946 [restartedMain] WARN  c.h.ai.llm.service.OpenAiLlmClient - OpenAI SSL certificate validation is disabled. Use this only for local development or trusted internal networks.
+2026-06-26 09:46:45.181 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-26 09:46:45.463 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3e1160d2
+2026-06-26 09:46:45.467 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-26 09:46:47.003 [boundedElastic-1] INFO  i.m.c.transport.StdioClientTransport - MCP server starting.
+2026-06-26 09:46:47.061 [boundedElastic-1] INFO  i.m.c.transport.StdioClientTransport - MCP server started
+2026-06-26 09:46:50.535 [pool-5-thread-1] INFO  i.m.c.transport.StdioClientTransport - STDERR Message received: Secure MCP Filesystem Server running on stdio
+2026-06-26 09:46:50.673 [pool-2-thread-1] INFO  i.m.client.LifecycleInitializer - Server response with Protocol: 2025-11-25, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=null, prompts=null, resources=null, tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=secure-filesystem-server, title=null, version=0.2.0, description=null, icons=null, websiteUrl=null] and Instructions null
+2026-06-26 09:46:50.722 [pool-5-thread-1] INFO  i.m.c.transport.StdioClientTransport - STDERR Message received: Client does not support MCP Roots, using allowed directories set from server args: [ 'D:\\workspace\\AI-AGENT' ]
+2026-06-26 09:46:51.236 [HttpClient-4-Worker-0] INFO  i.m.client.LifecycleInitializer - Server response with Protocol: 2025-11-25, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=LoggingCapabilities[], prompts=PromptCapabilities[listChanged=true], resources=ResourceCapabilities[subscribe=false, listChanged=true], tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=ai-mcp-server, title=null, version=0.0.1, description=null, icons=null, websiteUrl=null] and Instructions Read-only MCP server exposing project structure analysis tools and server metadata.
+2026-06-26 09:46:51.392 [restartedMain] WARN  o.s.a.m.a.p.s.SyncMcpSamplingProvider - No sampling methods found
+2026-06-26 09:46:51.398 [restartedMain] WARN  o.s.a.m.a.p.e.SyncMcpElicitationProvider - No elicitation methods found
+2026-06-26 09:46:51.430 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8081"]
+2026-06-26 09:46:51.462 [restartedMain] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8081 (http) with context path '/'
+2026-06-26 09:46:51.496 [restartedMain] INFO  com.hanwha.ai.AiAgentApplication - Started AiAgentApplication in 12.763 seconds (process running for 14.037)
+2026-06-26 09:51:21.283 [http-nio-8081-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-26 09:51:21.284 [http-nio-8081-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-26 09:51:21.287 [http-nio-8081-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 3 ms
+2026-06-26 09:51:21.517 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.insert - ==>  Preparing: INSERT INTO rag_document ( original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )
+2026-06-26 09:51:21.581 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.insert - ==> Parameters: 오션_설계온톨로지_출입신청자료_0619.xlsx(String), 6dca1ee0-7878-4039-aabd-d886ef2299fb.xlsx(String), D:\workspace\AI-AGENT\uploads\documents\6dca1ee0-7878-4039-aabd-d886ef2299fb.xlsx(String), 30894(Long), application/vnd.openxmlformats-officedocument.spreadsheetml.sheet(String), STANDARD_DOCUMENT(String), PENDING(String), 0(Integer), null
+2026-06-26 09:51:21.639 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.insert - <==    Updates: 1
+2026-06-26 09:51:21.655 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - ==>  Preparing: SELECT id, original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message, created_at, updated_at, deleted_at FROM rag_document WHERE id = ? AND deleted_at IS NULL
+2026-06-26 09:51:21.661 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - ==> Parameters: 1(Long)
+2026-06-26 09:51:21.701 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - <==      Total: 1
+2026-06-26 09:51:21.715 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexStatus - ==>  Preparing: UPDATE rag_document SET index_status = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL
+2026-06-26 09:51:21.716 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexStatus - ==> Parameters: INDEXING(String), null, 1(Long)
+2026-06-26 09:51:21.720 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexStatus - <==    Updates: 1
+2026-06-26 09:51:21.868 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexResult - ==>  Preparing: UPDATE rag_document SET index_status = ?, chunk_count = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL
+2026-06-26 09:51:21.869 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexResult - ==> Parameters: FAILED(String), 0(Integer), 400 Bad Request: "{"detail":"Unsupported file type: .xlsx"}"(String), 1(Long)
+2026-06-26 09:51:21.871 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.R.updateIndexResult - <==    Updates: 1
+2026-06-26 09:51:21.872 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - ==>  Preparing: SELECT id, original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message, created_at, updated_at, deleted_at FROM rag_document WHERE id = ? AND deleted_at IS NULL
+2026-06-26 09:51:21.873 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - ==> Parameters: 1(Long)
+2026-06-26 09:51:21.876 [http-nio-8081-exec-1] DEBUG c.h.a.d.m.RagDocumentMapper.findById - <==      Total: 1
+2026-06-26 09:51:21.917 [http-nio-8081-exec-4] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==>  Preparing: SELECT id, original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message, created_at, updated_at, deleted_at FROM rag_document WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC
+2026-06-26 09:51:21.928 [http-nio-8081-exec-4] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==> Parameters: 
+2026-06-26 09:51:21.965 [http-nio-8081-exec-4] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - <==      Total: 1
+2026-06-26 09:51:38.266 [http-nio-8081-exec-5] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==>  Preparing: SELECT id, original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message, created_at, updated_at, deleted_at FROM rag_document WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC
+2026-06-26 09:51:38.267 [http-nio-8081-exec-5] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==> Parameters: 
+2026-06-26 09:51:38.270 [http-nio-8081-exec-5] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - <==      Total: 1
+2026-06-26 09:51:38.287 [http-nio-8081-exec-6] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==>  Preparing: SELECT id, original_file_name, stored_file_name, file_path, file_size, content_type, document_type, index_status, chunk_count, error_message, created_at, updated_at, deleted_at FROM rag_document WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC
+2026-06-26 09:51:38.288 [http-nio-8081-exec-6] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - ==> Parameters: 
+2026-06-26 09:51:38.293 [http-nio-8081-exec-6] DEBUG c.h.a.d.m.RagDocumentMapper.findAll - <==      Total: 1

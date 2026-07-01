@@ -12,6 +12,9 @@ public class GenerationHistory {
     private String generatedCode;
     private String llmProvider;
     private String llmModel;
+    private String neo4jIndexStatus;
+    private LocalDateTime neo4jIndexedAt;
+    private String neo4jIndexError;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -84,6 +87,30 @@ public class GenerationHistory {
 
     public void setLlmModel(String llmModel) {
         this.llmModel = llmModel;
+    }
+
+    public String getNeo4jIndexStatus() {
+        return neo4jIndexStatus;
+    }
+
+    public void setNeo4jIndexStatus(String neo4jIndexStatus) {
+        this.neo4jIndexStatus = neo4jIndexStatus;
+    }
+
+    public LocalDateTime getNeo4jIndexedAt() {
+        return neo4jIndexedAt;
+    }
+
+    public void setNeo4jIndexedAt(LocalDateTime neo4jIndexedAt) {
+        this.neo4jIndexedAt = neo4jIndexedAt;
+    }
+
+    public String getNeo4jIndexError() {
+        return neo4jIndexError;
+    }
+
+    public void setNeo4jIndexError(String neo4jIndexError) {
+        this.neo4jIndexError = neo4jIndexError;
     }
 
     public LocalDateTime getCreatedAt() {

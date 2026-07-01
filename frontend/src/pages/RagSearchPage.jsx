@@ -6,6 +6,22 @@ import { Input } from '../components/common/Input.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { useRagSearch } from '../hooks/useRagSearch.js';
 
+const TEXT = {
+  title: 'RAG 조회',
+  description: 'VectorDB에 저장된 표준 문서 chunk를 검색하고, Java 파일 수는 Neo4j SourceFile까지 포함해 표시합니다.',
+  loadedJavaFiles: '로드된 Java 파일',
+  queryLabel: '검색어',
+  queryPlaceholder: 'VectorDB에서 조회할 문서 또는 소스코드 내용을 입력하세요.',
+  topKLabel: '조회 건수',
+  search: '검색',
+  resultTitle: '검색 목록',
+  resultDescription: '항목을 선택하면 상세 chunk 내용을 확인할 수 있습니다.',
+  emptyResults: '검색 결과가 없습니다.',
+  detailTitle: '상세 내용',
+  detailDescription: 'VectorDB에서 반환된 원문 chunk입니다.',
+  emptyDetail: '목록에서 항목을 선택하면 상세 내용이 표시됩니다.',
+};
+
 function summarizeDocument(document) {
   const compact = document.replace(/\s+/g, ' ').trim();
   return compact.length > 160 ? `${compact.slice(0, 160)}...` : compact;
@@ -64,26 +80,26 @@ export function RagSearchPage() {
           <div className="panel-title">
             <DatabaseZap size={18} />
             <div>
-              <h1>Rag조회</h1>
-              <p>VectorDB에 저장된 표준 문서와 Java 소스 chunk를 검색합니다.</p>
+              <h1>{TEXT.title}</h1>
+              <p>{TEXT.description}</p>
             </div>
           </div>
 
           <div className="stat-card">
-            <span>로드된 Java 파일</span>
+            <span>{TEXT.loadedJavaFiles}</span>
             <strong>{javaFileCount.toLocaleString()}</strong>
           </div>
         </div>
 
         <div className="rag-search-fields">
           <Input
-            label="검색어"
+            label={TEXT.queryLabel}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="VectorDB에서 조회할 문서 또는 소스코드 내용을 입력하세요."
+            placeholder={TEXT.queryPlaceholder}
           />
           <Input
-            label="조회 건수"
+            label={TEXT.topKLabel}
             value={topK}
             onChange={(event) => setTopK(event.target.value)}
             type="number"
@@ -96,7 +112,7 @@ export function RagSearchPage() {
         {ragSearch.error && <p className="error-text">{ragSearch.error}</p>}
 
         <Button icon={Search} disabled={ragSearch.isLoading} onClick={handleSearch}>
-          검색
+          {TEXT.search}
         </Button>
       </form>
 
@@ -105,15 +121,15 @@ export function RagSearchPage() {
           <div className="panel-title">
             <FileSearch size={18} />
             <div>
-              <h2>검색 목록</h2>
-              <p>항목을 선택하면 상세 chunk 내용을 확인할 수 있습니다.</p>
+              <h2>{TEXT.resultTitle}</h2>
+              <p>{TEXT.resultDescription}</p>
             </div>
           </div>
 
           {ragSearch.isLoading ? (
             <Loading />
           ) : ragSearch.documents.length === 0 ? (
-            <div className="empty-result">검색 결과가 없습니다.</div>
+            <div className="empty-result">{TEXT.emptyResults}</div>
           ) : (
             <div className="rag-result-list">
               {ragSearch.documents.map((document, index) => (
@@ -135,15 +151,15 @@ export function RagSearchPage() {
           <div className="panel-title">
             <DatabaseZap size={18} />
             <div>
-              <h2>상세 내용</h2>
-              <p>VectorDB에서 반환된 원문 chunk입니다.</p>
+              <h2>{TEXT.detailTitle}</h2>
+              <p>{TEXT.detailDescription}</p>
             </div>
           </div>
 
           {selectedDocument ? (
             <pre className="rag-detail-content">{selectedDocument}</pre>
           ) : (
-            <div className="empty-result">목록에서 항목을 선택하면 상세 내용이 표시됩니다.</div>
+            <div className="empty-result">{TEXT.emptyDetail}</div>
           )}
         </section>
       </div>

@@ -33,9 +33,23 @@ CREATE TABLE IF NOT EXISTS generation_history (
     generated_code TEXT NOT NULL,
     llm_provider VARCHAR(50),
     llm_model VARCHAR(100),
+    neo4j_index_status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    neo4j_indexed_at TIMESTAMP,
+    neo4j_index_error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE generation_history
+    ADD COLUMN IF NOT EXISTS neo4j_index_status VARCHAR(30) NOT NULL DEFAULT 'PENDING';
+
+ALTER TABLE generation_history
+    ADD COLUMN IF NOT EXISTS neo4j_indexed_at TIMESTAMP;
+
+ALTER TABLE generation_history
+    ADD COLUMN IF NOT EXISTS neo4j_index_error TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_generation_history_neo4j_index_status
+    ON generation_history (neo4j_index_status);
 CREATE INDEX IF NOT EXISTS idx_generation_history_created_at
     ON generation_history (created_at DESC);
 

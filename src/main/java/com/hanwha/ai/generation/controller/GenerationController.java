@@ -7,6 +7,8 @@ import com.hanwha.ai.generation.dto.GenerationRequest;
 import com.hanwha.ai.generation.dto.GenerationResponse;
 import com.hanwha.ai.generation.dto.ProjectStructureOptionResponse;
 import com.hanwha.ai.generation.service.GenerationService;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphReindexResponse;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,6 +75,16 @@ public class GenerationController {
     @GetMapping("/history/{id}")
     public GenerationHistoryResponse historyDetail(@PathVariable Long id) {
         return generationService.findHistoryById(id);
+    }
+
+    @GetMapping("/history/{id}/graph")
+    public SourceGraphResponse historyGraph(@PathVariable Long id) {
+        return generationService.findHistoryGraph(id);
+    }
+
+    @PostMapping("/history/{id}/graph/reindex")
+    public SourceGraphReindexResponse reindexHistoryGraph(@PathVariable Long id) {
+        return generationService.reindexHistoryGraph(id);
     }
 
     @PostMapping

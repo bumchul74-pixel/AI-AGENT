@@ -11,10 +11,10 @@ export const GENERATION_TARGETS = [
   'Controller',
   'Service',
   'ServiceImpl',
-  'Repository',
+  // 'Repository',
   'Mapper',
   'DTO',
   'DOMAIN',
-  'Exception',
+  // 'Exception',
   'Test Code',
 ];

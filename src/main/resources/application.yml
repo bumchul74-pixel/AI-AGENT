@@ -6,6 +6,11 @@ spring:
     username: ${POSTGRES_USERNAME:mcp}
     password: ${POSTGRES_PASSWORD:mcp}
     driver-class-name: org.postgresql.Driver
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:neo4j_password}
   servlet:
     multipart:
       max-file-size: ${DOCUMENT_MAX_FILE_SIZE:20MB}
@@ -44,6 +49,8 @@ generation:
       value: 'D:\workspace\management'
     - name: Extension Module
       value: 'D:\workspace\extension'
+source-graph:
+  enabled: ${SOURCE_GRAPH_ENABLED:true}
 server:
   port: 8081
 
@@ -71,6 +78,7 @@ rag:
     directory: ${RAG_WATCH_DIR:rag-server/inbox}
     interval-seconds: ${RAG_WATCH_INTERVAL_SECONDS:30}
     source: ${RAG_WATCH_SOURCE:backend-source}
+    source-graph-url: ${RAG_WATCH_SOURCE_GRAPH_URL:http://localhost:8081/api/source-graph/java-files}
     chunk-size: ${RAG_CHUNK_SIZE:1200}
     overlap: ${RAG_CHUNK_OVERLAP:150}
     min-file-age-seconds: ${RAG_WATCH_MIN_FILE_AGE_SECONDS:2}

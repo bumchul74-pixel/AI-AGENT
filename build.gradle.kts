@@ -32,9 +32,11 @@ dependencyManagement {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-json")
+    implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.springframework.ai:spring-ai-starter-mcp-client")
     implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.0")
     implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.github.javaparser:javaparser-core:3.26.4")
     runtimeOnly("org.postgresql:postgresql")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -452,6 +452,22 @@ button {
   max-height: 68vh;
 }
 
+.generation-result {
+  display: grid;
+  gap: 12px;
+}
+
+.mcp-result-notice {
+  border: 1px solid #b9d7ff;
+  background: #eef6ff;
+  color: #174a7c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .loading-box {
   align-content: center;
   gap: 12px;
@@ -1391,5 +1407,221 @@ button {
 
   .history-search-actions .button {
     width: 100%;
+  }
+}
+
+.java-graph-page {
+  display: grid;
+  gap: 18px;
+}
+
+.java-graph-search-panel,
+.java-graph-panel,
+.java-graph-detail-panel {
+  min-width: 0;
+  padding: 20px;
+}
+
+.java-graph-search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.java-graph-search-field {
+  margin-bottom: 0;
+}
+
+.java-graph-search-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.java-graph-search-actions .button {
+  min-width: 104px;
+}
+
+.java-graph-content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.java-graph-panel {
+  min-height: 920px;
+}
+
+.java-graph-detail-panel {
+  min-height: auto;
+}
+
+.java-graph-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.java-graph-toolbar-side {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  min-width: min(100%, 520px);
+}
+
+.java-graph-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.java-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  max-width: 620px;
+}
+
+.java-graph-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  border-radius: var(--radius);
+  color: #475467;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.java-graph-legend-item i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(15, 23, 42, 0.12);
+}
+
+.java-graph-legend-item strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+.java-graph-legend-item em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.java-graph-stats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+  color: #344054;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.java-graph-canvas {
+  width: 100%;
+  height: min(76vh, 860px);
+  min-height: 720px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  border-radius: var(--radius);
+}
+
+.java-graph-canvas canvas {
+  display: block;
+}
+
+.java-graph-node-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.java-graph-node-detail dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.java-graph-node-detail dl div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.java-graph-node-detail dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.java-graph-node-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.java-graph-empty-detail {
+  min-height: 280px;
+}
+
+@media (max-width: 1180px) {
+  .java-graph-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .java-graph-panel,
+  .java-graph-detail-panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .java-graph-search-form,
+  .java-graph-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .java-graph-toolbar-side {
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .java-graph-search-actions,
+  .java-graph-stats,
+  .java-graph-legend {
+    justify-content: flex-start;
+  }
+
+  .java-graph-search-actions .button {
+    flex: 1 1 0;
+  }
+
+  .java-graph-canvas {
+    height: 560px;
+    min-height: 560px;
   }
 }

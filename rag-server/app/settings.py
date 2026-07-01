@@ -18,6 +18,7 @@ class WatchSettings:
     directory: Path
     interval_seconds: int
     source: str
+    source_graph_url: str
     chunk_size: int
     overlap: int
     min_file_age_seconds: int
@@ -41,6 +42,12 @@ def load_watch_settings() -> WatchSettings:
             minimum=1,
         ),
         source=str(_get_value("RAG_WATCH_SOURCE", watch_config, "source", "watched-source")),
+        source_graph_url=str(_get_value(
+            "RAG_WATCH_SOURCE_GRAPH_URL",
+            watch_config,
+            "source-graph-url",
+            "http://localhost:8081/api/source-graph/java-files",
+        )),
         chunk_size=_get_int(
             "RAG_CHUNK_SIZE",
             default=_get_config_int(watch_config, "chunk-size", 1200),

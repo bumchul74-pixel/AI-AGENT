@@ -13,6 +13,9 @@ public record GenerationHistoryResponse(
         String generatedCode,
         String llmProvider,
         String llmModel,
+        String neo4jIndexStatus,
+        LocalDateTime neo4jIndexedAt,
+        String neo4jIndexError,
         LocalDateTime createdAt
 ) {
 }

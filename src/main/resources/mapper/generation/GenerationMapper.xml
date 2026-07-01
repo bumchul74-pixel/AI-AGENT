@@ -13,6 +13,9 @@
         <result column="generated_code" property="generatedCode" />
         <result column="llm_provider" property="llmProvider" />
         <result column="llm_model" property="llmModel" />
+        <result column="neo4j_index_status" property="neo4jIndexStatus" />
+        <result column="neo4j_indexed_at" property="neo4jIndexedAt" />
+        <result column="neo4j_index_error" property="neo4jIndexError" />
         <result column="created_at" property="createdAt" />
     </resultMap>
 
@@ -26,6 +29,9 @@
         generated_code,
         llm_provider,
         llm_model,
+        neo4j_index_status,
+        neo4j_indexed_at,
+        neo4j_index_error,
         created_at
     </sql>
 
@@ -39,6 +45,9 @@
         NULL AS generated_code,
         llm_provider,
         llm_model,
+        neo4j_index_status,
+        neo4j_indexed_at,
+        neo4j_index_error,
         created_at
     </sql>
 
@@ -105,6 +114,14 @@
             #{llmModel}
         )
     </insert>
+
+    <update id="updateNeo4jIndexStatus">
+        UPDATE generation_history
+        SET neo4j_index_status = #{status},
+            neo4j_indexed_at = #{indexedAt},
+            neo4j_index_error = #{error}
+        WHERE id = #{id}
+    </update>
 
     <select id="findAll" resultMap="generationHistoryResultMap">
         SELECT

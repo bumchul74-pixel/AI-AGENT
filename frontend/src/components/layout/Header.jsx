@@ -1,11 +1,16 @@
 import { Activity, ServerCog } from 'lucide-react';
 
+const TEXT = {
+  subtitle: 'RAG \uAE30\uBC18 Java \uAC1C\uBC1C \uC0DD\uC0B0\uC131 \uAD00\uB9AC \uCF58\uC194',
+};
+
 const pageTitles = {
   generate: 'Java Source Generator',
   chat: 'AI Chat',
-  rag: 'Rag조회',
-  documents: 'Document 관리',
-  history: '생성 이력',
+  rag: 'RAG \uC870\uD68C',
+  javaGraph: 'Java Graph',
+  documents: 'Document \uAD00\uB9AC',
+  history: '\uC0DD\uC131 \uC774\uB825',
 };
 
 export function Header({ activePage = 'generate' }) {
@@ -14,7 +19,7 @@ export function Header({ activePage = 'generate' }) {
       <div>
         <span className="eyebrow">AI-AGENT CONSOLE</span>
         <h2>{pageTitles[activePage] ?? 'AI Agent'}</h2>
-        <p>RAG 기반 Java 개발 생산성 관리 콘솔</p>
+        <p>{TEXT.subtitle}</p>
       </div>
 
       <div className="topbar-actions">

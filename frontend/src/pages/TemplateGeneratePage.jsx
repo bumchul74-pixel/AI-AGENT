@@ -11,6 +11,7 @@ import { useGenerate } from '../hooks/useGenerate.js';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
+import { JavaGraphPage } from './JavaGraphPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
 
 const TEXT = {
@@ -96,6 +97,10 @@ export function TemplateGeneratePage() {
 
     if (activePage === 'rag') {
       return <RagSearchPage />;
+    }
+
+    if (activePage === 'javaGraph') {
+      return <JavaGraphPage />;
     }
 
     if (activePage === 'history') {

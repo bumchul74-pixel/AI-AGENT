@@ -9,8 +9,15 @@ export function ChatResult({ result }) {
   }
 
   return (
-    <pre className="code-output">
-      <code>{result.generatedCode}</code>
-    </pre>
+    <div className="generation-result">
+      {result.mcpContextApplied && (
+        <div className="mcp-result-notice" role="status">
+          {result.mcpContextMessage || 'MCP 결과가 생성 결과에 반영되었습니다.'}
+        </div>
+      )}
+      <pre className="code-output">
+        <code>{result.generatedCode}</code>
+      </pre>
+    </div>
   );
 }

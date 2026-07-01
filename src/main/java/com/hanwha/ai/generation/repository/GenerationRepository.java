@@ -3,6 +3,7 @@ package com.hanwha.ai.generation.repository;
 import com.hanwha.ai.generation.domain.GenerationHistory;
 import com.hanwha.ai.generation.dto.GenerationHistorySearchRequest;
 import com.hanwha.ai.generation.mapper.GenerationMapper;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -47,5 +48,13 @@ public class GenerationRepository {
         }
 
         return mapper.findById(id);
+    }
+
+    public void updateNeo4jIndexStatus(Long id, String status, LocalDateTime indexedAt, String error) {
+        if (mapper == null || id == null) {
+            return;
+        }
+
+        mapper.updateNeo4jIndexStatus(id, status, indexedAt, error);
     }
 }

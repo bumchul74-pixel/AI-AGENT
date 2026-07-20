@@ -1,0 +1,71 @@
+현재 코드 기준 업무 순서는 이렇습니다.
+1.rag-server 시작 시 rag.watch.enabled=true이면 DirectoryIngestWatcher가 실행됩니다. 기본 감시 디렉토리는 rag-server/inbox입니다. 설정은 [settings.py (line 27)](D:/workspace/AI-AGENT/rag-server/app/settings.py:27)와 application.yml의 rag.watch 값을 사용합니다.
+
+2.Watcher는 기본 30초마다 inbox 하위 파일을 재귀적으로 검색합니다. 지원 확장자는 .java, .kt, .xml, .yml, .yaml, .md, .js, .jsx, .ts, .tsx입니다. 임시 파일 .tmp, .part, .crdownload는 제외하고, 기본 2초 이상 지난 파일만 처리합니다.
+구현 위치: [directory_watcher.py (line 65)](D:/workspace/AI-AGENT/rag-server/app/directory_watcher.py:65)
+
+3.파일을 읽고 source 값을 만듭니다.
+예를 들어 rag-server/inbox/standard-source/UserController.java이면 기본적으로:
+backend-source:standard-source/UserController.java
+형태가 됩니다.
+구현 위치: [directory_watcher.py (line 112)](D:/workspace/AI-AGENT/rag-server/app/directory_watcher.py:112)
+
+4..java 파일이면 VectorDB에 저장하지 않고 Spring Boot SourceGraph API로 보냅니다.
+호출 URL 기본값은:
+http://localhost:8081/api/source-graph/java-files
+payload는 source, fileName, content입니다. Spring 쪽에서 JavaSourceGraphAnalyzer를 통해 Neo4j SourceGraph로 인덱싱됩니다.
+구현 위치: [directory_watcher.py (line 117)](D:/workspace/AI-AGENT/rag-server/app/directory_watcher.py:117)
+
+5..java가 아닌 지원 파일이면 VectorDB에 저장합니다. 이때 전체 파일을 그대로 한 덩어리로 저장하지 않고 chunk-size, overlap 기준으로 잘라서 저장합니다. 기본값은 chunk-size=1200, overlap=150입니다.
+구현 위치: [directory_watcher.py (line 125)](D:/workspace/AI-AGENT/rag-server/app/directory_watcher.py:125)
+
+6.인덱싱이 성공하면 원본 inbox 파일을 삭제합니다. 이후 빈 폴더도 제거합니다.
+구현 위치: [directory_watcher.py (line 68)](D:/workspace/AI-AGENT/rag-server/app/directory_watcher.py:68)
+
+실패하면 파일은 삭제되지 않습니다. 로그만 남고, 다음 감시 주기에 다시 처리 대상이 됩니다.
+
+중요한 점은, 현재 inbox watcher 경로에서는 Java 파일은 VectorDB가 아니라 SourceGraph/Neo4j로만 들어갑니다. 반면 문서 업로드 화면에서 STANDARD_SOURCE로 올리는 경로는 방금 수정해서 VectorDB 저장 후 SourceGraphService.indexJavaSource(...)도 같이 호출합니다.
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+Documents > 표준 문서(STANDARD_DOCUMENT)로 파일을 업로드하면 처리 순서는 다음입니다.
+1. 프론트에서 파일과 documentType=STANDARD_DOCUMENT를 POST /api/documents로 전송합니다.
+[documentApi.js (line 18)](D:/workspace/AI-AGENT/frontend/src/api/documentApi.js:18)
+
+2.Spring DocumentController.upload(...)가 요청을 받고 DocumentService.upload(...)를 호출합니다.
+[DocumentController.java (line 37)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/controller/DocumentController.java:37)
+
+3.DocumentStorageService.store(...)가 파일을 서버 디스크에 저장합니다. 기본 저장 위치는 uploads/documents입니다. 파일명은 UUID 기반으로 바뀌고 원본 파일명은 메타데이터로 보관됩니다.
+[DocumentStorageService.java (line 28)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/service/DocumentStorageService.java:28)
+
+4.문서 타입을 결정합니다. 화면에서 STANDARD_DOCUMENT가 넘어오면 그대로 표준문서가 됩니다. 값이 없고 .java 파일이면 STANDARD_SOURCE, 그 외는 STANDARD_DOCUMENT입니다.
+[DocumentType.java (line 10)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/domain/DocumentType.java:10)
+
+5.RagDocument 메타데이터를 생성하고 DB에 저장합니다. 초기 상태는 PENDING, chunkCount=0입니다.
+[RagDocument.java (line 20)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/domain/RagDocument.java:20)
+
+6.바로 인덱싱을 시작합니다. 상태를 INDEXING으로 바꾸고, 같은 source가 VectorDB에 남아 있을 수 있으므로 먼저 RAG 서버에 delete 요청을 보냅니다. 신규 업로드에서는 보통 삭제할 기존 데이터가 없습니다.
+[DocumentService.java (line 97)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/service/DocumentService.java:97)
+
+7.Spring이 Python RAG 서버의 /api/documents/upload로 multipart 요청을 보냅니다. 같이 전달되는 값은 source, chunk_size, overlap, file입니다.
+source 형식은 대략 document:{id}:{원본파일명}입니다.
+[PythonDocumentIngestClient.java (line 20)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/service/PythonDocumentIngestClient.java:20)
+
+8.RAG 서버는 파일에서 텍스트를 추출합니다. .txt, .md, .java, .xml, .yml 등 텍스트 파일은 디코딩하고, .pdf, .docx는 별도 추출기를 사용합니다.
+[file_text_extractor.py (line 32)](D:/workspace/AI-AGENT/rag-server/app/file_text_extractor.py:32)
+
+9.추출된 텍스트를 청크로 나누고 각 청크를 embedding한 뒤 VectorDB 저장소에 저장합니다. 기본값은 chunk-size=1200, overlap=150입니다.
+[vector_store.py (line 30)](D:/workspace/AI-AGENT/rag-server/app/vector_store.py:30)
+
+10.RAG 서버가 stored_count를 반환하면 Spring은 문서 상태를 INDEXED로 바꾸고 chunkCount에 저장된 청크 수를 기록합니다.
+   [DocumentService.java (line 108)](D:/workspace/AI-AGENT/src/main/java/com/hanwha/ai/document/service/DocumentService.java:108)
+
+중요한 차이는 이겁니다. 표준문서(STANDARD_DOCUMENT)는 VectorDB까지만 저장되고 SourceGraph/JavaParser/Neo4j는 타지 않습니다.
+SourceGraph까지 가는 건 STANDARD_SOURCE일 때만입니다.
+
+
+
+추천 1순위: Lightweight Task Pipeline

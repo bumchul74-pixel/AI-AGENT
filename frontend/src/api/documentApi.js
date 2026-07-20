@@ -5,14 +5,35 @@ async function readError(response, fallbackMessage) {
   return errorBody?.message ?? errorBody?.detail ?? fallbackMessage;
 }
 
-export async function fetchDocuments() {
-  const response = await fetch(apiUrl('/api/documents'));
+export async function fetchDocuments({ page = 0, size = 30 } = {}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  const response = await fetch(apiUrl(`/api/documents/page?${params.toString()}`));
 
   if (!response.ok) {
-    throw new Error(await readError(response, '문서 목록을 불러오지 못했습니다.'));
+    throw new Error(await readError(response, '臾몄꽌 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??'));
   }
 
-  return response.json();
+  const payload = await response.json();
+  if (Array.isArray(payload)) {
+    return {
+      documents: payload,
+      page,
+      size,
+      totalCount: payload.length,
+      hasNext: false,
+    };
+  }
+
+  return {
+    documents: payload?.documents ?? [],
+    page: payload?.page ?? page,
+    size: payload?.size ?? size,
+    totalCount: payload?.totalCount ?? 0,
+    hasNext: Boolean(payload?.hasNext),
+  };
 }
 
 export async function uploadDocument({ file, documentType }) {
@@ -26,7 +47,7 @@ export async function uploadDocument({ file, documentType }) {
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, '문서 업로드에 실패했습니다.'));
+    throw new Error(await readError(response, '臾몄꽌 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.'));
   }
 
   return response.json();
@@ -38,7 +59,7 @@ export async function reindexDocument(id) {
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, '문서 재색인에 실패했습니다.'));
+    throw new Error(await readError(response, '臾몄꽌 ?ъ깋?몄뿉 ?ㅽ뙣?덉뒿?덈떎.'));
   }
 
   return response.json();
@@ -50,7 +71,7 @@ export async function deleteDocument(id) {
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, '문서 삭제에 실패했습니다.'));
+    throw new Error(await readError(response, '臾몄꽌 ??젣???ㅽ뙣?덉뒿?덈떎.'));
   }
 }
 

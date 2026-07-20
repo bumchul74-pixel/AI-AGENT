@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
+try:
+    import yaml
+except ImportError:  # pragma: no cover - local fallback when PyYAML is not installed
+    yaml = None
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,6 +21,7 @@ class WatchSettings:
     directory: Path
     interval_seconds: int
     source: str
+    document_upload_url: str
     source_graph_url: str
     chunk_size: int
     overlap: int
@@ -42,6 +46,12 @@ def load_watch_settings() -> WatchSettings:
             minimum=1,
         ),
         source=str(_get_value("RAG_WATCH_SOURCE", watch_config, "source", "watched-source")),
+        document_upload_url=str(_get_value(
+            "RAG_WATCH_DOCUMENT_UPLOAD_URL",
+            watch_config,
+            "document-upload-url",
+            "http://localhost:8081/api/documents",
+        )),
         source_graph_url=str(_get_value(
             "RAG_WATCH_SOURCE_GRAPH_URL",
             watch_config,
@@ -120,7 +130,7 @@ def _get_config_int(config: dict[str, Any], key: str, default: int) -> int:
 
 
 def _load_application_yml() -> dict[str, Any]:
-    if not APPLICATION_YML.exists():
+    if not APPLICATION_YML.exists() or yaml is None:
         return {}
 
     with APPLICATION_YML.open(encoding="utf-8") as file:

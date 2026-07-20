@@ -84,8 +84,21 @@ public class DocumentStorageService {
         }
     }
 
+    /** Removes a staged file when an upload is a duplicate of an active row. */
+    public void discard(StoredDocumentFile storedFile) {
+        try {
+            Files.deleteIfExists(resolveManagedPath(Path.of(storedFile.filePath())));
+        } catch (IOException exception) {
+            throw new BusinessException("Failed to discard duplicate upload.", exception);
+        }
+    }
+
     private Path resolveManagedPath(RagDocument document) {
-        Path path = Path.of(document.getFilePath()).toAbsolutePath().normalize();
+        return resolveManagedPath(Path.of(document.getFilePath()));
+    }
+
+    private Path resolveManagedPath(Path candidate) {
+        Path path = candidate.toAbsolutePath().normalize();
         if (!path.startsWith(rootDirectory)) {
             throw new BusinessException("Stored file is outside the document storage directory.");
         }

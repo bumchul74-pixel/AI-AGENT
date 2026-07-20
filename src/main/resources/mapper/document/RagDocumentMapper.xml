@@ -11,7 +11,12 @@
         <result column="file_size" property="fileSize" />
         <result column="content_type" property="contentType" />
         <result column="document_type" property="documentType" />
+        <result column="file_hash" property="fileHash" />
+        <result column="vector_source_key" property="vectorSourceKey" />
+        <result column="graph_source_key" property="graphSourceKey" />
         <result column="index_status" property="indexStatus" />
+        <result column="vector_index_status" property="vectorIndexStatus" />
+        <result column="graph_index_status" property="graphIndexStatus" />
         <result column="chunk_count" property="chunkCount" />
         <result column="error_message" property="errorMessage" />
         <result column="created_at" property="createdAt" />
@@ -27,7 +32,12 @@
         file_size,
         content_type,
         document_type,
+        file_hash,
+        vector_source_key,
+        graph_source_key,
         index_status,
+        vector_index_status,
+        graph_index_status,
         chunk_count,
         error_message,
         created_at,
@@ -47,7 +57,12 @@
             file_size,
             content_type,
             document_type,
+            file_hash,
+            vector_source_key,
+            graph_source_key,
             index_status,
+            vector_index_status,
+            graph_index_status,
             chunk_count,
             error_message
         ) VALUES (
@@ -57,10 +72,18 @@
             #{fileSize},
             #{contentType},
             #{documentType},
+            #{fileHash},
+            #{vectorSourceKey},
+            #{graphSourceKey},
             #{indexStatus},
+            #{vectorIndexStatus},
+            #{graphIndexStatus},
             #{chunkCount},
             #{errorMessage}
         )
+        ON CONFLICT (file_hash, document_type)
+            WHERE deleted_at IS NULL AND file_hash IS NOT NULL
+        DO NOTHING
     </insert>
 
     <select id="findAll" resultMap="ragDocumentResultMap">
@@ -71,6 +94,22 @@
         ORDER BY created_at DESC, id DESC
     </select>
 
+    <select id="findPage" resultMap="ragDocumentResultMap">
+        SELECT
+        <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT count(*)
+        FROM rag_document
+        WHERE deleted_at IS NULL
+    </select>
+
     <select id="findById" parameterType="long" resultMap="ragDocumentResultMap">
         SELECT
         <include refid="ragDocumentColumns" />
@@ -79,9 +118,67 @@
           AND deleted_at IS NULL
     </select>
 
+    <select id="findActiveByFileHashAndDocumentType" resultMap="ragDocumentResultMap">
+        SELECT
+        <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE file_hash = #{fileHash}
+          AND document_type = #{documentType}
+          AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+    <select id="findByGraphSourceKey" parameterType="string" resultMap="ragDocumentResultMap">
+        SELECT
+        <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE graph_source_key = #{graphSourceKey}
+          AND deleted_at IS NULL
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <update id="updateIndexMetadata">
+        UPDATE rag_document
+        SET file_hash = #{fileHash},
+            vector_source_key = #{vectorSourceKey},
+            graph_source_key = #{graphSourceKey},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
     <update id="updateIndexStatus">
         UPDATE rag_document
         SET index_status = #{indexStatus},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateVectorIndexStatus">
+        UPDATE rag_document
+        SET vector_index_status = #{vectorIndexStatus},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateVectorIndexResult">
+        UPDATE rag_document
+        SET vector_index_status = #{vectorIndexStatus},
+            chunk_count = #{chunkCount},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateGraphIndexStatus">
+        UPDATE rag_document
+        SET graph_index_status = #{graphIndexStatus},
             error_message = #{errorMessage},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}
@@ -101,6 +198,8 @@
     <update id="markDeleted" parameterType="long">
         UPDATE rag_document
         SET index_status = 'DELETED',
+            vector_index_status = 'DELETED',
+            graph_index_status = CASE WHEN graph_source_key IS NULL THEN graph_index_status ELSE 'DELETED' END,
             deleted_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}

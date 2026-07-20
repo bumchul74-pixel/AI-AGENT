@@ -5,5 +5,6 @@ public enum IndexStatus {
     INDEXING,
     INDEXED,
     FAILED,
+    SKIPPED,
     DELETED
 }

@@ -104,6 +104,31 @@ public class JavaSourceGraphAnalyzer {
         ));
     }
 
+    public String findSourceContent(String content, String fqn, String simpleName) {
+        if (!StringUtils.hasText(content) || (!StringUtils.hasText(fqn) && !StringUtils.hasText(simpleName))) {
+            return "";
+        }
+
+        for (String candidate : extractJavaCandidates(content)) {
+            CompilationUnit compilationUnit = parseCandidate(candidate);
+            if (compilationUnit == null || compilationUnit.getTypes().isEmpty()) {
+                continue;
+            }
+
+            String packageName = compilationUnit.getPackageDeclaration()
+                    .map(packageDeclaration -> packageDeclaration.getName().asString())
+                    .orElse("");
+            for (TypeDeclaration<?> type : compilationUnit.getTypes()) {
+                String candidateSimpleName = type.getNameAsString();
+                String candidateFqn = fqn(packageName, candidateSimpleName);
+                if (matchesType(candidateFqn, candidateSimpleName, fqn, simpleName)) {
+                    return candidate;
+                }
+            }
+        }
+        return "";
+    }
+
     private SourceGraphResponse analyze(AnalysisTarget target) {
         Map<String, SourceGraphNodeResponse> nodes = new LinkedHashMap<>();
         Set<RelationshipKey> relationships = new LinkedHashSet<>();
@@ -132,6 +157,7 @@ public class JavaSourceGraphAnalyzer {
                 String typeUid = typeUid(target.graphKey(), fqn);
                 String typeKind = typeKind(type);
                 String layer = inferLayer(simpleName, type);
+                String sourceContent = candidates.get(index);
 
                 addNode(nodes, sourceUid, "SourceFile", sourceFileName, properties(
                         "uid", sourceUid,
@@ -141,11 +167,12 @@ public class JavaSourceGraphAnalyzer {
                         "source", target.source(),
                         "fileName", sourceFileName,
                         "packageName", packageName,
-                        "primaryType", fqn
+                        "primaryType", fqn,
+                        "sourceContent", sourceContent
                 ));
                 addRelationship(relationships, target.rootUid(), sourceUid, target.rootToSourceRelationship(), target);
 
-                addJavaTypeNode(nodes, target, typeUid, fqn, simpleName, typeKind, layer, false);
+                addJavaTypeNode(nodes, target, typeUid, fqn, simpleName, typeKind, layer, false, sourceContent);
                 addRelationship(relationships, sourceUid, typeUid, "DECLARES", target);
 
                 addImports(nodes, relationships, target, typeUid, compilationUnit);
@@ -190,7 +217,7 @@ public class JavaSourceGraphAnalyzer {
                 continue;
             }
             String targetUid = typeUid(target.graphKey(), importFqn);
-            addJavaTypeNode(nodes, target, targetUid, importFqn, simpleName(importFqn), "UNKNOWN", inferLayer(simpleName(importFqn), null), true);
+            addJavaTypeNode(nodes, target, targetUid, importFqn, simpleName(importFqn), "UNKNOWN", inferLayer(simpleName(importFqn), null), true, null);
             addRelationship(relationships, sourceTypeUid, targetUid, "IMPORTS", target);
         }
     }
@@ -297,7 +324,7 @@ public class JavaSourceGraphAnalyzer {
                 continue;
             }
             String targetUid = typeUid(target.graphKey(), targetFqn);
-            addJavaTypeNode(nodes, target, targetUid, targetFqn, simpleName(targetFqn), "UNKNOWN", inferLayer(simpleName(targetFqn), null), true);
+            addJavaTypeNode(nodes, target, targetUid, targetFqn, simpleName(targetFqn), "UNKNOWN", inferLayer(simpleName(targetFqn), null), true, null);
             if (!targetUid.equals(sourceTypeUid)) {
                 addRelationship(relationships, sourceTypeUid, targetUid, relationshipType, target);
             }
@@ -405,6 +432,18 @@ public class JavaSourceGraphAnalyzer {
         return simpleName;
     }
 
+    private boolean matchesType(String candidateFqn, String candidateSimpleName, String requestedFqn, String requestedSimpleName) {
+        if (StringUtils.hasText(requestedFqn) && requestedFqn.equals(candidateFqn)) {
+            return true;
+        }
+        if (StringUtils.hasText(requestedSimpleName) && requestedSimpleName.equals(candidateSimpleName)) {
+            return true;
+        }
+        if (StringUtils.hasText(requestedFqn)) {
+            return simpleName(requestedFqn).equals(candidateSimpleName);
+        }
+        return false;
+    }
     private void addJavaTypeNode(
             Map<String, SourceGraphNodeResponse> nodes,
             AnalysisTarget target,
@@ -413,7 +452,8 @@ public class JavaSourceGraphAnalyzer {
             String simpleName,
             String kind,
             String layer,
-            boolean external
+            boolean external,
+            String sourceContent
     ) {
         addNode(nodes, uid, "JavaType", simpleName, properties(
                 "uid", uid,
@@ -425,7 +465,8 @@ public class JavaSourceGraphAnalyzer {
                 "simpleName", simpleName,
                 "kind", kind,
                 "layer", layer,
-                "external", external
+                "external", external,
+                "sourceContent", sourceContent
         ));
     }
 

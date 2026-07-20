@@ -3,6 +3,7 @@ package com.hanwha.ai.sourcegraph.service;
 import com.hanwha.ai.generation.domain.GenerationHistory;
 import com.hanwha.ai.sourcegraph.dto.JavaSourceGraphIngestRequest;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeSourceResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
 import java.time.LocalDateTime;
 
@@ -40,6 +41,11 @@ public final class NoOpSourceGraphService implements SourceGraphService {
     @Override
     public SourceGraphResponse findImpacts(String fqn) {
         return SourceGraphResponse.empty(null);
+    }
+
+    @Override
+    public SourceGraphNodeSourceResponse findNodeSource(String nodeId) {
+        return SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph indexing is not configured.");
     }
 
     @Override

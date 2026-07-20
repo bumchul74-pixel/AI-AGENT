@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { forceCollide, forceX, forceY } from 'd3-force-3d';
 import ForceGraph2D from 'react-force-graph-2d';
-import { Network, RotateCcw, Search } from 'lucide-react';
-import { fetchSourceGraphOverview } from '../api/sourceGraphApi.js';
+import { FileCode, Network, RotateCcw, Search } from 'lucide-react';
+import { fetchSourceGraphNodeSource, fetchSourceGraphOverview } from '../api/sourceGraphApi.js';
 import { Loading } from '../components/common/Loading.jsx';
+import { Modal } from '../components/common/Modal.jsx';
 
 const TEXT = {
   title: 'Java Graph',
@@ -23,6 +24,9 @@ const TEXT = {
   id: 'ID',
   name: 'Name',
   properties: 'Properties',
+  sourceModalTitle: 'Java ???????곸뒠',
+  sourceLoading: '???????곸뒠???븍뜄???삳뮉 餓λ쵐???덈뼄.',
+  sourceUnavailable: '??뽯뻻?????????곸뒠??筌≪뼚??????곷뮸??덈뼄.',
 };
 
 const NODE_COLORS = {
@@ -153,15 +157,25 @@ export function JavaGraphPage() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sourceModal, setSourceModal] = useState({
+    open: false,
+    node: null,
+    source: null,
+    isLoading: false,
+    error: '',
+  });
+  const lastNodeClickRef = useRef({ nodeId: '', clickedAt: 0 });
+  const sourceRequestIdRef = useRef(0);
 
   const graphData = useMemo(() => transformGraph(graph), [graph]);
 
   async function loadGraph(nextQuery = submittedQuery) {
     setIsLoading(true);
     setError('');
+    closeSourceModal();
 
     try {
-      const result = await fetchSourceGraphOverview({ query: nextQuery, limit: 600 });
+      const result = await fetchSourceGraphOverview({ query: nextQuery, limit: 1500 });
       setGraph(result);
       setSelectedNode(null);
     } catch (exception) {
@@ -186,6 +200,71 @@ export function JavaGraphPage() {
     loadGraph('');
   }
 
+  function closeSourceModal() {
+    sourceRequestIdRef.current += 1;
+    setSourceModal({
+      open: false,
+      node: null,
+      source: null,
+      isLoading: false,
+      error: '',
+    });
+  }
+
+  async function openNodeSource(node) {
+    if (!node?.id) {
+      return;
+    }
+
+    const requestId = sourceRequestIdRef.current + 1;
+    sourceRequestIdRef.current = requestId;
+    setSourceModal({
+      open: true,
+      node,
+      source: null,
+      isLoading: true,
+      error: '',
+    });
+
+    try {
+      const source = await fetchSourceGraphNodeSource(node.id);
+      if (sourceRequestIdRef.current !== requestId) {
+        return;
+      }
+      setSourceModal({
+        open: true,
+        node,
+        source,
+        isLoading: false,
+        error: source.available ? '' : source.message || TEXT.sourceUnavailable,
+      });
+    } catch (exception) {
+      if (sourceRequestIdRef.current !== requestId) {
+        return;
+      }
+      setSourceModal({
+        open: true,
+        node,
+        source: null,
+        isLoading: false,
+        error: exception.message || TEXT.sourceUnavailable,
+      });
+    }
+  }
+
+  function handleNodeClick(node, event) {
+    setSelectedNode(node);
+
+    const clickedAt = event?.timeStamp ?? Date.now();
+    const lastClick = lastNodeClickRef.current;
+    if (lastClick.nodeId === node.id && clickedAt - lastClick.clickedAt <= 360) {
+      lastNodeClickRef.current = { nodeId: '', clickedAt: 0 };
+      openNodeSource(node);
+      return;
+    }
+
+    lastNodeClickRef.current = { nodeId: node.id, clickedAt };
+  }
   useEffect(() => {
     loadGraph('');
   }, []);
@@ -212,6 +291,9 @@ export function JavaGraphPage() {
 
     return () => window.clearTimeout(timer);
   }, [graphData, graphSize.width, graphSize.height]);
+
+  const sourceDetail = sourceModal.source;
+  const sourceTitle = sourceDetail?.name || (sourceModal.node ? graphNodeName(sourceModal.node) : TEXT.sourceModalTitle);
 
   return (
     <section className="java-graph-page">
@@ -315,12 +397,15 @@ export function JavaGraphPage() {
                 warmupTicks={80}
                 cooldownTicks={260}
                 enableNodeDrag
-                onNodeClick={setSelectedNode}
+                onNodeClick={handleNodeClick}
                 onNodeDragEnd={(node) => {
                   node.fx = node.x;
                   node.fy = node.y;
                 }}
-                onBackgroundClick={() => setSelectedNode(null)}
+                onBackgroundClick={() => {
+                  setSelectedNode(null);
+                  lastNodeClickRef.current = { nodeId: '', clickedAt: 0 };
+                }}
                 nodePointerAreaPaint={(node, color, ctx) => {
                   const radius = estimateGraphNodeRadius(node) + 10;
                   ctx.fillStyle = color;
@@ -397,6 +482,39 @@ export function JavaGraphPage() {
           )}
         </aside>
       </section>
+
+      <Modal className="java-source-modal-shell" open={sourceModal.open} onClose={closeSourceModal} title={sourceTitle}>
+        <div className="java-source-modal">
+          <div className="java-source-modal-title">
+            <FileCode size={18} aria-hidden="true" />
+            <span>{sourceDetail?.fileName || sourceDetail?.fqn || sourceTitle}</span>
+          </div>
+
+          {sourceDetail && (
+            <div className="java-source-meta">
+              {sourceDetail.label && <span>{sourceDetail.label}</span>}
+              {sourceDetail.fileName && <span>{sourceDetail.fileName}</span>}
+              {sourceDetail.fqn && <span>{sourceDetail.fqn}</span>}
+              {sourceDetail.sourceKind && <span>{sourceDetail.sourceKind}</span>}
+              {sourceDetail.graphSourceKey && <span>{sourceDetail.graphSourceKey}</span>}
+              {sourceDetail.filePath && <span>{sourceDetail.filePath}</span>}
+            </div>
+          )}
+
+          {sourceModal.isLoading ? (
+            <div className="java-source-loading">
+              <Loading />
+              <span>{TEXT.sourceLoading}</span>
+            </div>
+          ) : sourceModal.error && !sourceDetail?.content ? (
+            <div className="empty-result java-source-empty">
+              <span>{sourceModal.error || TEXT.sourceUnavailable}</span>
+            </div>
+          ) : (
+            <pre className="java-source-code">{sourceDetail?.content || TEXT.sourceUnavailable}</pre>
+          )}
+        </div>
+      </Modal>
     </section>
   );
 }

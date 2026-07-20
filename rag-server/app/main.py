@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     watcher_task = None
 
     if watch_settings.enabled:
-        watcher = DirectoryIngestWatcher(watch_settings, vector_store)
+        watcher = DirectoryIngestWatcher(watch_settings)
         watcher_task = asyncio.create_task(watcher.run())
 
     try:

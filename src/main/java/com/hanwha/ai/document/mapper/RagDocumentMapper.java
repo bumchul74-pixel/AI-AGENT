@@ -11,11 +11,47 @@ public interface RagDocumentMapper {
 
     List<RagDocument> findAll();
 
+    List<RagDocument> findPage(@Param("limit") int limit, @Param("offset") int offset);
+
+    long countAll();
+
     RagDocument findById(@Param("id") Long id);
+    RagDocument findActiveByFileHashAndDocumentType(
+            @Param("fileHash") String fileHash,
+            @Param("documentType") String documentType
+    );
+
+    RagDocument findByGraphSourceKey(@Param("graphSourceKey") String graphSourceKey);
+
+    void updateIndexMetadata(
+            @Param("id") Long id,
+            @Param("fileHash") String fileHash,
+            @Param("vectorSourceKey") String vectorSourceKey,
+            @Param("graphSourceKey") String graphSourceKey
+    );
 
     void updateIndexStatus(
             @Param("id") Long id,
             @Param("indexStatus") String indexStatus,
+            @Param("errorMessage") String errorMessage
+    );
+
+    void updateVectorIndexStatus(
+            @Param("id") Long id,
+            @Param("vectorIndexStatus") String vectorIndexStatus,
+            @Param("errorMessage") String errorMessage
+    );
+
+    void updateVectorIndexResult(
+            @Param("id") Long id,
+            @Param("vectorIndexStatus") String vectorIndexStatus,
+            @Param("chunkCount") int chunkCount,
+            @Param("errorMessage") String errorMessage
+    );
+
+    void updateGraphIndexStatus(
+            @Param("id") Long id,
+            @Param("graphIndexStatus") String graphIndexStatus,
             @Param("errorMessage") String errorMessage
     );
 

@@ -78,6 +78,7 @@ rag:
     directory: ${RAG_WATCH_DIR:rag-server/inbox}
     interval-seconds: ${RAG_WATCH_INTERVAL_SECONDS:30}
     source: ${RAG_WATCH_SOURCE:backend-source}
+    document-upload-url: ${RAG_WATCH_DOCUMENT_UPLOAD_URL:http://localhost:8081/api/documents}
     source-graph-url: ${RAG_WATCH_SOURCE_GRAPH_URL:http://localhost:8081/api/source-graph/java-files}
     chunk-size: ${RAG_CHUNK_SIZE:1200}
     overlap: ${RAG_CHUNK_OVERLAP:150}
@@ -86,3 +87,8 @@ document:
   storage-directory: ${DOCUMENT_STORAGE_DIR:uploads/documents}
   chunk-size: ${DOCUMENT_CHUNK_SIZE:1200}
   overlap: ${DOCUMENT_CHUNK_OVERLAP:150}
+secure-coding:
+  max-file-size: ${SECURE_CODING_MAX_FILE_SIZE:1MB}
+  allowed-extensions:
+    - java
+  rule-sets: ${SECURE_CODING_RULE_SETS:}

@@ -1,6 +1,7 @@
 package com.hanwha.ai.document.controller;
 
 import com.hanwha.ai.document.dto.DocumentDownload;
+import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
 import com.hanwha.ai.document.service.DocumentService;
 import java.nio.charset.StandardCharsets;
@@ -32,6 +33,14 @@ public class DocumentController {
     @GetMapping
     public List<DocumentResponse> findAll() {
         return documentService.findAll();
+    }
+
+    @GetMapping("/page")
+    public DocumentPageResponse findPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "30") int size
+    ) {
+        return documentService.findPage(page, size);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

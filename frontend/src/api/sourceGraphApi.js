@@ -32,3 +32,18 @@ export async function fetchSourceGraphOverview(filters = {}) {
 
   return graph;
 }
+export async function fetchSourceGraphNodeSource(nodeId) {
+  const params = new URLSearchParams({ nodeId });
+  const response = await fetch(apiUrl(`/api/source-graph/node-source?${params.toString()}`));
+
+  if (!response.ok) {
+    throw await readError(response, 'Source graph node source request failed.');
+  }
+
+  const source = await response.json();
+  if (!source || typeof source.available !== 'boolean') {
+    throw new Error('Source graph node source response is invalid.');
+  }
+
+  return source;
+}

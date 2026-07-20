@@ -1,55 +1,69 @@
-import { useState } from 'react';
-import { CornerDownLeft, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CornerDownLeft, Paperclip, Sparkles, X } from 'lucide-react';
+import { ChatConversationList } from '../components/chat/ChatConversationList.jsx';
 import { ChatMessage } from '../components/chat/ChatMessage.jsx';
 import { useChat } from '../hooks/useChat.js';
-
-const promptExamples = [
-  'User 업무용 Controller, Service, DTO 구조를 추천해줘.',
-  '현재 generation feature 구조에서 보완할 점을 알려줘.',
-  'RAG 검색 결과를 기반으로 Mapper 생성 규칙을 정리해줘.',
-];
 
 export function ChatPage() {
   const chat = useChat();
   const [input, setInput] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const fileInputRef = useRef(null);
+  const chatThreadRef = useRef(null);
+
+  useEffect(() => {
+    const thread = chatThreadRef.current;
+    if (!thread) return;
+    thread.scrollTo({
+      top: thread.scrollHeight,
+      behavior: chat.isLoading ? 'smooth' : 'auto',
+    });
+  }, [chat.messages, chat.isLoading, chat.isHistoryLoading]);
 
   function handleSubmit(event) {
     event.preventDefault();
     const nextInput = input;
+    const nextAttachment = attachment;
     setInput('');
-    chat.submit(nextInput);
+    setAttachment(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    chat.submit(nextInput, nextAttachment);
   }
 
   return (
     <section className="chat-page">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">LLM CHAT</span>
-          <h1>프로젝트 컨텍스트 기반 질의</h1>
-          <p>Spring Boot 구조, RAG 검색 결과, 코드 생성 규칙을 같은 화면에서 질의합니다.</p>
-        </div>
-        <div className="status-badge">
-          <Sparkles size={16} />
-          <span>OpenAI / RAG ready</span>
-        </div>
-      </div>
-
       <div className="chat-layout">
-        <aside className="card chat-context-panel">
-          <h2>Prompt Examples</h2>
-          <div className="prompt-example-list">
-            {promptExamples.map((prompt) => (
-              <button key={prompt} type="button" onClick={() => setInput(prompt)}>
-                {prompt}
-              </button>
-            ))}
-          </div>
-        </aside>
+        <ChatConversationList
+          conversations={chat.conversations}
+          activeConversationId={chat.activeConversationId}
+          disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null}
+          onNew={chat.startNewConversation}
+          onSelect={chat.selectConversation}
+          onDelete={chat.removeConversation}
+        />
 
         <div className="card chat-thread-panel">
-          <div className="chat-thread">
+          <div className="chat-thread" ref={chatThreadRef}>
+            {chat.isHistoryLoading && (
+              <div className="chat-thread-empty">대화를 불러오는 중...</div>
+            )}
+            {!chat.isHistoryLoading && chat.messages.length === 0 && (
+              <div className="chat-thread-empty">
+                <Sparkles size={24} />
+                <strong>새 대화를 시작하세요.</strong>
+                <span>첫 메시지가 전송되면 대화 제목과 이력이 자동 저장됩니다.</span>
+              </div>
+            )}
             {chat.messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage
+                key={message.id}
+                message={message}
+                onResend={chat.resend}
+                resendDisabled={chat.isLoading || chat.resendingMessageId != null}
+                isResending={chat.resendingMessageId === message.id}
+              />
             ))}
             {chat.isLoading && (
               <article className="chat-message assistant">
@@ -68,6 +82,15 @@ export function ChatPage() {
           </div>
 
           <form className="chat-composer" onSubmit={handleSubmit}>
+            <label className={attachment ? 'chat-file-button selected' : 'chat-file-button'} title={attachment?.name ?? 'Attach Java source'}>
+              {attachment ? <X size={18} onClick={() => setAttachment(null)} /> : <Paperclip size={18} />}
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='.java,text/x-java-source'
+                onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
+              />
+            </label>
             <textarea
               value={input}
               placeholder="메시지를 입력하세요."
@@ -78,7 +101,7 @@ export function ChatPage() {
                 }
               }}
             />
-            <button type="submit" disabled={chat.isLoading || input.trim().length === 0}>
+            <button type="submit" disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null || input.trim().length === 0}>
               <CornerDownLeft size={18} />
               <span>Send</span>
             </button>

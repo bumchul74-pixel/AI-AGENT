@@ -10,7 +10,12 @@ public class RagDocument {
     private Long fileSize;
     private String contentType;
     private String documentType;
+    private String fileHash;
+    private String vectorSourceKey;
+    private String graphSourceKey;
     private String indexStatus;
+    private String vectorIndexStatus;
+    private String graphIndexStatus;
     private Integer chunkCount;
     private String errorMessage;
     private LocalDateTime createdAt;
@@ -33,12 +38,45 @@ public class RagDocument {
         document.setContentType(contentType);
         document.setDocumentType(documentType.name());
         document.setIndexStatus(IndexStatus.PENDING.name());
+        document.setVectorIndexStatus(IndexStatus.PENDING.name());
+        if (DocumentFileSupport.isJavaSourceFile(originalFileName)) {
+            document.setGraphIndexStatus(IndexStatus.PENDING.name());
+        }
         document.setChunkCount(0);
         return document;
     }
 
+    public static String sourceKey(Long id) {
+        return "document:" + id;
+    }
+
     public String ragSource() {
+        if (hasText(vectorSourceKey)) {
+            return vectorSourceKey;
+        }
+        if (id != null) {
+            return sourceKey(id);
+        }
+        return legacyRagSource();
+    }
+
+    public String graphSource() {
+        if (hasText(graphSourceKey)) {
+            return graphSourceKey;
+        }
+        return ragSource();
+    }
+
+    public String legacyRagSource() {
         return "document:" + id + ":" + originalFileName;
+    }
+
+    public boolean isJavaSourceFile() {
+        return DocumentFileSupport.isJavaSourceFile(originalFileName);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     public Long getId() {
@@ -97,12 +135,52 @@ public class RagDocument {
         this.documentType = documentType;
     }
 
+    public String getFileHash() {
+        return fileHash;
+    }
+
+    public void setFileHash(String fileHash) {
+        this.fileHash = fileHash;
+    }
+
+    public String getVectorSourceKey() {
+        return vectorSourceKey;
+    }
+
+    public void setVectorSourceKey(String vectorSourceKey) {
+        this.vectorSourceKey = vectorSourceKey;
+    }
+
+    public String getGraphSourceKey() {
+        return graphSourceKey;
+    }
+
+    public void setGraphSourceKey(String graphSourceKey) {
+        this.graphSourceKey = graphSourceKey;
+    }
+
     public String getIndexStatus() {
         return indexStatus;
     }
 
     public void setIndexStatus(String indexStatus) {
         this.indexStatus = indexStatus;
+    }
+
+    public String getVectorIndexStatus() {
+        return vectorIndexStatus;
+    }
+
+    public void setVectorIndexStatus(String vectorIndexStatus) {
+        this.vectorIndexStatus = vectorIndexStatus;
+    }
+
+    public String getGraphIndexStatus() {
+        return graphIndexStatus;
+    }
+
+    public void setGraphIndexStatus(String graphIndexStatus) {
+        this.graphIndexStatus = graphIndexStatus;
     }
 
     public Integer getChunkCount() {

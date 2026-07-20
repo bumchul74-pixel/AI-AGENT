@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE mapper PUBLIC '-//mybatis.org//DTD Mapper 3.0//EN'
+        'https://mybatis.org/dtd/mybatis-3-mapper.dtd'>
+<mapper namespace='com.hanwha.ai.chat.mapper.ChatMapper'>
+    <resultMap id='conversationResultMap' type='com.hanwha.ai.chat.domain.ChatConversation'>
+        <id column='id' property='id' />
+        <result column='title' property='title' />
+        <result column='last_message' property='lastMessage' />
+        <result column='message_count' property='messageCount' />
+        <result column='created_at' property='createdAt' />
+        <result column='updated_at' property='updatedAt' />
+    </resultMap>
+
+    <resultMap id='messageResultMap' type='com.hanwha.ai.chat.domain.ChatMessage'>
+        <id column='id' property='id' />
+        <result column='conversation_id' property='conversationId' />
+        <result column='role' property='role' />
+        <result column='message' property='message' />
+        <result column='attachment_name' property='attachmentName' />
+        <result column='created_at' property='createdAt' />
+    </resultMap>
+
+    <resultMap id='messageAttachmentResultMap' type='com.hanwha.ai.chat.domain.ChatMessage'
+               extends='messageResultMap'>
+        <result column='attachment_content' property='attachmentContent' />
+    </resultMap>
+
+    <sql id='conversationColumns'>
+        conversation.id,
+        conversation.title,
+        (SELECT recent.message FROM chat_message recent
+         WHERE recent.conversation_id = conversation.id
+         ORDER BY recent.created_at DESC, recent.id DESC LIMIT 1) AS last_message,
+        (SELECT COUNT(*)::integer FROM chat_message counted
+         WHERE counted.conversation_id = conversation.id) AS message_count,
+        conversation.created_at,
+        conversation.updated_at
+    </sql>
+
+    <insert id='insertConversation' useGeneratedKeys='true' keyProperty='id' keyColumn='id'>
+        INSERT INTO chat_conversation (title) VALUES (#{title})
+    </insert>
+
+    <select id='findConversationById' resultMap='conversationResultMap'>
+        SELECT <include refid='conversationColumns' />
+        FROM chat_conversation conversation
+        WHERE conversation.id = #{id}
+    </select>
+
+    <select id='findConversations' resultMap='conversationResultMap'>
+        SELECT <include refid='conversationColumns' />
+        FROM chat_conversation conversation
+        ORDER BY conversation.updated_at DESC, conversation.id DESC
+    </select>
+
+    <delete id='deleteConversation'>
+        DELETE FROM chat_conversation WHERE id = #{id}
+    </delete>
+
+    <insert id='insertMessage' useGeneratedKeys='true' keyProperty='id' keyColumn='id'>
+        INSERT INTO chat_message (
+            conversation_id, role, message, attachment_name, attachment_content, created_at
+        )
+        VALUES (#{conversationId}, #{role}, #{message}, #{attachmentName}, #{attachmentContent},
+                COALESCE(#{createdAt}, CURRENT_TIMESTAMP))
+    </insert>
+
+    <select id='findMessageById' resultMap='messageAttachmentResultMap'>
+        SELECT id, conversation_id, role, message, attachment_name, attachment_content, created_at
+        FROM chat_message
+        WHERE id = #{id}
+    </select>
+
+    <select id='findMessages' resultMap='messageResultMap'>
+        SELECT id, conversation_id, role, message, attachment_name, created_at
+        FROM chat_message
+        WHERE conversation_id = #{conversationId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <select id='findRecentMessages' resultMap='messageResultMap'>
+        SELECT id, conversation_id, role, message, attachment_name, created_at
+        FROM (SELECT id, conversation_id, role, message, attachment_name, created_at
+              FROM chat_message
+              WHERE conversation_id = #{conversationId}
+              ORDER BY created_at DESC, id DESC
+              LIMIT #{limit}) recent_messages
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <update id='touchConversation'>
+        UPDATE chat_conversation SET updated_at = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+</mapper>

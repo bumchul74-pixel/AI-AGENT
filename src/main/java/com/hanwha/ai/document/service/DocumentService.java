@@ -1,15 +1,15 @@
 package com.hanwha.ai.document.service;
 
-import com.hanwha.ai.document.config.DocumentProperties;
 import com.hanwha.ai.document.domain.DocumentType;
-import com.hanwha.ai.document.domain.IndexStatus;
+import com.hanwha.ai.document.domain.DocumentFileSupport;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.document.dto.DocumentDownload;
+import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
-import com.hanwha.ai.document.dto.PythonDocumentIngestResponse;
+import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
 import com.hanwha.ai.global.exception.BusinessException;
-import java.nio.file.Path;
 import java.util.List;
+import java.nio.file.Path;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,18 +19,18 @@ public class DocumentService {
     private final RagDocumentRepository repository;
     private final DocumentStorageService storageService;
     private final PythonDocumentIngestClient ingestClient;
-    private final DocumentProperties properties;
+    private final DocumentIndexWorkflow indexWorkflow;
 
     public DocumentService(
             RagDocumentRepository repository,
             DocumentStorageService storageService,
             PythonDocumentIngestClient ingestClient,
-            DocumentProperties properties
+            DocumentIndexWorkflow indexWorkflow
     ) {
         this.repository = repository;
         this.storageService = storageService;
         this.ingestClient = ingestClient;
-        this.properties = properties;
+        this.indexWorkflow = indexWorkflow;
     }
 
     @Transactional(readOnly = true)
@@ -40,10 +40,35 @@ public class DocumentService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public DocumentPageResponse findPage(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        int offset = safePage * safeSize;
+        List<DocumentResponse> documents = repository.findPage(safeSize, offset).stream()
+                .map(DocumentResponse::from)
+                .toList();
+        long totalCount = repository.countAll();
+        boolean hasNext = offset + documents.size() < totalCount;
+        return new DocumentPageResponse(documents, safePage, safeSize, totalCount, hasNext);
+    }
+
     @Transactional
     public DocumentResponse upload(MultipartFile file, String documentTypeValue) {
         StoredDocumentFile storedFile = storageService.store(file);
         DocumentType documentType = DocumentType.resolve(documentTypeValue, storedFile.originalFileName());
+        String fileHash = DocumentFileSupport.sha256(Path.of(storedFile.filePath()));
+
+        // Retries and concurrent directory watchers must be idempotent.
+        RagDocument existingDocument = repository.findActiveByFileHashAndDocumentType(
+                fileHash,
+                documentType.name()
+        );
+        if (existingDocument != null) {
+            storageService.discard(storedFile);
+            return DocumentResponse.from(existingDocument);
+        }
+
         RagDocument document = RagDocument.create(
                 storedFile.originalFileName(),
                 storedFile.storedFileName(),
@@ -52,13 +77,25 @@ public class DocumentService {
                 storedFile.contentType(),
                 documentType
         );
+        document.setFileHash(fileHash);
         RagDocument savedDocument = repository.save(document);
-        return index(savedDocument);
+        if (savedDocument == null) {
+            storageService.discard(storedFile);
+            throw new BusinessException("Failed to save uploaded document.");
+        }
+        if (document.getId() == null || !document.getId().equals(savedDocument.getId())) {
+            storageService.discard(storedFile);
+            return DocumentResponse.from(savedDocument);
+        }
+        indexWorkflow.run(savedDocument);
+        return DocumentResponse.from(requireDocument(savedDocument.getId()));
     }
 
     @Transactional
     public DocumentResponse reindex(Long id) {
-        return index(requireDocument(id));
+        RagDocument document = requireDocument(id);
+        indexWorkflow.run(document);
+        return DocumentResponse.from(requireDocument(id));
     }
 
     @Transactional(readOnly = true)
@@ -74,38 +111,19 @@ public class DocumentService {
     @Transactional
     public void delete(Long id) {
         RagDocument document = requireDocument(id);
-        ingestClient.deleteSource(document.ragSource());
+        deleteVectorSources(document);
         storageService.delete(document);
         if (!repository.markDeleted(id)) {
             throw new BusinessException("Document not found.");
         }
     }
 
-    private DocumentResponse index(RagDocument document) {
-        repository.updateIndexStatus(document.getId(), IndexStatus.INDEXING.name(), null);
-        try {
-            ingestClient.deleteSource(document.ragSource());
-            PythonDocumentIngestResponse response = ingestClient.ingest(
-                    Path.of(document.getFilePath()),
-                    document.ragSource(),
-                    properties.chunkSize(),
-                    properties.overlap()
-            );
-            repository.updateIndexResult(
-                    document.getId(),
-                    IndexStatus.INDEXED.name(),
-                    response.storedCount(),
-                    null
-            );
-        } catch (Exception exception) {
-            repository.updateIndexResult(
-                    document.getId(),
-                    IndexStatus.FAILED.name(),
-                    0,
-                    rootMessage(exception)
-            );
+    private void deleteVectorSources(RagDocument document) {
+        ingestClient.deleteSource(document.ragSource());
+        String legacySource = document.legacyRagSource();
+        if (!legacySource.equals(document.ragSource())) {
+            ingestClient.deleteSource(legacySource);
         }
-        return DocumentResponse.from(requireDocument(document.getId()));
     }
 
     private RagDocument requireDocument(Long id) {
@@ -114,17 +132,5 @@ public class DocumentService {
             throw new BusinessException("Document not found.");
         }
         return document;
-    }
-
-    private String rootMessage(Exception exception) {
-        Throwable current = exception;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
-        String message = current.getMessage();
-        if (message == null || message.isBlank()) {
-            return current.getClass().getSimpleName();
-        }
-        return message;
     }
 }

@@ -2,6 +2,7 @@ package com.hanwha.ai.sourcegraph.controller;
 
 import com.hanwha.ai.sourcegraph.dto.JavaSourceGraphIngestRequest;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeSourceResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
 import com.hanwha.ai.sourcegraph.service.SourceGraphService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +32,12 @@ public class SourceGraphController {
             @RequestParam(defaultValue = "600") int limit
     ) {
         return sourceGraphService.findOverview(query, limit);
+    }
+
+
+    @GetMapping("/node-source")
+    public SourceGraphNodeSourceResponse nodeSource(@RequestParam String nodeId) {
+        return sourceGraphService.findNodeSource(nodeId);
     }
 
     @GetMapping("/dependencies")

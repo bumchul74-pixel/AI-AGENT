@@ -1,13 +1,21 @@
 package com.hanwha.ai.sourcegraph.service;
 
+import com.hanwha.ai.document.domain.RagDocument;
+import com.hanwha.ai.document.service.RagDocumentRepository;
 import com.hanwha.ai.generation.domain.GenerationHistory;
+import com.hanwha.ai.generation.repository.GenerationRepository;
 import com.hanwha.ai.sourcegraph.config.SourceGraphProperties;
 import com.hanwha.ai.sourcegraph.dto.JavaSourceGraphIngestRequest;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeResponse;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeSourceResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphRelationshipResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
 import com.hanwha.ai.sourcegraph.exception.NoJavaTypeFoundException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -31,20 +39,29 @@ public class Neo4jSourceGraphService implements SourceGraphService {
     private static final Set<String> DEPENDENCY_RELATIONSHIPS = Set.of(
             "IMPORTS", "EXTENDS", "IMPLEMENTS", "INJECTS", "USES"
     );
+    private static final List<String> OVERVIEW_NODE_LABELS = List.of(
+            "RagSource", "SourceFile", "JavaType", "Method", "Generation"
+    );
 
     private final Neo4jClient neo4jClient;
     private final SourceGraphProperties properties;
     private final JavaSourceGraphAnalyzer analyzer;
+    private final GenerationRepository generationRepository;
+    private final RagDocumentRepository ragDocumentRepository;
     private final AtomicBoolean constraintsInitialized = new AtomicBoolean(false);
 
     public Neo4jSourceGraphService(
             Neo4jClient neo4jClient,
             SourceGraphProperties properties,
-            JavaSourceGraphAnalyzer analyzer
+            JavaSourceGraphAnalyzer analyzer,
+            GenerationRepository generationRepository,
+            RagDocumentRepository ragDocumentRepository
     ) {
         this.neo4jClient = neo4jClient;
         this.properties = properties;
         this.analyzer = analyzer;
+        this.generationRepository = generationRepository;
+        this.ragDocumentRepository = ragDocumentRepository;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -130,13 +147,87 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         }
 
         int safeLimit = Math.max(20, Math.min(limit, 1500));
-        Map<String, Object> parameters = new LinkedHashMap<>();
-        parameters.put("limit", safeLimit);
+        List<SourceGraphNodeResponse> nodes = fetchBalancedOverviewNodes(query, safeLimit);
+        return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
+    }
 
-        String nodeCypher;
+    private List<SourceGraphNodeResponse> fetchBalancedOverviewNodes(String query, int limit) {
+        Map<String, SourceGraphNodeResponse> nodes = new LinkedHashMap<>();
+        boolean hasQuery = StringUtils.hasText(query);
+        int labelLimit = Math.max(1, (int) Math.ceil((double) limit / OVERVIEW_NODE_LABELS.size()));
+        String labelCypher = balancedOverviewLabelCypher(hasQuery);
+
+        for (String label : OVERVIEW_NODE_LABELS) {
+            Map<String, Object> parameters = overviewParameters(query);
+            parameters.put("label", label);
+            parameters.put("labelLimit", labelLimit);
+            fetchNodes(labelCypher, parameters).forEach(node -> nodes.putIfAbsent(node.id(), node));
+        }
+
+        int remainingLimit = limit - nodes.size();
+        if (remainingLimit > 0) {
+            Map<String, Object> parameters = overviewParameters(query);
+            parameters.put("selectedIds", List.copyOf(nodes.keySet()));
+            parameters.put("remainingLimit", remainingLimit);
+            fetchNodes(remainingOverviewCypher(hasQuery), parameters).forEach(node -> nodes.putIfAbsent(node.id(), node));
+        }
+
+        return List.copyOf(nodes.values());
+    }
+
+    private Map<String, Object> overviewParameters(String query) {
+        Map<String, Object> parameters = new LinkedHashMap<>();
         if (StringUtils.hasText(query)) {
             parameters.put("query", query.trim().toLowerCase(Locale.ROOT));
-            nodeCypher = """
+        }
+        return parameters;
+    }
+
+    private String balancedOverviewLabelCypher(boolean hasQuery) {
+        if (hasQuery) {
+            return """
+                    MATCH (matched)
+                    WHERE matched.uid IS NOT NULL
+                      AND (
+                        toLower(coalesce(matched.name, '')) CONTAINS $query
+                        OR toLower(coalesce(matched.fileName, '')) CONTAINS $query
+                        OR toLower(coalesce(matched.simpleName, '')) CONTAINS $query
+                        OR toLower(coalesce(matched.fqn, '')) CONTAINS $query
+                        OR toLower(coalesce(matched.source, '')) CONTAINS $query
+                        OR toLower(coalesce(matched.sourceKind, '')) CONTAINS $query
+                        OR any(label IN labels(matched) WHERE toLower(label) CONTAINS $query)
+                      )
+                    WITH collect(DISTINCT matched.graphKey)[0..20] AS graphKeys,
+                         collect(DISTINCT matched.uid) AS matchedIds
+                    MATCH (n)
+                    WHERE n.uid IS NOT NULL
+                      AND $label IN labels(n)
+                      AND (n.graphKey IN graphKeys OR n.uid IN matchedIds)
+                    RETURN n.uid AS id,
+                           head(labels(n)) AS label,
+                           coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
+                           properties(n) AS properties
+                    ORDER BY name
+                    LIMIT $labelLimit
+                    """;
+        }
+
+        return """
+                MATCH (n)
+                WHERE n.uid IS NOT NULL
+                  AND $label IN labels(n)
+                RETURN n.uid AS id,
+                       head(labels(n)) AS label,
+                       coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
+                       properties(n) AS properties
+                ORDER BY name
+                LIMIT $labelLimit
+                """;
+    }
+
+    private String remainingOverviewCypher(boolean hasQuery) {
+        if (hasQuery) {
+            return """
                     MATCH (matched)
                     WHERE matched.uid IS NOT NULL
                       AND (
@@ -153,28 +244,27 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                     MATCH (n)
                     WHERE n.uid IS NOT NULL
                       AND (n.graphKey IN graphKeys OR n.uid IN matchedIds)
+                      AND NOT (n.uid IN $selectedIds)
                     RETURN n.uid AS id,
                            head(labels(n)) AS label,
                            coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
                            properties(n) AS properties
                     ORDER BY label, name
-                    LIMIT $limit
-                    """;
-        } else {
-            nodeCypher = """
-                    MATCH (n)
-                    WHERE n.uid IS NOT NULL
-                    RETURN n.uid AS id,
-                           head(labels(n)) AS label,
-                           coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
-                           properties(n) AS properties
-                    ORDER BY label, name
-                    LIMIT $limit
+                    LIMIT $remainingLimit
                     """;
         }
 
-        List<SourceGraphNodeResponse> nodes = fetchNodes(nodeCypher, parameters);
-        return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
+        return """
+                MATCH (n)
+                WHERE n.uid IS NOT NULL
+                  AND NOT (n.uid IN $selectedIds)
+                RETURN n.uid AS id,
+                       head(labels(n)) AS label,
+                       coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
+                       properties(n) AS properties
+                ORDER BY label, name
+                LIMIT $remainingLimit
+                """;
     }
     @Override
     public SourceGraphResponse findByHistoryId(Long historyId) {
@@ -265,6 +355,243 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         return new SourceGraphResponse(null, List.copyOf(nodes.values()), List.copyOf(relationships));
     }
 
+    @Override
+    public SourceGraphNodeSourceResponse findNodeSource(String nodeId) {
+        if (!StringUtils.hasText(nodeId)) {
+            return SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph node id is required.");
+        }
+        if (!properties.enabled()) {
+            return SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph indexing is disabled.");
+        }
+
+        try {
+            Collection<Map<String, Object>> rows = neo4jClient.query("""
+                    MATCH (node)
+                    WHERE node.uid = $nodeId
+                    OPTIONAL MATCH (declaringFile:SourceFile)-[:DECLARES]->(node)
+                    OPTIONAL MATCH (declaringType:JavaType)-[:HAS_METHOD]->(node)
+                    OPTIONAL MATCH (methodFile:SourceFile)-[:DECLARES]->(declaringType)
+                    RETURN node.uid AS nodeId,
+                           head(labels(node)) AS label,
+                           coalesce(node.name, node.simpleName, node.fileName, node.fqn, node.uid) AS name,
+                           properties(node) AS nodeProperties,
+                           properties(declaringFile) AS declaringFileProperties,
+                           properties(declaringType) AS declaringTypeProperties,
+                           properties(methodFile) AS methodFileProperties
+                    LIMIT 1
+                    """)
+                    .bind(nodeId.trim()).to("nodeId")
+                    .fetch()
+                    .all();
+
+            return rows.stream()
+                    .findFirst()
+                    .map(this::toNodeSourceResponse)
+                    .orElseGet(() -> SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph node was not found."));
+        } catch (Exception exception) {
+            log.warn("Failed to fetch Java source content for source graph node {}.", nodeId, exception);
+            return SourceGraphNodeSourceResponse.unavailable(nodeId, "Java source content request failed.");
+        }
+    }
+
+    private SourceGraphNodeSourceResponse toNodeSourceResponse(Map<String, Object> row) {
+        Map<String, Object> nodeProperties = mapValue(row.get("nodeProperties"), true);
+        Map<String, Object> declaringFileProperties = mapValue(row.get("declaringFileProperties"), true);
+        Map<String, Object> declaringTypeProperties = mapValue(row.get("declaringTypeProperties"), true);
+        Map<String, Object> methodFileProperties = mapValue(row.get("methodFileProperties"), true);
+
+        String nodeId = stringValue(row.get("nodeId"));
+        String label = stringValue(row.get("label"));
+        String name = stringValue(row.get("name"));
+        String fqn = firstText(
+                stringValue(nodeProperties.get("fqn")),
+                stringValue(nodeProperties.get("primaryType")),
+                stringValue(declaringTypeProperties.get("fqn")),
+                stringValue(declaringFileProperties.get("primaryType")),
+                stringValue(methodFileProperties.get("primaryType"))
+        );
+        String simpleName = firstText(
+                stringValue(nodeProperties.get("simpleName")),
+                stringValue(declaringTypeProperties.get("simpleName")),
+                simpleName(fqn),
+                name
+        );
+        String graphSourceKey = firstText(
+                stringValue(nodeProperties.get("source")),
+                stringValue(declaringFileProperties.get("source")),
+                stringValue(declaringTypeProperties.get("source")),
+                stringValue(methodFileProperties.get("source")),
+                stringValue(nodeProperties.get("graphSourceKey")),
+                stringValue(declaringFileProperties.get("graphSourceKey")),
+                stringValue(methodFileProperties.get("graphSourceKey"))
+        );
+        DocumentFileSource documentFileSource = documentFileSource(graphSourceKey);
+        String fileName = firstText(
+                documentFileSource.fileName(),
+                stringValue(nodeProperties.get("fileName")),
+                stringValue(declaringFileProperties.get("fileName")),
+                stringValue(methodFileProperties.get("fileName")),
+                StringUtils.hasText(simpleName) ? simpleName + ".java" : ""
+        );
+        String sourceKind = firstText(
+                stringValue(nodeProperties.get("sourceKind")),
+                stringValue(declaringFileProperties.get("sourceKind")),
+                stringValue(declaringTypeProperties.get("sourceKind")),
+                stringValue(methodFileProperties.get("sourceKind"))
+        );
+        String content = documentFileSource.content();
+        if (!StringUtils.hasText(content)) {
+            content = firstText(
+                    generatedHistorySource(nodeProperties, declaringFileProperties, declaringTypeProperties, methodFileProperties, fqn, simpleName),
+                    stringValue(nodeProperties.get("sourceContent")),
+                    stringValue(declaringFileProperties.get("sourceContent")),
+                    stringValue(methodFileProperties.get("sourceContent")),
+                    stringValue(declaringTypeProperties.get("sourceContent"))
+            );
+        }
+
+        if (StringUtils.hasText(content)) {
+            return SourceGraphNodeSourceResponse.available(
+                    nodeId,
+                    label,
+                    name,
+                    fqn,
+                    fileName,
+                    sourceKind,
+                    documentFileSource.graphSourceKey(),
+                    documentFileSource.filePath(),
+                    content
+            );
+        }
+        return new SourceGraphNodeSourceResponse(
+                nodeId,
+                label,
+                name,
+                fqn,
+                fileName,
+                sourceKind,
+                documentFileSource.graphSourceKey(),
+                documentFileSource.filePath(),
+                "",
+                false,
+                nodeSourceUnavailableMessage(graphSourceKey, documentFileSource)
+        );
+    }
+
+    private String generatedHistorySource(
+            Map<String, Object> nodeProperties,
+            Map<String, Object> declaringFileProperties,
+            Map<String, Object> declaringTypeProperties,
+            Map<String, Object> methodFileProperties,
+            String fqn,
+            String simpleName
+    ) {
+        Long historyId = firstLong(
+                nodeProperties.get("historyId"),
+                declaringFileProperties.get("historyId"),
+                declaringTypeProperties.get("historyId"),
+                methodFileProperties.get("historyId")
+        );
+        if (historyId == null) {
+            return "";
+        }
+
+        GenerationHistory history = generationRepository.findById(historyId);
+        if (history == null) {
+            return "";
+        }
+        return analyzer.findSourceContent(history.getGeneratedCode(), fqn, simpleName);
+    }
+
+    private DocumentFileSource documentFileSource(String graphSourceKey) {
+        String sourceKey = StringUtils.hasText(graphSourceKey) ? graphSourceKey.trim() : "";
+        if (!StringUtils.hasText(sourceKey)) {
+            return new DocumentFileSource("", "", "", "");
+        }
+
+        RagDocument document = ragDocumentRepository.findByGraphSourceKey(sourceKey);
+        if (document == null) {
+            return new DocumentFileSource(sourceKey, "", "", "");
+        }
+
+        String fileName = firstText(document.getOriginalFileName(), document.getStoredFileName());
+        if (!StringUtils.hasText(document.getFilePath())) {
+            return new DocumentFileSource(sourceKey, "", fileName, "");
+        }
+
+        Path path = Path.of(document.getFilePath()).toAbsolutePath().normalize();
+        String filePath = path.toString();
+        if (!Files.isRegularFile(path)) {
+            log.warn("RAG document source file was not found. graphSourceKey={}, filePath={}", sourceKey, filePath);
+            return new DocumentFileSource(sourceKey, filePath, fileName, "");
+        }
+
+        try {
+            return new DocumentFileSource(sourceKey, filePath, fileName, Files.readString(path, StandardCharsets.UTF_8));
+        } catch (IOException exception) {
+            log.warn("Failed to read RAG document source file. graphSourceKey={}, filePath={}", sourceKey, filePath, exception);
+            return new DocumentFileSource(sourceKey, filePath, fileName, "");
+        }
+    }
+
+    private String nodeSourceUnavailableMessage(String graphSourceKey, DocumentFileSource documentFileSource) {
+        if (StringUtils.hasText(documentFileSource.filePath())) {
+            return "Physical Java source file was not found or could not be read: " + documentFileSource.filePath();
+        }
+        if (StringUtils.hasText(graphSourceKey)) {
+            return "rag_document row was not found for graph_source_key: " + graphSourceKey;
+        }
+        return "Class source content was not found for this node.";
+    }
+
+    private record DocumentFileSource(
+            String graphSourceKey,
+            String filePath,
+            String fileName,
+            String content
+    ) {
+    }
+
+    private Long firstLong(Object... values) {
+        for (Object value : values) {
+            Long parsed = longValue(value);
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        return null;
+    }
+
+    private Long longValue(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private String firstText(String... values) {
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private String simpleName(String fqn) {
+        if (!StringUtils.hasText(fqn)) {
+            return "";
+        }
+        int index = fqn.lastIndexOf('.');
+        return index >= 0 ? fqn.substring(index + 1) : fqn;
+    }
     private void ensureConstraints() {
         if (constraintsInitialized.get()) {
             return;
@@ -417,10 +744,14 @@ public class Neo4jSourceGraphService implements SourceGraphService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> mapValue(Object value) {
+        return mapValue(value, false);
+    }
+
+    private Map<String, Object> mapValue(Object value, boolean includeSourceContent) {
         if (value instanceof Map<?, ?> source) {
             Map<String, Object> target = new LinkedHashMap<>();
             source.forEach((key, mapValue) -> {
-                if (key != null && mapValue != null) {
+                if (key != null && mapValue != null && (includeSourceContent || !"sourceContent".equals(String.valueOf(key)))) {
                     target.put(String.valueOf(key), mapValue);
                 }
             });

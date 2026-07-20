@@ -6,17 +6,48 @@ import { Loading } from '../components/common/Loading.jsx';
 import { useDocument } from '../hooks/useDocument.js';
 import { formatDateTime } from '../utils/dateUtils.js';
 
+const TEXT = {
+  standardDocument: '\uD45C\uC900 \uBB38\uC11C',
+  standardSource: '\uD45C\uC900 \uC18C\uC2A4\uCF54\uB4DC',
+  pending: '\uB300\uAE30',
+  indexing: '\uC0C9\uC778 \uC911',
+  indexed: '\uC644\uB8CC',
+  failed: '\uC2E4\uD328',
+  deleted: '\uC0AD\uC81C\uB428',
+  deleteConfirm: '\uBB38\uC11C\uB97C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+  description: '\uD45C\uC900 \uBB38\uC11C\uC640 \uC18C\uC2A4\uCF54\uB4DC\uB97C \uC5C5\uB85C\uB4DC\uD558\uACE0 RAG \uAC80\uC0C9 \uB300\uC0C1\uC73C\uB85C \uC0C9\uC778\uD569\uB2C8\uB2E4.',
+  documentType: '\uBB38\uC11C \uC720\uD615',
+  file: '\uD30C\uC77C',
+  uploading: '\uC5C5\uB85C\uB4DC \uC911',
+  uploadAndIndex: '\uC5C5\uB85C\uB4DC \uBC0F \uC0C9\uC778',
+  refresh: '\uC0C8\uB85C\uACE0\uCE68',
+  uploadedDocuments: '\uC5C5\uB85C\uB4DC \uBB38\uC11C',
+  emptyTitle: '\uB4F1\uB85D\uB41C \uBB38\uC11C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.',
+  emptyDescription: '\uD45C\uC900 \uBB38\uC11C\uB098 Java \uC18C\uC2A4\uCF54\uB4DC\uB97C \uC5C5\uB85C\uB4DC\uD574 \uC8FC\uC138\uC694.',
+  fileName: '\uD30C\uC77C\uBA85',
+  type: '\uC720\uD615',
+  status: '\uC0C1\uD0DC',
+  size: '\uD06C\uAE30',
+  uploaded: '\uC5C5\uB85C\uB4DC',
+  actions: '\uC791\uC5C5',
+  source: '\uC18C\uC2A4\uCF54\uB4DC',
+  document: '\uBB38\uC11C',
+  reindex: '\uC7AC\uC0C9\uC778',
+  download: '\uB2E4\uC6B4\uB85C\uB4DC',
+  delete: '\uC0AD\uC81C',
+};
+
 const DOCUMENT_TYPES = [
-  { value: 'STANDARD_DOCUMENT', label: '표준 문서' },
-  { value: 'STANDARD_SOURCE', label: '표준 소스코드' },
+  { value: 'STANDARD_DOCUMENT', label: TEXT.standardDocument },
+  { value: 'STANDARD_SOURCE', label: TEXT.standardSource },
 ];
 
 const STATUS_LABELS = {
-  PENDING: '대기',
-  INDEXING: '색인 중',
-  INDEXED: '완료',
-  FAILED: '실패',
-  DELETED: '삭제됨',
+  PENDING: TEXT.pending,
+  INDEXING: TEXT.indexing,
+  INDEXED: TEXT.indexed,
+  FAILED: TEXT.failed,
+  DELETED: TEXT.deleted,
 };
 
 function formatFileSize(value) {
@@ -35,7 +66,7 @@ function statusClass(status) {
 }
 
 function statusLabel(status) {
-  return STATUS_LABELS[status] ?? status ?? '대기';
+  return STATUS_LABELS[status] ?? status ?? TEXT.pending;
 }
 
 export function DocumentManagePage() {
@@ -55,9 +86,17 @@ export function DocumentManagePage() {
   }
 
   async function handleDelete(documentId) {
-    const confirmed = window.confirm('문서를 삭제하시겠습니까?');
+    const confirmed = window.confirm(TEXT.deleteConfirm);
     if (confirmed) {
       await documentStore.remove(documentId);
+    }
+  }
+
+  function handleDocumentTableScroll(event) {
+    const target = event.currentTarget;
+    const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    if (distanceToBottom <= 80) {
+      documentStore.loadMoreDocuments();
     }
   }
 
@@ -68,13 +107,13 @@ export function DocumentManagePage() {
           <FileStack size={18} />
           <div>
             <h1>Documents</h1>
-            <p>표준 문서와 소스코드를 업로드하고 RAG 검색 대상으로 색인합니다.</p>
+            <p>{TEXT.description}</p>
           </div>
         </div>
 
         <div className="document-upload-grid">
           <label className="field">
-            <span>문서 유형</span>
+            <span>{TEXT.documentType}</span>
             <select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
               {DOCUMENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -83,7 +122,7 @@ export function DocumentManagePage() {
           </label>
 
           <label className="field">
-            <span>파일</span>
+            <span>{TEXT.file}</span>
             <input
               ref={fileInputRef}
               type="file"
@@ -103,10 +142,10 @@ export function DocumentManagePage() {
 
         <div className="action-row">
           <Button icon={UploadCloud} onClick={handleUpload} disabled={!selectedFile || documentStore.isUploading}>
-            {documentStore.isUploading ? '업로드 중' : '업로드 및 색인'}
+            {documentStore.isUploading ? TEXT.uploading : TEXT.uploadAndIndex}
           </Button>
           <Button icon={RefreshCw} variant="secondary" onClick={documentStore.loadDocuments} disabled={documentStore.isLoading}>
-            새로고침
+            {TEXT.refresh}
           </Button>
         </div>
       </div>
@@ -114,8 +153,8 @@ export function DocumentManagePage() {
       <div className="card document-list-panel">
         <div className="page-heading">
           <div>
-            <h1>업로드 문서</h1>
-            <p>총 {documentStore.documents.length}개</p>
+            <h1>{TEXT.uploadedDocuments}</h1>
+            <p>{`\uCD1D ${documentStore.totalCount}\uAC1C \uC911 ${documentStore.documents.length}\uAC1C \uD45C\uC2DC`}</p>
           </div>
         </div>
 
@@ -123,21 +162,21 @@ export function DocumentManagePage() {
           <Loading />
         ) : documentStore.documents.length === 0 ? (
           <div className="empty-result">
-            <strong>등록된 문서가 없습니다.</strong>
-            <span>표준 문서나 Java 소스코드를 업로드해 주세요.</span>
+            <strong>{TEXT.emptyTitle}</strong>
+            <span>{TEXT.emptyDescription}</span>
           </div>
         ) : (
-          <div className="document-table-wrap">
+          <div className="document-table-wrap" onScroll={handleDocumentTableScroll}>
             <table className="document-table">
               <thead>
                 <tr>
-                  <th>파일명</th>
-                  <th>유형</th>
-                  <th>상태</th>
+                  <th>{TEXT.fileName}</th>
+                  <th>{TEXT.type}</th>
+                  <th>{TEXT.status}</th>
                   <th>Chunk</th>
-                  <th>크기</th>
-                  <th>업로드</th>
-                  <th>작업</th>
+                  <th>{TEXT.size}</th>
+                  <th>{TEXT.uploaded}</th>
+                  <th>{TEXT.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +191,7 @@ export function DocumentManagePage() {
                           {document.errorMessage && <span>{document.errorMessage}</span>}
                         </div>
                       </td>
-                      <td>{document.documentType === 'STANDARD_SOURCE' ? '소스코드' : '문서'}</td>
+                      <td>{document.documentType === 'STANDARD_SOURCE' ? TEXT.source : TEXT.document}</td>
                       <td>
                         <span className={`status-badge document-status ${statusClass(document.indexStatus)}`}>
                           {statusLabel(document.indexStatus)}
@@ -166,19 +205,19 @@ export function DocumentManagePage() {
                           <button
                             className="icon-button"
                             type="button"
-                            title="재색인"
+                            title={TEXT.reindex}
                             disabled={isWorking}
                             onClick={() => documentStore.reindex(document.id)}
                           >
                             <RotateCw size={16} />
                           </button>
-                          <a className="icon-button" title="다운로드" href={documentDownloadUrl(document.id)}>
+                          <a className="icon-button" title={TEXT.download} href={documentDownloadUrl(document.id)}>
                             <Download size={16} />
                           </a>
                           <button
                             className="icon-button danger"
                             type="button"
-                            title="삭제"
+                            title={TEXT.delete}
                             disabled={isWorking}
                             onClick={() => handleDelete(document.id)}
                           >
@@ -189,6 +228,13 @@ export function DocumentManagePage() {
                     </tr>
                   );
                 })}
+                {documentStore.isLoadingMore && (
+                  <tr className="document-loading-row">
+                    <td colSpan={7}>
+                      <Loading />
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

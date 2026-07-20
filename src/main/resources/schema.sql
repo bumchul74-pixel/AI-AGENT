@@ -6,7 +6,12 @@ CREATE TABLE IF NOT EXISTS rag_document (
     file_size BIGINT NOT NULL,
     content_type VARCHAR(255),
     document_type VARCHAR(50) NOT NULL,
+    file_hash VARCHAR(64),
+    vector_source_key VARCHAR(255),
+    graph_source_key VARCHAR(255),
     index_status VARCHAR(50) NOT NULL,
+    vector_index_status VARCHAR(50),
+    graph_index_status VARCHAR(50),
     chunk_count INTEGER NOT NULL DEFAULT 0,
     error_message TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -14,8 +19,74 @@ CREATE TABLE IF NOT EXISTS rag_document (
     deleted_at TIMESTAMP
 );
 
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS file_hash VARCHAR(64);
+
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS vector_source_key VARCHAR(255);
+
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS graph_source_key VARCHAR(255);
+
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS vector_index_status VARCHAR(50);
+
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS graph_index_status VARCHAR(50);
+
+-- Source keys are the exact identifiers used by the VectorDB and Neo4j
+-- adapters. Normalize rows created by older workflow versions before serving
+-- them again.
+UPDATE rag_document
+SET vector_source_key = 'document:' || id,
+    graph_source_key = CASE
+        WHEN LOWER(original_file_name) LIKE '%.java' THEN 'document:' || id
+        ELSE NULL
+    END
+WHERE deleted_at IS NULL;
+-- Keep one active row for each uploaded content/type pair. Older duplicate
+-- rows are hidden before the unique index is created so existing installations
+-- are repaired during the same schema initialization.
+WITH duplicate_documents AS (
+    SELECT id,
+           ROW_NUMBER() OVER (
+               PARTITION BY file_hash, document_type
+               ORDER BY created_at ASC, id ASC
+           ) AS row_number
+    FROM rag_document
+    WHERE deleted_at IS NULL
+      AND file_hash IS NOT NULL
+)
+UPDATE rag_document document
+SET index_status = 'DELETED',
+    vector_index_status = 'DELETED',
+    graph_index_status = CASE
+        WHEN document.graph_source_key IS NULL THEN document.graph_index_status
+        ELSE 'DELETED'
+    END,
+    deleted_at = CURRENT_TIMESTAMP,
+    updated_at = CURRENT_TIMESTAMP
+FROM duplicate_documents duplicate_document
+WHERE document.id = duplicate_document.id
+  AND duplicate_document.row_number > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rag_document_active_hash_type
+    ON rag_document (file_hash, document_type)
+    WHERE deleted_at IS NULL AND file_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_rag_document_status
     ON rag_document (index_status);
+
+CREATE INDEX IF NOT EXISTS idx_rag_document_vector_status
+    ON rag_document (vector_index_status);
+
+CREATE INDEX IF NOT EXISTS idx_rag_document_graph_status
+    ON rag_document (graph_index_status);
+
+CREATE INDEX IF NOT EXISTS idx_rag_document_vector_source_key
+    ON rag_document (vector_source_key);
+
+CREATE INDEX IF NOT EXISTS idx_rag_document_graph_source_key
+    ON rag_document (graph_source_key);
 
 CREATE INDEX IF NOT EXISTS idx_rag_document_created_at
     ON rag_document (created_at DESC);
@@ -58,3 +129,29 @@ CREATE INDEX IF NOT EXISTS idx_generation_history_target_type
 
 CREATE INDEX IF NOT EXISTS idx_generation_history_target_types_gin
     ON generation_history USING GIN (target_types);
+
+CREATE TABLE IF NOT EXISTS chat_conversation (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(160) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS chat_message (
+    id BIGSERIAL PRIMARY KEY,
+    conversation_id BIGINT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
+    message TEXT NOT NULL,
+    attachment_name VARCHAR(255),
+    attachment_content BYTEA,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE chat_message
+    ADD COLUMN IF NOT EXISTS attachment_content BYTEA;
+
+CREATE INDEX IF NOT EXISTS idx_chat_conversation_updated_at
+    ON chat_conversation (updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_chat_message_conversation_created_at
+    ON chat_message (conversation_id, created_at, id);

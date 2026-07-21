@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.hanwha.ai.chat.domain.ChatConversation;
 import com.hanwha.ai.chat.domain.ChatMessage;
+import com.hanwha.ai.chat.domain.ChatProject;
 import com.hanwha.ai.chat.dto.ChatRequest;
 import com.hanwha.ai.chat.repository.ChatRepository;
 import com.hanwha.ai.llm.config.LlmProperties;
@@ -124,6 +125,63 @@ class ChatServiceImplTest {
         assertThat(response.ragDocuments()).containsExactly("MCP gateway operation: tools/list\nMCP gateway result: get_server_info");
         assertThat(llmRequest.get().prompt()).contains("MCP gateway result", "MCP tool 목록 알려줘");
         assertThat(llmRequest.get().context()).contains("tools/list", "get_server_info");
+    }
+
+    @Test
+    void projectCanBeCreatedRenamedAndReceiveConversation() {
+        ChatConversation conversation = new ChatConversation();
+        conversation.setId(7L);
+        AtomicReference<ChatProject> savedProject = new AtomicReference<>();
+        AtomicReference<Long> movedProjectId = new AtomicReference<>();
+        ChatRepository repository = new ChatRepository() {
+            @Override
+            public ChatProject createProject(String name) {
+                ChatProject project = new ChatProject();
+                project.setId(3L);
+                project.setName(name);
+                savedProject.set(project);
+                return project;
+            }
+
+            @Override
+            public ChatProject findProjectById(Long id) {
+                return savedProject.get();
+            }
+
+            @Override
+            public boolean updateProjectName(Long id, String name) {
+                savedProject.get().setName(name);
+                return true;
+            }
+
+            @Override
+            public ChatConversation findConversationById(Long id) {
+                return conversation;
+            }
+
+            @Override
+            public boolean updateConversationProject(Long conversationId, Long projectId) {
+                movedProjectId.set(projectId);
+                return true;
+            }
+        };
+        ChatService service = new ChatServiceImpl(
+                request -> new RagSearchResponse(List.of()),
+                new LlmClientFactory(
+                        new LlmProperties("openai"),
+                        List.of(fakeLlmClient(new AtomicReference<>()))
+                ),
+                repository,
+                noOpMcpContextProvider()
+        );
+
+        var created = service.createProject("  주문 서비스  ");
+        var renamed = service.renameProject(created.id(), "결제 서비스");
+        service.moveConversation(7L, created.id());
+
+        assertThat(created.name()).isEqualTo("주문 서비스");
+        assertThat(renamed.name()).isEqualTo("결제 서비스");
+        assertThat(movedProjectId.get()).isEqualTo(3L);
     }
 
     private McpChatContextProvider noOpMcpContextProvider() {

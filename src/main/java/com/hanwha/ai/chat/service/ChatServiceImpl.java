@@ -2,10 +2,12 @@ package com.hanwha.ai.chat.service;
 
 import com.hanwha.ai.chat.domain.ChatConversation;
 import com.hanwha.ai.chat.domain.ChatMessage;
+import com.hanwha.ai.chat.domain.ChatProject;
 import com.hanwha.ai.chat.dto.ChatConversationResponse;
 import com.hanwha.ai.chat.dto.ChatMessageResponse;
 import com.hanwha.ai.chat.dto.ChatRequest;
 import com.hanwha.ai.chat.dto.ChatResponse;
+import com.hanwha.ai.chat.dto.ChatProjectResponse;
 import com.hanwha.ai.chat.repository.ChatRepository;
 import com.hanwha.ai.global.exception.BusinessException;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
@@ -91,6 +93,39 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public List<ChatProjectResponse> findProjects() {
+        return chatRepository.findProjects().stream()
+                .map(this::toProjectResponse)
+                .toList();
+    }
+
+    @Override
+    public ChatProjectResponse createProject(String name) {
+        return toProjectResponse(chatRepository.createProject(normalizeProjectName(name)));
+    }
+
+    @Override
+    public ChatProjectResponse renameProject(Long projectId, String name) {
+        requiredProject(projectId);
+        String normalizedName = normalizeProjectName(name);
+        if (!chatRepository.updateProjectName(projectId, normalizedName)) {
+            throw new BusinessException("Project name could not be changed.");
+        }
+        return toProjectResponse(requiredProject(projectId));
+    }
+
+    @Override
+    public void moveConversation(Long conversationId, Long projectId) {
+        requiredConversation(conversationId);
+        if (projectId != null) {
+            requiredProject(projectId);
+        }
+        if (!chatRepository.updateConversationProject(conversationId, projectId)) {
+            throw new BusinessException("Conversation could not be moved.");
+        }
+    }
+
+    @Override
     public List<ChatMessageResponse> findMessages(Long conversationId) {
         requiredConversation(conversationId);
         return chatRepository.findMessages(conversationId).stream()
@@ -136,6 +171,25 @@ public class ChatServiceImpl implements ChatService {
         return conversation;
     }
 
+    private ChatProject requiredProject(Long projectId) {
+        ChatProject project = chatRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new BusinessException("Project not found.");
+        }
+        return project;
+    }
+
+    private String normalizeProjectName(String name) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.isEmpty()) {
+            throw new BusinessException("Project name is required.");
+        }
+        if (normalized.length() > 80) {
+            throw new BusinessException("Project name must be 80 characters or fewer.");
+        }
+        return normalized;
+    }
+
     private String createTitle(String message) {
         String normalized = message == null ? "" : message.trim();
         if (normalized.isBlank()) {
@@ -156,8 +210,16 @@ public class ChatServiceImpl implements ChatService {
 
     private ChatConversationResponse toConversationResponse(ChatConversation conversation) {
         return new ChatConversationResponse(
-                conversation.getId(), conversation.getTitle(), conversation.getLastMessage(),
+                conversation.getId(), conversation.getTitle(), conversation.getProjectId(),
+                conversation.getLastMessage(),
                 conversation.getMessageCount(), conversation.getCreatedAt(), conversation.getUpdatedAt()
+        );
+    }
+
+    private ChatProjectResponse toProjectResponse(ChatProject project) {
+        return new ChatProjectResponse(
+                project.getId(), project.getName(), project.getConversationCount(),
+                project.getCreatedAt(), project.getUpdatedAt()
         );
     }
 

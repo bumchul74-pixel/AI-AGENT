@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public class ChatConversation {
     private Long id;
     private String title;
+    private Long projectId;
     private String lastMessage;
     private int messageCount;
     private LocalDateTime createdAt;
@@ -14,6 +15,8 @@ public class ChatConversation {
     public void setId(Long id) { this.id = id; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
+    public Long getProjectId() { return projectId; }
+    public void setProjectId(Long projectId) { this.projectId = projectId; }
     public String getLastMessage() { return lastMessage; }
     public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
     public int getMessageCount() { return messageCount; }

@@ -130,12 +130,23 @@ CREATE INDEX IF NOT EXISTS idx_generation_history_target_type
 CREATE INDEX IF NOT EXISTS idx_generation_history_target_types_gin
     ON generation_history USING GIN (target_types);
 
-CREATE TABLE IF NOT EXISTS chat_conversation (
+CREATE TABLE IF NOT EXISTS chat_project (
     id BIGSERIAL PRIMARY KEY,
-    title VARCHAR(160) NOT NULL,
+    name VARCHAR(80) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS chat_conversation (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(160) NOT NULL,
+    project_id BIGINT REFERENCES chat_project(id) ON DELETE SET NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE chat_conversation
+    ADD COLUMN IF NOT EXISTS project_id BIGINT REFERENCES chat_project(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS chat_message (
     id BIGSERIAL PRIMARY KEY,
@@ -152,6 +163,12 @@ ALTER TABLE chat_message
 
 CREATE INDEX IF NOT EXISTS idx_chat_conversation_updated_at
     ON chat_conversation (updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_chat_conversation_project_id
+    ON chat_conversation (project_id);
+
+CREATE INDEX IF NOT EXISTS idx_chat_project_updated_at
+    ON chat_project (updated_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_chat_message_conversation_created_at
     ON chat_message (conversation_id, created_at, id);

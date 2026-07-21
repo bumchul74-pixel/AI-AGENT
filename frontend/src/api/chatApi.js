@@ -44,6 +44,41 @@ export async function fetchChatConversations() {
   return response.json();
 }
 
+export async function fetchChatProjects() {
+  const response = await fetch(`${API_BASE_URL}/api/chat/projects`);
+  if (!response.ok) {
+    throw new Error('프로젝트 목록을 불러오지 못했습니다.');
+  }
+  return response.json();
+}
+
+export async function createChatProject(name) {
+  return sendProjectRequest(`${API_BASE_URL}/api/chat/projects`, 'POST', name);
+}
+
+export async function renameChatProject(projectId, name) {
+  return sendProjectRequest(
+    `${API_BASE_URL}/api/chat/projects/${projectId}`,
+    'PATCH',
+    name,
+  );
+}
+
+export async function moveChatConversation(conversationId, projectId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/chat/conversations/${conversationId}/project`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId }),
+    },
+  );
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(errorBody?.message ?? '대화를 이동하지 못했습니다.');
+  }
+}
+
 export async function fetchConversationMessages(conversationId) {
   const response = await fetch(
     `${API_BASE_URL}/api/chat/conversations/${conversationId}/messages`,
@@ -62,4 +97,17 @@ export async function deleteChatConversation(conversationId) {
   if (!response.ok) {
     throw new Error('대화를 삭제하지 못했습니다.');
   }
+}
+
+async function sendProjectRequest(url, method, name) {
+  const response = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(errorBody?.message ?? '프로젝트를 저장하지 못했습니다.');
+  }
+  return response.json();
 }

@@ -2,6 +2,7 @@ package com.hanwha.ai.chat.repository;
 
 import com.hanwha.ai.chat.domain.ChatConversation;
 import com.hanwha.ai.chat.domain.ChatMessage;
+import com.hanwha.ai.chat.domain.ChatProject;
 import com.hanwha.ai.chat.mapper.ChatMapper;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,33 @@ public class ChatRepository {
 
     public List<ChatConversation> findConversations() {
         return mapper == null ? List.of() : mapper.findConversations();
+    }
+
+    public boolean updateConversationProject(Long conversationId, Long projectId) {
+        return mapper != null && conversationId != null
+                && mapper.updateConversationProject(conversationId, projectId) > 0;
+    }
+
+    public ChatProject createProject(String name) {
+        ChatProject project = new ChatProject();
+        project.setName(name);
+        if (mapper != null) {
+            mapper.insertProject(project);
+            return mapper.findProjectById(project.getId());
+        }
+        return project;
+    }
+
+    public ChatProject findProjectById(Long id) {
+        return mapper == null || id == null ? null : mapper.findProjectById(id);
+    }
+
+    public List<ChatProject> findProjects() {
+        return mapper == null ? List.of() : mapper.findProjects();
+    }
+
+    public boolean updateProjectName(Long id, String name) {
+        return mapper != null && id != null && mapper.updateProjectName(id, name) > 0;
     }
 
     public boolean deleteConversation(Long id) {

@@ -5,8 +5,17 @@
     <resultMap id='conversationResultMap' type='com.hanwha.ai.chat.domain.ChatConversation'>
         <id column='id' property='id' />
         <result column='title' property='title' />
+        <result column='project_id' property='projectId' />
         <result column='last_message' property='lastMessage' />
         <result column='message_count' property='messageCount' />
+        <result column='created_at' property='createdAt' />
+        <result column='updated_at' property='updatedAt' />
+    </resultMap>
+
+    <resultMap id='projectResultMap' type='com.hanwha.ai.chat.domain.ChatProject'>
+        <id column='id' property='id' />
+        <result column='name' property='name' />
+        <result column='conversation_count' property='conversationCount' />
         <result column='created_at' property='createdAt' />
         <result column='updated_at' property='updatedAt' />
     </resultMap>
@@ -28,6 +37,7 @@
     <sql id='conversationColumns'>
         conversation.id,
         conversation.title,
+        conversation.project_id,
         (SELECT recent.message FROM chat_message recent
          WHERE recent.conversation_id = conversation.id
          ORDER BY recent.created_at DESC, recent.id DESC LIMIT 1) AS last_message,
@@ -56,6 +66,40 @@
     <delete id='deleteConversation'>
         DELETE FROM chat_conversation WHERE id = #{id}
     </delete>
+
+    <update id='updateConversationProject'>
+        UPDATE chat_conversation
+        SET project_id = #{projectId}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{conversationId}
+    </update>
+
+    <insert id='insertProject' useGeneratedKeys='true' keyProperty='id' keyColumn='id'>
+        INSERT INTO chat_project (name) VALUES (#{name})
+    </insert>
+
+    <select id='findProjectById' resultMap='projectResultMap'>
+        SELECT project.id, project.name,
+               (SELECT COUNT(*)::integer FROM chat_conversation conversation
+                WHERE conversation.project_id = project.id) AS conversation_count,
+               project.created_at, project.updated_at
+        FROM chat_project project
+        WHERE project.id = #{id}
+    </select>
+
+    <select id='findProjects' resultMap='projectResultMap'>
+        SELECT project.id, project.name,
+               (SELECT COUNT(*)::integer FROM chat_conversation conversation
+                WHERE conversation.project_id = project.id) AS conversation_count,
+               project.created_at, project.updated_at
+        FROM chat_project project
+        ORDER BY project.name ASC, project.id ASC
+    </select>
+
+    <update id='updateProjectName'>
+        UPDATE chat_project
+        SET name = #{name}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
 
     <insert id='insertMessage' useGeneratedKeys='true' keyProperty='id' keyColumn='id'>
         INSERT INTO chat_message (

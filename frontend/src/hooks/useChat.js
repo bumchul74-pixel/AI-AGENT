@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  createChatProject,
   deleteChatConversation,
   fetchChatAttachment,
   fetchChatConversations,
+  fetchChatProjects,
   fetchConversationMessages,
+  moveChatConversation,
+  renameChatProject,
   sendChatMessage,
 } from '../api/chatApi.js';
 
 export function useChat() {
   const [conversations, setConversations] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [resendingMessageId, setResendingMessageId] = useState(null);
+  const [projectError, setProjectError] = useState('');
+  const [isProjectLoading, setIsProjectLoading] = useState(false);
 
   const refreshConversations = useCallback(async () => {
     const items = await fetchChatConversations();
     setConversations(items);
+    return items;
+  }, []);
+
+  const refreshProjects = useCallback(async () => {
+    const items = await fetchChatProjects();
+    setProjects(items);
     return items;
   }, []);
 
@@ -27,9 +40,13 @@ export function useChat() {
     async function loadInitialConversation() {
       setIsHistoryLoading(true);
       try {
-        const items = await fetchChatConversations();
+        const [items, projectItems] = await Promise.all([
+          fetchChatConversations(),
+          fetchChatProjects(),
+        ]);
         if (cancelled) return;
         setConversations(items);
+        setProjects(projectItems);
         if (items.length > 0) {
           const firstId = items[0].id;
           const history = await fetchConversationMessages(firstId);
@@ -78,6 +95,7 @@ export function useChat() {
     if (isLoading) return;
     await deleteChatConversation(conversationId);
     const items = await refreshConversations();
+    await refreshProjects();
     if (conversationId !== activeConversationId) return;
 
     const next = items[0];
@@ -87,6 +105,49 @@ export function useChat() {
     }
     setActiveConversationId(next.id);
     setMessages(await fetchConversationMessages(next.id));
+  }
+
+  async function createProject(name) {
+    setProjectError('');
+    setIsProjectLoading(true);
+    try {
+      const project = await createChatProject(name);
+      await refreshProjects();
+      return project;
+    } catch (exception) {
+      setProjectError(exception.message);
+      throw exception;
+    } finally {
+      setIsProjectLoading(false);
+    }
+  }
+
+  async function renameProject(projectId, name) {
+    setProjectError('');
+    setIsProjectLoading(true);
+    try {
+      await renameChatProject(projectId, name);
+      await refreshProjects();
+    } catch (exception) {
+      setProjectError(exception.message);
+      throw exception;
+    } finally {
+      setIsProjectLoading(false);
+    }
+  }
+
+  async function moveConversation(conversationId, projectId) {
+    setProjectError('');
+    setIsProjectLoading(true);
+    try {
+      await moveChatConversation(conversationId, projectId);
+      await Promise.all([refreshConversations(), refreshProjects()]);
+    } catch (exception) {
+      setProjectError(exception.message);
+      throw exception;
+    } finally {
+      setIsProjectLoading(false);
+    }
   }
 
   async function submit(content, file = null) {
@@ -146,15 +207,21 @@ export function useChat() {
 
   return {
     conversations,
+    projects,
     activeConversationId,
     messages,
     isLoading,
     isHistoryLoading,
     resendingMessageId,
+    projectError,
+    isProjectLoading,
     appendMessage,
     selectConversation,
     startNewConversation,
     removeConversation,
+    createProject,
+    renameProject,
+    moveConversation,
     submit,
     resend,
   };

@@ -37,11 +37,16 @@ export function ChatPage() {
       <div className="chat-layout">
         <ChatConversationList
           conversations={chat.conversations}
+          projects={chat.projects}
           activeConversationId={chat.activeConversationId}
-          disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null}
+          disabled={chat.isLoading || chat.isHistoryLoading || chat.isProjectLoading || chat.resendingMessageId != null}
           onNew={chat.startNewConversation}
           onSelect={chat.selectConversation}
           onDelete={chat.removeConversation}
+          onCreateProject={chat.createProject}
+          onRenameProject={chat.renameProject}
+          onMoveConversation={chat.moveConversation}
+          projectError={chat.projectError}
         />
 
         <div className="card chat-thread-panel">

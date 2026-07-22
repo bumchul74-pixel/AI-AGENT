@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from app.vector_store import LocalVectorStore
 
@@ -40,12 +40,26 @@ def rag_ingest_document(
     content: str,
     chunk_size: int = 1200,
     overlap: int = 150,
+    project_id: str = "",
+    file_path: str = "",
+    file_hash: str = "",
+    entity_ids: list[str] | None = None,
+    document_id: int | None = None,
+    symbol: str = "",
+    metadata: dict[str, Any] | None = None,
 ) -> RagIngestResult:
     stored_count = vector_store.add_document(
         source=source.strip(),
         content=content,
         chunk_size=normalize_chunk_size(chunk_size),
         overlap=normalize_overlap(overlap),
+        project_id=project_id.strip(),
+        file_path=file_path.strip(),
+        file_hash=file_hash.strip(),
+        entity_ids=entity_ids or [],
+        document_id=document_id,
+        symbol=symbol.strip(),
+        metadata=metadata or {},
     )
     return {"stored_count": stored_count}
 

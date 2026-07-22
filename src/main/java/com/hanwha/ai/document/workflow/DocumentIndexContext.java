@@ -2,6 +2,7 @@ package com.hanwha.ai.document.workflow;
 
 import com.hanwha.ai.document.domain.DocumentFileSupport;
 import com.hanwha.ai.document.domain.RagDocument;
+import com.hanwha.ai.sourcegraph.domain.SourceGraphIdentity;
 import java.nio.file.Path;
 
 public class DocumentIndexContext {
@@ -29,12 +30,23 @@ public class DocumentIndexContext {
         return DocumentFileSupport.isJavaSourceFile(document.getOriginalFileName());
     }
 
+    public boolean isGraphSourceFile() {
+        return DocumentFileSupport.isGraphSourceFile(document.getOriginalFileName());
+    }
+
     public String vectorSourceKey() {
         return document.ragSource();
     }
 
     public String graphSourceKey() {
         return document.graphSource();
+    }
+
+    public String logicalFilePath() {
+        return SourceGraphIdentity.normalizeFilePath(
+                document.getOriginalFileName(),
+                document.getOriginalFileName()
+        );
     }
 
     public int storedChunkCount() {

@@ -6,11 +6,12 @@ const TEXT = {
 
 const pageTitles = {
   generate: 'Java Source Generator',
+  history: 'Generation History',
   chat: 'AI Chat',
   rag: 'RAG \uC870\uD68C',
   javaGraph: 'Java Graph',
   documents: 'Document \uAD00\uB9AC',
-  history: '\uC0DD\uC131 \uC774\uB825',
+  dataCleanup: 'Integrated Data Cleanup',
 };
 
 export function Header({ activePage = 'generate' }) {

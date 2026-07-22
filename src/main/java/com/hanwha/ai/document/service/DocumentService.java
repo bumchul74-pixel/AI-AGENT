@@ -8,6 +8,7 @@ import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
 import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
 import com.hanwha.ai.global.exception.BusinessException;
+import com.hanwha.ai.sourcegraph.service.SourceGraphService;
 import java.util.List;
 import java.nio.file.Path;
 import org.springframework.stereotype.Service;
@@ -20,17 +21,20 @@ public class DocumentService {
     private final DocumentStorageService storageService;
     private final PythonDocumentIngestClient ingestClient;
     private final DocumentIndexWorkflow indexWorkflow;
+    private final SourceGraphService sourceGraphService;
 
     public DocumentService(
             RagDocumentRepository repository,
             DocumentStorageService storageService,
             PythonDocumentIngestClient ingestClient,
-            DocumentIndexWorkflow indexWorkflow
+            DocumentIndexWorkflow indexWorkflow,
+            SourceGraphService sourceGraphService
     ) {
         this.repository = repository;
         this.storageService = storageService;
         this.ingestClient = ingestClient;
         this.indexWorkflow = indexWorkflow;
+        this.sourceGraphService = sourceGraphService;
     }
 
     @Transactional(readOnly = true)
@@ -112,6 +116,7 @@ public class DocumentService {
     public void delete(Long id) {
         RagDocument document = requireDocument(id);
         deleteVectorSources(document);
+        sourceGraphService.deleteBySourceKey(document.graphSource());
         storageService.delete(document);
         if (!repository.markDeleted(id)) {
             throw new BusinessException("Document not found.");

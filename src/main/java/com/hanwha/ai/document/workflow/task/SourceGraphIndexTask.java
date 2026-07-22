@@ -1,6 +1,7 @@
 package com.hanwha.ai.document.workflow.task;
 
 import com.hanwha.ai.document.domain.IndexStatus;
+import com.hanwha.ai.document.config.DocumentProperties;
 import com.hanwha.ai.document.service.RagDocumentRepository;
 import com.hanwha.ai.document.workflow.DocumentIndexContext;
 import com.hanwha.ai.document.workflow.DocumentIndexTask;
@@ -12,6 +13,7 @@ import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
 import com.hanwha.ai.sourcegraph.service.SourceGraphService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.stream.IntStream;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -20,15 +22,21 @@ import org.springframework.stereotype.Component;
 public class SourceGraphIndexTask implements DocumentIndexTask {
     private final SourceGraphService sourceGraphService;
     private final RagDocumentRepository repository;
+    private final DocumentProperties properties;
 
-    public SourceGraphIndexTask(SourceGraphService sourceGraphService, RagDocumentRepository repository) {
+    public SourceGraphIndexTask(
+            SourceGraphService sourceGraphService,
+            RagDocumentRepository repository,
+            DocumentProperties properties
+    ) {
         this.sourceGraphService = sourceGraphService;
         this.repository = repository;
+        this.properties = properties;
     }
 
     @Override
     public boolean supports(DocumentIndexContext context) {
-        return context.isJavaSourceFile();
+        return context.isGraphSourceFile();
     }
 
     @Override
@@ -38,7 +46,14 @@ public class SourceGraphIndexTask implements DocumentIndexTask {
             SourceGraphIndexResult result = sourceGraphService.indexJavaSource(new JavaSourceGraphIngestRequest(
                     context.graphSourceKey(),
                     context.document().getOriginalFileName(),
-                    content
+                    content,
+                    properties.projectId(),
+                    properties.moduleName(),
+                    context.logicalFilePath(),
+                    context.document().getFileHash(),
+                    IntStream.range(0, context.storedChunkCount())
+                            .mapToObj(index -> context.vectorSourceKey() + ":chunk:" + index)
+                            .toList()
             ));
             SourceGraphIndexStatus status = result == null ? SourceGraphIndexStatus.SKIPPED : result.status();
             if (SourceGraphIndexStatus.FAILED.equals(status)) {

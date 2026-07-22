@@ -5,7 +5,9 @@ import com.hanwha.ai.sourcegraph.dto.JavaSourceGraphIngestRequest;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeSourceResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphSourceResponse;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class NoOpSourceGraphService implements SourceGraphService {
     public static final NoOpSourceGraphService INSTANCE = new NoOpSourceGraphService();
@@ -44,8 +46,28 @@ public final class NoOpSourceGraphService implements SourceGraphService {
     }
 
     @Override
+    public SourceGraphResponse findNeighborhoodByEntityIds(List<String> entityIds, int depth) {
+        return SourceGraphResponse.empty(null);
+    }
+
+    @Override
     public SourceGraphNodeSourceResponse findNodeSource(String nodeId) {
         return SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph indexing is not configured.");
+    }
+
+    @Override
+    public void deleteBySourceKey(String sourceKey) {
+        // Nothing to delete when source graph indexing is disabled.
+    }
+
+    @Override
+    public void deleteByGraphKey(String graphKey) {
+        // Nothing to delete when source graph indexing is disabled.
+    }
+
+    @Override
+    public List<SourceGraphSourceResponse> findIndexedSources() {
+        return List.of();
     }
 
     @Override

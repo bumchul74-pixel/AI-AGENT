@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileCode2, History, Play, Sparkles } from 'lucide-react';
+import { FileCode2, Play, Sparkles } from 'lucide-react';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
@@ -10,6 +10,7 @@ import { GENERATION_TARGETS } from '../constants/apiConstants.js';
 import { useGenerate } from '../hooks/useGenerate.js';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
+import { DataCleanupPage } from './DataCleanupPage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
 import { JavaGraphPage } from './JavaGraphPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
@@ -19,7 +20,6 @@ const TEXT = {
   generatorDescription: 'RAG \uAC80\uC0C9 \uACB0\uACFC\uB97C \uAE30\uBC18\uC73C\uB85C \uD45C\uC900 \uD328\uD134\uC758 Java \uC18C\uC2A4\uB97C \uC0DD\uC131\uD569\uB2C8\uB2E4.',
   targetSelect: '\uC0DD\uC131 \uB300\uC0C1 \uC120\uD0DD',
   generate: '\uC0DD\uC131',
-  history: '\uC774\uB825',
   resultDescription: '\uC0DD\uC131\uB41C Java \uCF54\uB4DC\uAC00 \uC774 \uC601\uC5ED\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
 };
 
@@ -107,6 +107,10 @@ export function TemplateGeneratePage() {
       return <HistoryPage />;
     }
 
+    if (activePage === 'dataCleanup') {
+      return <DataCleanupPage />;
+    }
+
     return (
       <section className="work-grid">
         <div className="card request-panel">
@@ -156,9 +160,6 @@ export function TemplateGeneratePage() {
           <div className="action-row">
             <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading || isProjectStructureLoading || !projectStructure || targetTypes.length === 0}>
               {TEXT.generate}
-            </Button>
-            <Button icon={History} variant="secondary" onClick={() => setActivePage('history')}>
-              {TEXT.history}
             </Button>
           </div>
         </div>

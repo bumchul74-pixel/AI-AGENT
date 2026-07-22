@@ -11,6 +11,8 @@ import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphNodeSourceResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphRelationshipResponse;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
+import com.hanwha.ai.sourcegraph.dto.SourceGraphSourceResponse;
+import com.hanwha.ai.sourcegraph.domain.SourceOntology;
 import com.hanwha.ai.sourcegraph.exception.NoJavaTypeFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +40,22 @@ import org.springframework.util.StringUtils;
 public class Neo4jSourceGraphService implements SourceGraphService {
     private static final Logger log = LoggerFactory.getLogger(Neo4jSourceGraphService.class);
     private static final Set<String> DEPENDENCY_RELATIONSHIPS = Set.of(
-            "IMPORTS", "EXTENDS", "IMPLEMENTS", "INJECTS", "USES"
+            "IMPORTS", "EXTENDS", "IMPLEMENTS", "INJECTS", "USES", "USES_DTO", "CALLS",
+            "READS_FROM", "WRITES_TO", "MAPS_TO", "EXECUTES", "HAS_STATEMENT", "HAS_MAPPER_XML"
+    );
+    private static final Set<String> HYBRID_SEARCH_RELATIONSHIPS = Set.of(
+            "DECLARES", "HAS_METHOD", "HAS_FIELD", "IMPORTS", "EXTENDS", "IMPLEMENTS",
+            "INJECTS", "USES", "USES_DTO", "CALLS", "HANDLED_BY", "READS_FROM",
+            "WRITES_TO", "MAPS_TO", "CONFORMS_TO", "VIOLATES", "EXECUTES",
+            "HAS_STATEMENT", "HAS_MAPPER_XML", "HAS_COLUMN", "REFERENCES_COLUMN",
+            "DESCRIBES", "EVIDENCE_FOR", "BASED_ON", "HAS_SOURCE", "DEFINES",
+            "CONFIGURES", "ACTIVATES"
     );
     private static final List<String> OVERVIEW_NODE_LABELS = List.of(
-            "RagSource", "SourceFile", "JavaType", "Method", "Generation"
+            "Project", "Module", "Package", "SourceFile", "JavaType", "Method", "Field",
+            "ApiEndpoint", "DatabaseTable", "DatabaseColumn", "SqlStatement", "Document",
+            "Chunk", "StandardRule", "StandardTemplate", "Generation", "ConfigurationFile",
+            "ConfigurationProperty", "Bean", "Profile", "Provider"
     );
 
     private final Neo4jClient neo4jClient;
@@ -71,6 +86,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         }
 
         try {
+            ensureConstraints();
         } catch (Exception exception) {
             log.debug("Neo4j source graph constraints were not initialized.", exception);
         }
@@ -88,7 +104,6 @@ public class Neo4jSourceGraphService implements SourceGraphService {
 
         try {
             SourceGraphResponse graph = analyzer.analyze(history);
-            deleteHistoryGraph(history.getId());
             deleteGraphByGraphKey(graphKey(graph));
             writeGraph(graph);
             return SourceGraphIndexResult.success(indexedAt);
@@ -106,7 +121,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         }
 
         try {
-            SourceGraphResponse graph = analyzer.analyzeJavaSource(request);
+            SourceGraphResponse graph = analyzer.analyzeSource(request);
             deleteGraphByGraphKey(graphKey(graph));
             writeGraph(graph);
             return SourceGraphIndexResult.success(indexedAt);
@@ -128,7 +143,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         try {
             Collection<Map<String, Object>> rows = neo4jClient.query("""
                     MATCH (s:SourceFile)
-                    WHERE s.uid IS NOT NULL
+                    WHERE s.uid IS NOT NULL AND toLower(coalesce(s.fileName, '')) ENDS WITH '.java'
                     RETURN count(DISTINCT s.uid) AS count
                     """).fetch().all();
             return rows.stream()
@@ -204,7 +219,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                       AND $label IN labels(n)
                       AND (n.graphKey IN graphKeys OR n.uid IN matchedIds)
                     RETURN n.uid AS id,
-                           head(labels(n)) AS label,
+                           head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                            coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
                            properties(n) AS properties
                     ORDER BY name
@@ -217,7 +232,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 WHERE n.uid IS NOT NULL
                   AND $label IN labels(n)
                 RETURN n.uid AS id,
-                       head(labels(n)) AS label,
+                       head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                        coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
                        properties(n) AS properties
                 ORDER BY name
@@ -246,7 +261,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                       AND (n.graphKey IN graphKeys OR n.uid IN matchedIds)
                       AND NOT (n.uid IN $selectedIds)
                     RETURN n.uid AS id,
-                           head(labels(n)) AS label,
+                           head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                            coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
                            properties(n) AS properties
                     ORDER BY label, name
@@ -259,7 +274,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 WHERE n.uid IS NOT NULL
                   AND NOT (n.uid IN $selectedIds)
                 RETURN n.uid AS id,
-                       head(labels(n)) AS label,
+                       head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                        coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
                        properties(n) AS properties
                 ORDER BY label, name
@@ -276,7 +291,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 MATCH (n)
                 WHERE n.historyId = $historyId
                 RETURN n.uid AS id,
-                       head(labels(n)) AS label,
+                       head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                        coalesce(n.name, n.fileName, n.simpleName, toString(n.id)) AS name,
                        properties(n) AS properties
                 ORDER BY label, name
@@ -301,6 +316,39 @@ public class Neo4jSourceGraphService implements SourceGraphService {
     @Override
     public SourceGraphResponse findImpacts(String fqn) {
         return findTypeNeighborhood(fqn, "INCOMING");
+    }
+
+    @Override
+    public SourceGraphResponse findNeighborhoodByEntityIds(List<String> entityIds, int depth) {
+        if (!properties.enabled() || entityIds == null || entityIds.isEmpty()) {
+            return SourceGraphResponse.empty(null);
+        }
+        List<String> normalizedIds = entityIds.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .limit(100)
+                .toList();
+        if (normalizedIds.isEmpty()) {
+            return SourceGraphResponse.empty(null);
+        }
+        int safeDepth = Math.max(1, Math.min(depth, 6));
+        List<SourceGraphNodeResponse> nodes = fetchNodes("""
+                MATCH path=(seed:SourceGraphEntity)-[pathRelationships*0..%d]-(node:SourceGraphEntity)
+                WHERE seed.uid IN $entityIds
+                  AND all(relationship IN pathRelationships
+                          WHERE type(relationship) IN $relationshipTypes)
+                WITH DISTINCT node
+                LIMIT 600
+                RETURN node.uid AS id,
+                       head([nodeLabel IN labels(node) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
+                       coalesce(node.name, node.simpleName, node.fileName, node.fqn, node.uid) AS name,
+                       properties(node) AS properties
+                """.formatted(safeDepth), Map.of(
+                "entityIds", normalizedIds,
+                "relationshipTypes", List.copyOf(HYBRID_SEARCH_RELATIONSHIPS)
+        ));
+        return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
     }
 
     private SourceGraphResponse findTypeNeighborhood(String fqn, String direction) {
@@ -372,7 +420,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                     OPTIONAL MATCH (declaringType:JavaType)-[:HAS_METHOD]->(node)
                     OPTIONAL MATCH (methodFile:SourceFile)-[:DECLARES]->(declaringType)
                     RETURN node.uid AS nodeId,
-                           head(labels(node)) AS label,
+                           head([nodeLabel IN labels(node) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                            coalesce(node.name, node.simpleName, node.fileName, node.fqn, node.uid) AS name,
                            properties(node) AS nodeProperties,
                            properties(declaringFile) AS declaringFileProperties,
@@ -392,6 +440,49 @@ public class Neo4jSourceGraphService implements SourceGraphService {
             log.warn("Failed to fetch Java source content for source graph node {}.", nodeId, exception);
             return SourceGraphNodeSourceResponse.unavailable(nodeId, "Java source content request failed.");
         }
+    }
+
+    @Override
+    public void deleteBySourceKey(String sourceKey) {
+        if (!StringUtils.hasText(sourceKey)) {
+            return;
+        }
+        String graphKey = "rag-source:" + UUID.nameUUIDFromBytes(
+                sourceKey.trim().getBytes(StandardCharsets.UTF_8)
+        );
+        deleteGraphByGraphKey(graphKey);
+    }
+
+    @Override
+    public void deleteByGraphKey(String graphKey) {
+        if (StringUtils.hasText(graphKey)) {
+            deleteGraphByGraphKey(graphKey.trim());
+        }
+    }
+
+    @Override
+    public List<SourceGraphSourceResponse> findIndexedSources() {
+        if (!properties.enabled()) {
+            return List.of();
+        }
+        Collection<Map<String, Object>> rows = neo4jClient.query("""
+                MATCH (n)
+                WHERE n.graphKey IS NOT NULL AND trim(toString(n.graphKey)) <> ''
+                WITH n.graphKey AS graphKey,
+                     coalesce(max(n.sourceKey), max(n.source), n.graphKey) AS sourceKey,
+                     coalesce(max(n.fileName), max(n.name), n.graphKey) AS fileName,
+                     count(n) AS nodeCount
+                RETURN sourceKey, graphKey, fileName, nodeCount
+                ORDER BY toLower(fileName), sourceKey
+                """).fetch().all();
+        return rows.stream()
+                .map(row -> new SourceGraphSourceResponse(
+                        stringValue(row.get("sourceKey")),
+                        stringValue(row.get("graphKey")),
+                        stringValue(row.get("fileName")),
+                        intValue(row.get("nodeCount"))
+                ))
+                .toList();
     }
 
     private SourceGraphNodeSourceResponse toNodeSourceResponse(Map<String, Object> row) {
@@ -597,28 +688,57 @@ public class Neo4jSourceGraphService implements SourceGraphService {
             return;
         }
 
-        run("CREATE CONSTRAINT generation_id IF NOT EXISTS FOR (g:Generation) REQUIRE g.id IS UNIQUE", Map.of());
-        run("CREATE CONSTRAINT rag_source_uid IF NOT EXISTS FOR (r:RagSource) REQUIRE r.uid IS UNIQUE", Map.of());
-        run("CREATE CONSTRAINT source_file_uid IF NOT EXISTS FOR (s:SourceFile) REQUIRE s.uid IS UNIQUE", Map.of());
-        run("CREATE CONSTRAINT java_type_uid IF NOT EXISTS FOR (t:JavaType) REQUIRE t.uid IS UNIQUE", Map.of());
-        run("CREATE CONSTRAINT method_uid IF NOT EXISTS FOR (m:Method) REQUIRE m.uid IS UNIQUE", Map.of());
-        constraintsInitialized.set(true);
-    }
-
-    private void deleteHistoryGraph(Long historyId) {
+        run("MATCH (n) WHERE n.uid IS NOT NULL SET n:SourceGraphEntity", Map.of());
+        run("MATCH (n:SourceGraphEntity) REMOVE n.sourceContent", Map.of());
+        run("MATCH (n:StandardRule) REMOVE n.content", Map.of());
         run("""
-                MATCH (n)
-                WHERE n.historyId = $historyId
-                DETACH DELETE n
-                """, Map.of("historyId", historyId));
+                CREATE CONSTRAINT source_graph_entity_uid IF NOT EXISTS
+                FOR (n:SourceGraphEntity) REQUIRE n.uid IS UNIQUE
+                """, Map.of());
+        run("""
+                CREATE INDEX source_graph_project_id IF NOT EXISTS
+                FOR (n:SourceGraphEntity) ON (n.projectId)
+                """, Map.of());
+        constraintsInitialized.set(true);
     }
 
     private void deleteGraphByGraphKey(String graphKey) {
         run("""
+                MATCH ()-[r]->()
+                WHERE r.graphKey = $graphKey
+                DELETE r
+                """, Map.of("graphKey", graphKey));
+        run("""
                 MATCH (n)
                 WHERE n.graphKey = $graphKey
+                  AND (n:Document OR n:SourceFile OR n:Generation OR n:RagSource)
                 DETACH DELETE n
                 """, Map.of("graphKey", graphKey));
+        run("""
+                MATCH (n)
+                WHERE (n:JavaType OR n:Method OR n:Field OR n:ApiEndpoint
+                       OR n:DatabaseTable OR n:DatabaseColumn OR n:SqlStatement
+                       OR n:Chunk OR n:StandardRule OR n:StandardTemplate
+                       OR n:ConfigurationFile OR n:ConfigurationProperty
+                       OR n:Bean OR n:Profile OR n:Provider)
+                  AND NOT (n)--()
+                DELETE n
+                """, Map.of());
+        run("""
+                MATCH (n:Package)
+                WHERE NOT (n)-[:CONTAINS]->(:SourceFile)
+                DETACH DELETE n
+                """, Map.of());
+        run("""
+                MATCH (n:Module)
+                WHERE NOT (n)-[:CONTAINS]->(:Package)
+                DETACH DELETE n
+                """, Map.of());
+        run("""
+                MATCH (n:Project)
+                WHERE NOT (n)-[:CONTAINS]->(:Module)
+                DETACH DELETE n
+                """, Map.of());
     }
 
     private void writeGraph(SourceGraphResponse graph) {
@@ -635,19 +755,25 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         Map<String, Object> properties = nonNullProperties(node.properties());
         if ("Generation".equals(label)) {
             run("""
-                    MERGE (n:Generation {id: $id})
+                    MERGE (n:SourceGraphEntity:Generation {uid: $uid})
                     SET n += $properties
+                    REMOVE n.sourceContent, n.content
                     """, Map.of(
-                    "id", properties.get("id"),
+                    "uid", node.id(),
                     "properties", properties
             ));
             return;
         }
 
+        String classification = classificationLabel(label, properties);
+        String labels = StringUtils.hasText(classification)
+                ? label + ":" + classification
+                : label;
         run("""
-                MERGE (n:%s {uid: $uid})
+                MERGE (n:SourceGraphEntity:%s {uid: $uid})
                 SET n += $properties
-                """.formatted(label), Map.of(
+                REMOVE n.sourceContent, n.content
+                """.formatted(labels), Map.of(
                 "uid", node.id(),
                 "properties", properties
         ));
@@ -656,14 +782,16 @@ public class Neo4jSourceGraphService implements SourceGraphService {
     private void writeRelationship(SourceGraphRelationshipResponse relationship) {
         String type = safeRelationshipType(relationship.type());
         Map<String, Object> properties = nonNullProperties(relationship.properties());
+        String graphKey = stringValue(properties.get("graphKey"));
         run("""
-                MATCH (source {uid: $sourceId})
-                MATCH (target {uid: $targetId})
-                MERGE (source)-[r:%s]->(target)
+                MATCH (source:SourceGraphEntity {uid: $sourceId})
+                MATCH (target:SourceGraphEntity {uid: $targetId})
+                MERGE (source)-[r:%s {graphKey: $graphKey}]->(target)
                 SET r += $properties
                 """.formatted(type), Map.of(
                 "sourceId", relationship.sourceId(),
                 "targetId", relationship.targetId(),
+                "graphKey", graphKey,
                 "properties", properties
         ));
     }
@@ -774,15 +902,26 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         }
     }
     private String safeLabel(String label) {
-        if (Set.of("Generation", "RagSource", "SourceFile", "JavaType", "Method").contains(label)) {
+        if (SourceOntology.NODE_LABELS.contains(label)) {
             return label;
         }
         return "JavaType";
     }
 
+    private String classificationLabel(String label, Map<String, Object> properties) {
+        if (!"JavaType".equals(label)) {
+            return "";
+        }
+        String layer = stringValue(properties.get("layer"));
+        if ("ServiceImpl".equals(layer)) {
+            return "Service";
+        }
+        return SourceOntology.JAVA_TYPE_CLASSIFICATIONS.contains(layer) ? layer : "";
+    }
+
     private String safeRelationshipType(String type) {
         String normalized = StringUtils.hasText(type) ? type.trim().toUpperCase(Locale.ROOT) : "USES";
-        if (!normalized.matches("[A-Z_][A-Z0-9_]*")) {
+        if (!SourceOntology.RELATIONSHIP_TYPES.contains(normalized)) {
             return "USES";
         }
         return normalized;

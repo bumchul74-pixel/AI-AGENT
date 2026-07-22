@@ -10,6 +10,10 @@ import com.hanwha.ai.document.workflow.DocumentIndexContext;
 import com.hanwha.ai.document.workflow.DocumentIndexTask;
 import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
 import com.hanwha.ai.global.exception.BusinessException;
+import com.hanwha.ai.sourcegraph.domain.SourceGraphIdentity;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -44,7 +48,17 @@ public class RagVectorIngestTask implements DocumentIndexTask {
                     context.filePath(),
                     context.vectorSourceKey(),
                     properties.chunkSize(),
-                    properties.overlap()
+                    properties.overlap(),
+                    properties.projectId(),
+                    context.logicalFilePath(),
+                    context.document().getFileHash(),
+                    List.of(SourceGraphIdentity.sourceFileUid(
+                            properties.projectId(),
+                            context.logicalFilePath()
+                    )),
+                    context.document().getId(),
+                    sourceSymbol(context.document().getOriginalFileName()),
+                    vectorMetadata(context)
             );
             context.setStoredChunkCount(response.storedCount());
             repository.updateVectorIndexResult(
@@ -60,6 +74,28 @@ public class RagVectorIngestTask implements DocumentIndexTask {
             repository.updateVectorIndexResult(context.document().getId(), IndexStatus.FAILED.name(), 0, message);
             throw toRuntimeException(exception);
         }
+    }
+
+    private Map<String, Object> vectorMetadata(DocumentIndexContext context) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("moduleName", properties.moduleName());
+        putIfPresent(metadata, "documentType", context.document().getDocumentType());
+        putIfPresent(metadata, "contentType", context.document().getContentType());
+        return metadata;
+    }
+
+    private void putIfPresent(Map<String, Object> metadata, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            metadata.put(key, value);
+        }
+    }
+
+    private String sourceSymbol(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "";
+        }
+        int extensionIndex = fileName.lastIndexOf('.');
+        return extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
     }
 
     private RuntimeException toRuntimeException(Exception exception) {

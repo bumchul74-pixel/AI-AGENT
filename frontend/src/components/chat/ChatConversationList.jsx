@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import {
   Check,
   Folder,
-  FolderInput,
   FolderPlus,
   MessageSquare,
   MoreHorizontal,
@@ -30,6 +29,8 @@ export function ChatConversationList({
   const [newProjectName, setNewProjectName] = useState('');
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [editingProjectName, setEditingProjectName] = useState('');
+  const [draggedConversationId, setDraggedConversationId] = useState(null);
+  const [dropTargetProjectId, setDropTargetProjectId] = useState(undefined);
 
   const projectGroups = projects.map((project) => ({
     ...project,
@@ -76,6 +77,50 @@ export function ChatConversationList({
   function beginRename(project) {
     setEditingProjectId(project.id);
     setEditingProjectName(project.name);
+  }
+
+  function handleDragStart(event, conversation) {
+    if (disabled || event.target.closest('.conversation-menu-trigger')) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-chat-conversation-id', String(conversation.id));
+    event.dataTransfer.setData('text/plain', String(conversation.id));
+    setDraggedConversationId(conversation.id);
+  }
+
+  function handleDragEnd() {
+    setDraggedConversationId(null);
+    setDropTargetProjectId(undefined);
+  }
+
+  function handleDragOver(event, projectId) {
+    if (disabled || draggedConversationId == null) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetProjectId(projectId);
+  }
+
+  function handleDragLeave(event) {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setDropTargetProjectId(undefined);
+  }
+
+  async function handleDrop(event, projectId) {
+    event.preventDefault();
+    const transferredId = event.dataTransfer.getData('application/x-chat-conversation-id');
+    const conversation = conversations.find(
+      (item) => String(item.id) === String(transferredId || draggedConversationId),
+    );
+    setDraggedConversationId(null);
+    setDropTargetProjectId(undefined);
+    if (!conversation || conversation.projectId === projectId) return;
+    try {
+      await onMoveConversation(conversation.id, projectId);
+    } catch {
+      // The hook exposes the server message in the panel.
+    }
   }
 
   return (
@@ -125,7 +170,15 @@ export function ChatConversationList({
 
       <div className='conversation-groups'>
         {projectGroups.map((project) => (
-          <section className='conversation-group project-group' key={project.id}>
+          <section
+            className={dropTargetProjectId === project.id
+              ? 'conversation-group project-group drop-target'
+              : 'conversation-group project-group'}
+            key={project.id}
+            onDragOver={(event) => handleDragOver(event, project.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(event) => handleDrop(event, project.id)}
+          >
             <div className='project-group-heading'>
               {editingProjectId === project.id ? (
                 <form onSubmit={(event) => handleRenameProject(event, project.id)}>
@@ -163,27 +216,36 @@ export function ChatConversationList({
             </div>
             <ConversationItems
               conversations={project.conversations}
-              projects={projects}
               activeConversationId={activeConversationId}
               disabled={disabled}
+              draggedConversationId={draggedConversationId}
               onSelect={onSelect}
               onDelete={handleDelete}
-              onMove={onMoveConversation}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
               emptyMessage='대화를 이 프로젝트로 이동해 보세요.'
             />
           </section>
         ))}
 
-        <section className='conversation-group'>
+        <section
+          className={dropTargetProjectId === null
+            ? 'conversation-group drop-target'
+            : 'conversation-group'}
+          onDragOver={(event) => handleDragOver(event, null)}
+          onDragLeave={handleDragLeave}
+          onDrop={(event) => handleDrop(event, null)}
+        >
           <h2>프로젝트 없음</h2>
           <ConversationItems
             conversations={ungrouped}
-            projects={projects}
             activeConversationId={activeConversationId}
             disabled={disabled}
+            draggedConversationId={draggedConversationId}
             onSelect={onSelect}
             onDelete={handleDelete}
-            onMove={onMoveConversation}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             emptyMessage={projects.length === 0 ? '저장된 대화가 없습니다.' : '분류되지 않은 대화가 없습니다.'}
           />
         </section>
@@ -194,12 +256,13 @@ export function ChatConversationList({
 
 function ConversationItems({
   conversations,
-  projects,
   activeConversationId,
   disabled,
+  draggedConversationId,
   onSelect,
   onDelete,
-  onMove,
+  onDragStart,
+  onDragEnd,
   emptyMessage,
 }) {
   const [openMenu, setOpenMenu] = useState(null);
@@ -239,15 +302,6 @@ function ConversationItems({
     return <p className='conversation-empty'>{emptyMessage}</p>;
   }
 
-  async function handleMove(conversationId, projectId) {
-    setOpenMenu(null);
-    try {
-      await onMove(conversationId, projectId);
-    } catch {
-      // The hook exposes the server message in the panel.
-    }
-  }
-
   function toggleMenu(event, conversation) {
     event.stopPropagation();
     if (openMenu?.conversationId === conversation.id) {
@@ -257,7 +311,7 @@ function ConversationItems({
 
     const trigger = event.currentTarget.getBoundingClientRect();
     const menuWidth = 220;
-    const estimatedHeight = Math.min(340, 112 + projects.length * 36);
+    const estimatedHeight = 52;
     const spaceBelow = window.innerHeight - trigger.bottom;
     setOpenMenu({
       conversationId: conversation.id,
@@ -277,10 +331,15 @@ function ConversationItems({
     <div className='conversation-list'>
       {conversations.map((conversation) => (
         <div
-          className={conversation.id === activeConversationId
-            ? 'conversation-item selected'
-            : 'conversation-item'}
+          className={[
+            'conversation-item',
+            conversation.id === activeConversationId ? 'selected' : '',
+            conversation.id === draggedConversationId ? 'dragging' : '',
+          ].filter(Boolean).join(' ')}
+          draggable={!disabled}
           key={conversation.id}
+          onDragStart={(event) => onDragStart(event, conversation)}
+          onDragEnd={onDragEnd}
         >
           <button
             className='conversation-select'
@@ -316,36 +375,6 @@ function ConversationItems({
               aria-label={`${conversation.title} 대화 작업`}
               style={{ left: openMenu.left, top: openMenu.top }}
             >
-              <div className='conversation-context-heading'>
-                <FolderInput size={14} />
-                <span>프로젝트 이동</span>
-              </div>
-              <div className='conversation-context-projects'>
-                <button
-                  type='button'
-                  role='menuitemradio'
-                  aria-checked={conversation.projectId == null}
-                  className={conversation.projectId == null ? 'current' : ''}
-                  onClick={() => handleMove(conversation.id, null)}
-                >
-                  <span>프로젝트 없음</span>
-                  {conversation.projectId == null && <Check size={14} />}
-                </button>
-                {projects.map((project) => (
-                  <button
-                    type='button'
-                    role='menuitemradio'
-                    aria-checked={conversation.projectId === project.id}
-                    className={conversation.projectId === project.id ? 'current' : ''}
-                    key={project.id}
-                    onClick={() => handleMove(conversation.id, project.id)}
-                  >
-                    <span>{project.name}</span>
-                    {conversation.projectId === project.id && <Check size={14} />}
-                  </button>
-                ))}
-              </div>
-              <div className='conversation-context-divider' />
               <button
                 className='conversation-context-delete'
                 type='button'

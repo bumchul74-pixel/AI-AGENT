@@ -16,6 +16,8 @@ import com.hanwha.ai.llm.service.LlmClientFactory;
 import com.hanwha.ai.rag.config.RagProperties;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
+import com.hanwha.ai.rag.dto.HybridSearchResult;
+import com.hanwha.ai.rag.service.HybridSearchService;
 import com.hanwha.ai.rag.service.RagClient;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphReindexResponse;
@@ -73,6 +75,7 @@ public class GenerationServiceImpl implements GenerationService {
     private final ProjectStructureAnalyzer projectStructureAnalyzer;
     private final SourceGraphService sourceGraphService;
     private final DatabaseSchemaContextProvider databaseSchemaContextProvider;
+    private final HybridSearchService hybridSearchService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GenerationServiceImpl(
@@ -112,7 +115,6 @@ public class GenerationServiceImpl implements GenerationService {
         );
     }
 
-    @Autowired
     public GenerationServiceImpl(
             RagClient ragClient,
             LlmClientFactory llmClientFactory,
@@ -122,6 +124,22 @@ public class GenerationServiceImpl implements GenerationService {
             SourceGraphService sourceGraphService,
             DatabaseSchemaContextProvider databaseSchemaContextProvider
     ) {
+        this(ragClient, llmClientFactory, generationRepository, ragProperties, projectStructureAnalyzer,
+                sourceGraphService, databaseSchemaContextProvider,
+                new HybridSearchService(ragClient, sourceGraphService));
+    }
+
+    @Autowired
+    public GenerationServiceImpl(
+            RagClient ragClient,
+            LlmClientFactory llmClientFactory,
+            GenerationRepository generationRepository,
+            RagProperties ragProperties,
+            ProjectStructureAnalyzer projectStructureAnalyzer,
+            SourceGraphService sourceGraphService,
+            DatabaseSchemaContextProvider databaseSchemaContextProvider,
+            HybridSearchService hybridSearchService
+    ) {
         this.ragClient = ragClient;
         this.llmClientFactory = llmClientFactory;
         this.generationRepository = generationRepository;
@@ -129,6 +147,7 @@ public class GenerationServiceImpl implements GenerationService {
         this.projectStructureAnalyzer = projectStructureAnalyzer;
         this.sourceGraphService = sourceGraphService;
         this.databaseSchemaContextProvider = databaseSchemaContextProvider;
+        this.hybridSearchService = hybridSearchService;
     }
 
     @Override
@@ -141,18 +160,18 @@ public class GenerationServiceImpl implements GenerationService {
         String projectPath = request.projectStructure().trim();
         String analyzedProjectStructure = projectStructureAnalyzer.analyze(projectPath, targetTypes);
         DatabaseSchemaContext databaseSchemaContext = databaseSchemaContextProvider.resolve(request, targetTypes);
-        RagSearchResponse ragSearchResponse = ragClient.search(
+        HybridSearchResult hybridSearchResult = hybridSearchService.search(
                 new RagSearchRequest(
                         buildSearchQuery(request, targetTypesText, projectPath, analyzedProjectStructure, databaseSchemaContext),
                         ragProperties.topK()
                 )
         );
-        List<String> ragDocuments = ragSearchResponse.documents();
+        List<String> ragDocuments = hybridSearchResult.documents();
         if (ragDocuments.isEmpty()) {
             throw new BusinessException("RAG search result is required before source generation.");
         }
 
-        String ragContext = String.join("\n\n--- RAG SOURCE ---\n\n", ragDocuments);
+        String ragContext = hybridSearchResult.context();
         String context = buildLlmContext(projectPath, analyzedProjectStructure, ragContext, databaseSchemaContext);
         String prompt = buildGenerationPrompt(
                 request,

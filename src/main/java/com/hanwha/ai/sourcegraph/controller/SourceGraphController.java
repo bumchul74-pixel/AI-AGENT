@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/source-graph")
@@ -48,5 +49,13 @@ public class SourceGraphController {
     @GetMapping("/impacts")
     public SourceGraphResponse impacts(@RequestParam String fqn) {
         return sourceGraphService.findImpacts(fqn);
+    }
+
+    @PostMapping("/neighborhood")
+    public SourceGraphResponse neighborhood(
+            @RequestBody List<String> entityIds,
+            @RequestParam(defaultValue = "3") int depth
+    ) {
+        return sourceGraphService.findNeighborhoodByEntityIds(entityIds, depth);
     }
 }

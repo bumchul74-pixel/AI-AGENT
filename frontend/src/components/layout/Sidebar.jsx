@@ -1,15 +1,9 @@
-import { Bot, DatabaseZap, FileStack, GitFork, MessageSquareText, ScrollText } from 'lucide-react';
-
-const items = [
-  { id: 'generate', label: 'Generate', description: '\uC18C\uC2A4 \uC0DD\uC131', icon: Bot },
-  { id: 'chat', label: 'Chat', description: 'AI \uC9C8\uC758', icon: MessageSquareText },
-  { id: 'rag', label: 'RAG \uC870\uD68C', description: 'VectorDB \uAC80\uC0C9', icon: DatabaseZap },
-  { id: 'javaGraph', label: 'Java Graph', description: 'Neo4j Graph', icon: GitFork },
-  { id: 'documents', label: 'Documents', description: '\uD45C\uC900 \uBB38\uC11C', icon: FileStack },
-  { id: 'history', label: 'History', description: '\uC0DD\uC131 \uC774\uB825', icon: ScrollText },
-];
+import { ChevronRight } from 'lucide-react';
+import { findNavigationSection, NAVIGATION_SECTIONS } from '../../constants/navigation.js';
 
 export function Sidebar({ activePage, onNavigate }) {
+  const activeSection = findNavigationSection(activePage);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -20,19 +14,21 @@ export function Sidebar({ activePage, onNavigate }) {
         </div>
       </div>
 
-      <nav className="sidebar-nav" aria-label="Main navigation">
-        {items.map((item) => (
+      <nav className="sidebar-nav" aria-label="주요 업무 영역">
+        {NAVIGATION_SECTIONS.map((item) => (
           <button
-            className={activePage === item.id ? 'nav-item active' : 'nav-item'}
+            aria-current={activeSection?.id === item.id ? 'page' : undefined}
+            className={activeSection?.id === item.id ? 'nav-item active' : 'nav-item'}
             key={item.id}
             type="button"
-            onClick={() => onNavigate(item.id)}
+            onClick={() => onNavigate(item.defaultPage)}
           >
-            <item.icon size={18} />
+            <span className="nav-item-icon"><item.icon size={18} /></span>
             <span>
               <strong>{item.label}</strong>
               <small>{item.description}</small>
             </span>
+            <ChevronRight className="nav-item-chevron" size={16} aria-hidden="true" />
           </button>
         ))}
       </nav>

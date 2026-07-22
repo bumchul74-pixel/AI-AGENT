@@ -23,7 +23,7 @@ public class MarkDocumentIndexingTask implements DocumentIndexTask {
         context.document().setIndexStatus(IndexStatus.INDEXING.name());
         context.document().setVectorIndexStatus(IndexStatus.INDEXING.name());
 
-        if (context.isJavaSourceFile()) {
+        if (context.isGraphSourceFile()) {
             repository.updateGraphIndexStatus(context.document().getId(), IndexStatus.INDEXING.name(), null);
             context.document().setGraphIndexStatus(IndexStatus.INDEXING.name());
         }

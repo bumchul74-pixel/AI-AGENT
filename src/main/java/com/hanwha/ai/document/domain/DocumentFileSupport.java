@@ -40,6 +40,10 @@ public final class DocumentFileSupport {
         return ".java".equals(extension(fileName));
     }
 
+    public static boolean isGraphSourceFile(String fileName) {
+        return Set.of(".java", ".xml", ".yml", ".yaml", ".md").contains(extension(fileName));
+    }
+
     public static boolean isTemporaryFile(String fileName) {
         String normalized = normalize(fileName);
         return TEMPORARY_SUFFIXES.stream().anyMatch(normalized::endsWith);

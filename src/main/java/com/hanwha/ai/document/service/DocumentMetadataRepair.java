@@ -49,7 +49,7 @@ public class DocumentMetadataRepair {
                 }
 
                 String vectorSourceKey = RagDocument.sourceKey(document.getId());
-                String graphSourceKey = document.isJavaSourceFile() ? vectorSourceKey : null;
+                String graphSourceKey = document.isGraphSourceFile() ? vectorSourceKey : null;
                 if (!fileHash.equals(document.getFileHash())
                         || !vectorSourceKey.equals(document.getVectorSourceKey())
                         || !equalsNullable(graphSourceKey, document.getGraphSourceKey())) {

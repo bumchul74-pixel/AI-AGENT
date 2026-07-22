@@ -15,14 +15,18 @@ import com.hanwha.ai.llm.service.LlmClientFactory;
 import com.hanwha.ai.mcp.service.McpChatContextProvider;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.RagSearchResponse;
+import com.hanwha.ai.rag.dto.HybridSearchResult;
+import com.hanwha.ai.rag.service.HybridSearchService;
 import com.hanwha.ai.rag.service.RagClient;
+import com.hanwha.ai.sourcegraph.service.NoOpSourceGraphService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class ChatServiceImpl implements ChatService {
-    private final RagClient ragClient;
+    private final HybridSearchService hybridSearchService;
     private final LlmClientFactory llmClientFactory;
     private final ChatRepository chatRepository;
     private final McpChatContextProvider mcpChatContextProvider;
@@ -33,7 +37,19 @@ public class ChatServiceImpl implements ChatService {
             ChatRepository chatRepository,
             McpChatContextProvider mcpChatContextProvider
     ) {
-        this.ragClient = ragClient;
+        this(ragClient, llmClientFactory, chatRepository, mcpChatContextProvider,
+                new HybridSearchService(ragClient, NoOpSourceGraphService.INSTANCE));
+    }
+
+    @Autowired
+    public ChatServiceImpl(
+            RagClient ragClient,
+            LlmClientFactory llmClientFactory,
+            ChatRepository chatRepository,
+            McpChatContextProvider mcpChatContextProvider,
+            HybridSearchService hybridSearchService
+    ) {
+        this.hybridSearchService = hybridSearchService;
         this.llmClientFactory = llmClientFactory;
         this.chatRepository = chatRepository;
         this.mcpChatContextProvider = mcpChatContextProvider;
@@ -47,10 +63,11 @@ public class ChatServiceImpl implements ChatService {
             return chatWithMcp(request, conversation, history);
         }
 
-        RagSearchResponse ragSearchResponse = ragClient.search(new RagSearchRequest(request.message()));
+        HybridSearchResult hybridResult = hybridSearchService.search(new RagSearchRequest(request.message()));
+        RagSearchResponse ragSearchResponse = new RagSearchResponse(hybridResult.documents());
         String prompt = buildRagPrompt(request, ragSearchResponse, formatHistory(history));
-        List<String> documents = ragSearchResponse.documents();
-        String answer = generateAnswer(prompt, String.join("\n", documents));
+        List<String> documents = hybridResult.documents();
+        String answer = generateAnswer(prompt, hybridResult.context());
 
         saveMessages(conversation.getId(), request.message(), answer);
 

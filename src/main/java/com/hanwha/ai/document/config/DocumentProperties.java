@@ -6,7 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DocumentProperties(
         String storageDirectory,
         int chunkSize,
-        int overlap
+        int overlap,
+        String projectId,
+        String moduleName
 ) {
     public DocumentProperties {
         if (storageDirectory == null || storageDirectory.isBlank()) {
@@ -17,6 +19,12 @@ public record DocumentProperties(
         }
         if (overlap < 0) {
             overlap = 150;
+        }
+        if (projectId == null || projectId.isBlank()) {
+            projectId = "default";
+        }
+        if (moduleName == null || moduleName.isBlank()) {
+            moduleName = "main";
         }
     }
 }

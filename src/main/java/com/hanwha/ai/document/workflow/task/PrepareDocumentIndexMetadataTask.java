@@ -28,7 +28,7 @@ public class PrepareDocumentIndexMetadataTask implements DocumentIndexTask {
     public void execute(DocumentIndexContext context) {
         RagDocument document = context.document();
         String sourceKey = RagDocument.sourceKey(document.getId());
-        String graphSourceKey = context.isJavaSourceFile() ? sourceKey : null;
+        String graphSourceKey = context.isGraphSourceFile() ? sourceKey : null;
         String fileHash = document.getFileHash();
         if (fileHash == null || fileHash.isBlank()) {
             fileHash = DocumentFileSupport.sha256(context.filePath());

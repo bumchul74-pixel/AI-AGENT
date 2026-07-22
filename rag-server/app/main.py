@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 import asyncio
 
-from json import JSONDecodeError
+from json import JSONDecodeError, loads
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 
 from app.directory_watcher import DirectoryIngestWatcher
 from app.file_text_extractor import extract_text_from_upload
-from app.schemas import DocumentIngestRequest, RagSearchRequest, RagSearchResponse, RagStatsResponse
+from app.schemas import (ChunkBatchRequest, ChunkBatchResponse, DocumentIngestRequest,
+                         RagChunkResult, RagSearchRequest, RagSearchResponse, RagStatsResponse)
 from app.settings import load_watch_settings
 from app.vector_store import LocalVectorStore
 
@@ -47,6 +48,13 @@ def ingest_document(request: DocumentIngestRequest) -> dict[str, int]:
         content=request.content,
         chunk_size=request.chunk_size,
         overlap=request.overlap,
+        project_id=request.project_id,
+        file_path=request.file_path,
+        file_hash=request.file_hash,
+        entity_ids=request.entity_ids,
+        document_id=request.document_id,
+        symbol=request.symbol,
+        metadata=request.metadata,
     )
     return {"stored_count": stored_count}
 
@@ -56,6 +64,13 @@ async def upload_document(
     file: UploadFile = File(...),
     chunk_size: int = Form(default=1200),
     overlap: int = Form(default=150),
+    project_id: str = Form(default="default"),
+    file_path: str = Form(default=""),
+    file_hash: str = Form(default=""),
+    entity_ids: str = Form(default="[]"),
+    document_id: int | None = Form(default=None),
+    symbol: str = Form(default=""),
+    metadata: str = Form(default="{}"),
 ) -> dict[str, int]:
     if not source.strip():
         raise HTTPException(status_code=400, detail="source is required")
@@ -70,8 +85,33 @@ async def upload_document(
         content=content,
         chunk_size=max(200, min(8000, chunk_size)),
         overlap=max(0, min(2000, overlap)),
+        project_id=project_id.strip(),
+        file_path=file_path.strip() or file.filename or "",
+        file_hash=file_hash.strip(),
+        entity_ids=parse_entity_ids(entity_ids),
+        document_id=document_id,
+        symbol=symbol.strip(),
+        metadata=parse_metadata(metadata),
     )
     return {"stored_count": stored_count}
+
+
+def parse_entity_ids(value: str) -> list[str]:
+    try:
+        loaded = loads(value)
+    except (JSONDecodeError, TypeError):
+        return []
+    if not isinstance(loaded, list):
+        return []
+    return [str(item).strip() for item in loaded if str(item).strip()]
+
+
+def parse_metadata(value: str) -> dict[str, object]:
+    try:
+        loaded = loads(value)
+    except (JSONDecodeError, TypeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
 
 
 @app.delete("/api/documents/source")
@@ -81,6 +121,11 @@ def delete_document_source(source: str) -> dict[str, int]:
 
     deleted_count = vector_store.delete_source(source)
     return {"deleted_count": deleted_count}
+
+
+@app.get("/api/sources")
+def sources() -> list[dict[str, object]]:
+    return vector_store.list_sources()
 
 
 @app.post("/api/search", response_model=RagSearchResponse)
@@ -107,8 +152,18 @@ async def search(request: Request) -> RagSearchResponse:
         query=query,
         top_k=top_k,
     )
-    documents = vector_store.search(query=search_request.query, top_k=search_request.top_k)
-    return RagSearchResponse(documents=documents)
+    chunks = vector_store.search_chunks(query=search_request.query, top_k=search_request.top_k)
+    documents = [f"[source: {chunk['sourceKey']}]\n{chunk['content']}" for chunk in chunks]
+    return RagSearchResponse(
+        documents=documents,
+        chunks=[RagChunkResult(**chunk) for chunk in chunks],
+    )
+
+
+@app.post("/api/chunks/by-ids", response_model=ChunkBatchResponse)
+def chunks_by_ids(request: ChunkBatchRequest) -> ChunkBatchResponse:
+    chunks = vector_store.find_chunks(request.chunkIds)
+    return ChunkBatchResponse(chunks=[RagChunkResult(**chunk) for chunk in chunks])
 
 
 @app.get("/api/stats", response_model=RagStatsResponse)

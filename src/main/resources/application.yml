@@ -87,6 +87,8 @@ document:
   storage-directory: ${DOCUMENT_STORAGE_DIR:uploads/documents}
   chunk-size: ${DOCUMENT_CHUNK_SIZE:1200}
   overlap: ${DOCUMENT_CHUNK_OVERLAP:150}
+  project-id: ${DOCUMENT_PROJECT_ID:default}
+  module-name: ${DOCUMENT_MODULE_NAME:main}
 secure-coding:
   max-file-size: ${SECURE_CODING_MAX_FILE_SIZE:1MB}
   allowed-extensions:

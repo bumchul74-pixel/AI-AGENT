@@ -39,7 +39,7 @@ public class RagDocument {
         document.setDocumentType(documentType.name());
         document.setIndexStatus(IndexStatus.PENDING.name());
         document.setVectorIndexStatus(IndexStatus.PENDING.name());
-        if (DocumentFileSupport.isJavaSourceFile(originalFileName)) {
+        if (DocumentFileSupport.isGraphSourceFile(originalFileName)) {
             document.setGraphIndexStatus(IndexStatus.PENDING.name());
         }
         document.setChunkCount(0);
@@ -73,6 +73,10 @@ public class RagDocument {
 
     public boolean isJavaSourceFile() {
         return DocumentFileSupport.isJavaSourceFile(originalFileName);
+    }
+
+    public boolean isGraphSourceFile() {
+        return DocumentFileSupport.isGraphSourceFile(originalFileName);
     }
 
     private boolean hasText(String value) {

@@ -84,9 +84,39 @@ class LocalVectorStore:
                 self._save()
         return deleted_count
 
-    def search_chunks(self, query: str, top_k: int) -> list[dict[str, Any]]:
+    def add_chunks(self, chunks: list[dict[str, Any]]) -> int:
+        stored_chunks = [
+            StoredChunk(
+                content=str(chunk["content"]),
+                embedding=embed_text(str(chunk["content"])),
+                chunk_id=str(chunk["chunkId"]),
+                document_id=chunk.get("documentId"),
+                source_key=str(chunk["sourceKey"]),
+                project_id=str(chunk.get("projectId", "")),
+                file_path=str(chunk.get("filePath", "")),
+                entity_ids=list(chunk.get("entityIds", [])),
+                symbol=str(chunk.get("symbol", "")),
+                metadata=dict(chunk.get("metadata", {})),
+                file_hash=str(chunk.get("fileHash", "")),
+            )
+            for chunk in chunks
+            if str(chunk.get("content", "")).strip()
+        ]
+        chunk_ids = {chunk.chunk_id for chunk in stored_chunks}
+        with self._lock:
+            self.chunks = [chunk for chunk in self.chunks if chunk.chunk_id not in chunk_ids]
+            self.chunks.extend(stored_chunks)
+            if stored_chunks:
+                self._save()
+        return len(stored_chunks)
+
+    def search_chunks(self, query: str, top_k: int, project_id: str = "") -> list[dict[str, Any]]:
         with self._lock:
             chunks = list(self.chunks)
+
+        normalized_project_id = project_id.strip()
+        if normalized_project_id:
+            chunks = [chunk for chunk in chunks if chunk.project_id == normalized_project_id]
 
         if not chunks:
             return []
@@ -106,10 +136,10 @@ class LocalVectorStore:
             if score > 0
         ]
 
-    def search(self, query: str, top_k: int) -> list[str]:
+    def search(self, query: str, top_k: int, project_id: str = "") -> list[str]:
         return [
             f"[source: {chunk['sourceKey']}]\n{chunk['content']}"
-            for chunk in self.search_chunks(query, top_k)
+            for chunk in self.search_chunks(query, top_k, project_id)
         ]
 
     def find_chunks(self, chunk_ids: list[str]) -> list[dict[str, Any]]:

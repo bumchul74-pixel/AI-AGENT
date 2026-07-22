@@ -8,6 +8,7 @@
         <result column="target_type" property="targetType" />
         <result column="target_types_json" property="targetTypesJson" />
         <result column="prompt" property="prompt" />
+        <result column="project_key" property="projectKey" />
         <result column="project_structure" property="projectStructure" />
         <result column="rag_documents_json" property="ragDocumentsJson" />
         <result column="generated_code" property="generatedCode" />
@@ -24,6 +25,7 @@
         target_type,
         target_types::text AS target_types_json,
         prompt,
+        project_key,
         project_structure,
         rag_documents::text AS rag_documents_json,
         generated_code,
@@ -40,6 +42,7 @@
         target_type,
         target_types::text AS target_types_json,
         prompt,
+        project_key,
         NULL AS project_structure,
         NULL AS rag_documents_json,
         NULL AS generated_code,
@@ -98,6 +101,7 @@
             target_type,
             target_types,
             prompt,
+            project_key,
             project_structure,
             rag_documents,
             generated_code,
@@ -107,6 +111,7 @@
             #{targetType},
             CAST(#{targetTypesJson} AS jsonb),
             #{prompt},
+            #{projectKey},
             #{projectStructure},
             CAST(#{ragDocumentsJson} AS jsonb),
             #{generatedCode},

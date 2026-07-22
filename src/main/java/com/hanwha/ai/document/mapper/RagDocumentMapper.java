@@ -11,12 +11,27 @@ public interface RagDocumentMapper {
 
     List<RagDocument> findAll();
 
+    List<RagDocument> findAllByProjectKey(@Param("projectKey") String projectKey);
+
     List<RagDocument> findPage(@Param("limit") int limit, @Param("offset") int offset);
+
+    List<RagDocument> findPageByProjectKey(
+            @Param("projectKey") String projectKey, @Param("limit") int limit, @Param("offset") int offset);
 
     long countAll();
 
+    long countByProjectKey(@Param("projectKey") String projectKey);
+
+    boolean projectExists(@Param("projectKey") String projectKey);
+
     RagDocument findById(@Param("id") Long id);
     RagDocument findActiveByFileHashAndDocumentType(
+            @Param("fileHash") String fileHash,
+            @Param("documentType") String documentType
+    );
+
+    RagDocument findActiveByProjectAndFileHashAndDocumentType(
+            @Param("projectKey") String projectKey,
             @Param("fileHash") String fileHash,
             @Param("documentType") String documentType
     );

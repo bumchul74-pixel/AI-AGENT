@@ -8,6 +8,7 @@ public record GenerationHistoryResponse(
         String targetType,
         List<String> targetTypes,
         String prompt,
+        String projectKey,
         String projectStructure,
         List<String> ragDocuments,
         String generatedCode,

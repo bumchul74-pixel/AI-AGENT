@@ -13,8 +13,8 @@ spring:
       password: ${NEO4J_PASSWORD:neo4j_password}
   servlet:
     multipart:
-      max-file-size: ${DOCUMENT_MAX_FILE_SIZE:20MB}
-      max-request-size: ${DOCUMENT_MAX_REQUEST_SIZE:20MB}
+      max-file-size: ${DOCUMENT_MAX_FILE_SIZE:100MB}
+      max-request-size: ${DOCUMENT_MAX_REQUEST_SIZE:100MB}
   sql:
     init:
       mode: always

@@ -1,11 +1,6 @@
-import { apiUrl } from '../constants/apiConstants.js';
+import { apiRequest, apiResponseError } from './apiClient.js';
 
-async function readError(response, fallbackMessage) {
-  const errorBody = await response.json().catch(() => null);
-  return new Error(errorBody?.message ?? fallbackMessage);
-}
-
-function queryString({ query, limit } = {}) {
+function queryString({ query, limit, projectKey } = {}) {
   const params = new URLSearchParams();
   if (query && query.trim()) {
     params.append('query', query.trim());
@@ -13,36 +8,29 @@ function queryString({ query, limit } = {}) {
   if (limit) {
     params.append('limit', String(limit));
   }
+  if (projectKey) params.append('projectKey', projectKey);
 
   const queryText = params.toString();
   return queryText ? `?${queryText}` : '';
 }
 
 export async function fetchSourceGraphOverview(filters = {}) {
-  const response = await fetch(apiUrl(`/api/source-graph${queryString(filters)}`));
-
-  if (!response.ok) {
-    throw await readError(response, 'Source graph request failed.');
-  }
-
-  const graph = await response.json();
+  const graph = await apiRequest(`/api/source-graph${queryString(filters)}`, {
+    errorMessage: 'Source graph request failed.',
+  });
   if (!Array.isArray(graph?.nodes) || !Array.isArray(graph?.relationships)) {
-    throw new Error('Source graph response is invalid.');
+    throw apiResponseError('Source graph response is invalid.');
   }
 
   return graph;
 }
 export async function fetchSourceGraphNodeSource(nodeId) {
   const params = new URLSearchParams({ nodeId });
-  const response = await fetch(apiUrl(`/api/source-graph/node-source?${params.toString()}`));
-
-  if (!response.ok) {
-    throw await readError(response, 'Source graph node source request failed.');
-  }
-
-  const source = await response.json();
+  const source = await apiRequest(`/api/source-graph/node-source?${params.toString()}`, {
+    errorMessage: 'Source graph node source request failed.',
+  });
   if (!source || typeof source.available !== 'boolean') {
-    throw new Error('Source graph node source response is invalid.');
+    throw apiResponseError('Source graph node source response is invalid.');
   }
 
   return source;

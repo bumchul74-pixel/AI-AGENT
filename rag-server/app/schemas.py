@@ -18,6 +18,7 @@ class DocumentIngestRequest(BaseModel):
 class RagSearchRequest(BaseModel):
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=20)
+    projectId: str = ""
 
 
 class RagChunkResult(BaseModel):
@@ -41,6 +42,23 @@ class ChunkBatchRequest(BaseModel):
 
 class ChunkBatchResponse(BaseModel):
     chunks: list[RagChunkResult] = Field(default_factory=list)
+
+
+class StoredChunkRequest(BaseModel):
+    chunkId: str = Field(min_length=1)
+    sourceKey: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+    documentId: int | None = None
+    projectId: str = "default"
+    filePath: str = ""
+    fileHash: str = ""
+    entityIds: list[str] = Field(default_factory=list)
+    symbol: str = ""
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class StoredChunkBatchRequest(BaseModel):
+    chunks: list[StoredChunkRequest] = Field(default_factory=list, max_length=500)
 
 
 class RagStatsResponse(BaseModel):

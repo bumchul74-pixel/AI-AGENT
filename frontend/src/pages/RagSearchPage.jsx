@@ -4,7 +4,9 @@ import { fetchRagStats } from '../api/ragApi.js';
 import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Loading } from '../components/common/Loading.jsx';
+import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 import { useRagSearch } from '../hooks/useRagSearch.js';
+import { fetchKnowledgeProjects } from '../api/projectApi.js';
 
 const TEXT = {
   title: 'RAG 조회',
@@ -33,7 +35,8 @@ export function RagSearchPage() {
   const [topK, setTopK] = useState('5');
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [javaFileCount, setJavaFileCount] = useState(0);
-  const [statsError, setStatsError] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [projectKey, setProjectKey] = useState('');
 
   const selectedDocument = useMemo(() => {
     if (selectedIndex === null) {
@@ -47,21 +50,27 @@ export function RagSearchPage() {
     try {
       const stats = await fetchRagStats();
       setJavaFileCount(stats.javaFileCount ?? stats.java_file_count ?? 0);
-      setStatsError('');
-    } catch (exception) {
+    } catch {
       setJavaFileCount(0);
-      setStatsError(exception.message);
     }
   }
 
   useEffect(() => {
     loadStats();
+    fetchKnowledgeProjects().then((items) => {
+      setProjects(items);
+      setProjectKey(items[0]?.projectKey || '');
+    }).catch(() => {
+      setProjects([]);
+      setProjectKey('');
+    });
   }, []);
 
   async function handleSearch() {
     const result = await ragSearch.search({
       query,
       topK: Number(topK) || 5,
+      projectKey,
     });
 
     setSelectedIndex(result && result.length > 0 ? 0 : null);
@@ -92,6 +101,7 @@ export function RagSearchPage() {
         </div>
 
         <div className="rag-search-fields">
+          <ProjectSelect projects={projects} value={projectKey} onChange={setProjectKey} />
           <Input
             label={TEXT.queryLabel}
             value={query}
@@ -108,10 +118,9 @@ export function RagSearchPage() {
           />
         </div>
 
-        {statsError && <p className="error-text">{statsError}</p>}
         {ragSearch.error && <p className="error-text">{ragSearch.error}</p>}
 
-        <Button icon={Search} disabled={ragSearch.isLoading} onClick={handleSearch}>
+        <Button icon={Search} disabled={ragSearch.isLoading || !projectKey} onClick={handleSearch}>
           {TEXT.search}
         </Button>
       </form>

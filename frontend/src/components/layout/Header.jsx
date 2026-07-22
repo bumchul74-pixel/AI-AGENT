@@ -1,37 +1,37 @@
-import { Activity, ServerCog } from 'lucide-react';
+import { findNavigationSection } from '../../constants/navigation.js';
 
-const TEXT = {
-  subtitle: 'RAG \uAE30\uBC18 Java \uAC1C\uBC1C \uC0DD\uC0B0\uC131 \uAD00\uB9AC \uCF58\uC194',
-};
+export function Header({ activePage = 'generate', onNavigate }) {
+  const section = findNavigationSection(activePage);
+  const activeItem = section?.children.find((item) => item.id === activePage);
 
-const pageTitles = {
-  generate: 'Java Source Generator',
-  history: 'Generation History',
-  chat: 'AI Chat',
-  rag: 'RAG \uC870\uD68C',
-  javaGraph: 'Java Graph',
-  documents: 'Document \uAD00\uB9AC',
-  dataCleanup: 'Integrated Data Cleanup',
-};
-
-export function Header({ activePage = 'generate' }) {
   return (
     <header className="topbar">
-      <div>
-        <span className="eyebrow">AI-AGENT CONSOLE</span>
-        <h2>{pageTitles[activePage] ?? 'AI Agent'}</h2>
-        <p>{TEXT.subtitle}</p>
+      <div className="topbar-context">
+        <span className="eyebrow">{activeItem?.label ?? 'AI-AGENT CONSOLE'}</span>
+        <h2>{section?.label ?? 'AI Agent'}</h2>
+        <p>{section?.description ?? 'RAG 기반 Java 개발 생산성 관리 콘솔'}</p>
       </div>
 
-      <div className="topbar-actions">
-        <div className="server-pill">
-          <Activity size={16} />
-          <span>RAG Ready</span>
-        </div>
-        <div className="server-pill">
-          <ServerCog size={16} />
-          <span>Backend :8081</span>
-        </div>
+      <div className="topbar-tools">
+        {section && (
+          <nav className="header-subnav" aria-label={`${section.label} 하위 메뉴`}>
+            {section.children.map((item) => {
+              const isActive = item.id === activePage;
+              return (
+                <button
+                  aria-current={isActive ? 'page' : undefined}
+                  className={isActive ? 'header-subnav-tab active' : 'header-subnav-tab'}
+                  key={item.id}
+                  type="button"
+                  onClick={() => onNavigate?.(item.id)}
+                >
+                  <item.icon size={16} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
       </div>
     </header>
   );

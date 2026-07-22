@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateCode } from '../api/generateApi.js';
+import { isApiRequestError } from '../api/apiClient.js';
 
 export function useGenerate() {
   const [result, setResult] = useState(null);
@@ -15,7 +16,7 @@ export function useGenerate() {
       setResult(response);
       return response;
     } catch (exception) {
-      setError(exception.message);
+      setError(isApiRequestError(exception) ? '' : exception.message);
       return null;
     } finally {
       setIsLoading(false);

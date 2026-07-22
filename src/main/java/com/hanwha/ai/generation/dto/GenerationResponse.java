@@ -10,7 +10,8 @@ public record GenerationResponse(
         String projectStructure,
         Long historyId,
         boolean mcpContextApplied,
-        String mcpContextMessage
+        String mcpContextMessage,
+        String projectKey
 ) {
     public GenerationResponse(String targetType, List<String> targetTypes, String generatedCode, List<String> ragDocuments, String projectStructure) {
         this(targetType, targetTypes, generatedCode, ragDocuments, projectStructure, null);
@@ -24,7 +25,21 @@ public record GenerationResponse(
             String projectStructure,
             Long historyId
     ) {
-        this(targetType, targetTypes, generatedCode, ragDocuments, projectStructure, historyId, false, "");
+        this(targetType, targetTypes, generatedCode, ragDocuments, projectStructure, historyId, false, "", null);
+    }
+
+    public GenerationResponse(
+            String targetType,
+            List<String> targetTypes,
+            String generatedCode,
+            List<String> ragDocuments,
+            String projectStructure,
+            Long historyId,
+            boolean mcpContextApplied,
+            String mcpContextMessage
+    ) {
+        this(targetType, targetTypes, generatedCode, ragDocuments, projectStructure, historyId,
+                mcpContextApplied, mcpContextMessage, null);
     }
 
     public GenerationResponse(String targetType, String generatedCode, List<String> ragDocuments) {

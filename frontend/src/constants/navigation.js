@@ -2,6 +2,7 @@ import {
   Bot,
   DatabaseZap,
   FileStack,
+  FolderKanban,
   GitFork,
   History,
   HardDrive,
@@ -33,6 +34,7 @@ export const NAVIGATION_SECTIONS = [
     defaultPage: 'rag',
     children: [
       { id: 'rag', label: 'RAG 조회', description: 'VectorDB 의미 검색', icon: DatabaseZap },
+      { id: 'projects', label: '프로젝트 관리', description: 'Knowledge 프로젝트 생성과 관리', icon: FolderKanban },
       { id: 'documents', label: '문서 관리', description: '표준 문서와 소스 색인', icon: FileStack },
     ],
   },

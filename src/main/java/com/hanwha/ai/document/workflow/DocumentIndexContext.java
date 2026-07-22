@@ -4,10 +4,13 @@ import com.hanwha.ai.document.domain.DocumentFileSupport;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.sourcegraph.domain.SourceGraphIdentity;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DocumentIndexContext {
     private final RagDocument document;
     private int storedChunkCount;
+    private final List<String> storedChunkIds = new ArrayList<>();
     private String currentTaskName;
 
     public DocumentIndexContext(RagDocument document) {
@@ -55,6 +58,23 @@ public class DocumentIndexContext {
 
     public void setStoredChunkCount(int storedChunkCount) {
         this.storedChunkCount = storedChunkCount;
+    }
+
+    public List<String> storedChunkIds() {
+        return List.copyOf(storedChunkIds);
+    }
+
+    public void setStoredChunkIds(List<String> chunkIds) {
+        storedChunkIds.clear();
+        if (chunkIds != null) {
+            storedChunkIds.addAll(chunkIds);
+        }
+    }
+
+    public void addStoredChunkIds(List<String> chunkIds) {
+        if (chunkIds != null) {
+            storedChunkIds.addAll(chunkIds);
+        }
     }
 
     public String currentTaskName() {

@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
+import java.io.ByteArrayInputStream;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -61,6 +62,31 @@ public class DocumentStorageService {
             );
         } catch (IOException exception) {
             throw new BusinessException("Failed to store upload file.", exception);
+        }
+    }
+
+    public StoredDocumentFile store(String originalFileName, byte[] content, String contentType) {
+        if (content == null || content.length == 0) {
+            throw new BusinessException("Archive entry is empty: " + originalFileName);
+        }
+        String cleanedName = StringUtils.cleanPath(Objects.requireNonNullElse(originalFileName, ""));
+        if (!StringUtils.hasText(cleanedName) || cleanedName.contains("..") || cleanedName.startsWith("/")) {
+            throw new BusinessException("Invalid archive entry path: " + originalFileName);
+        }
+        try {
+            Files.createDirectories(rootDirectory);
+            String storedFileName = UUID.randomUUID() + extension(cleanedName);
+            Path target = rootDirectory.resolve(storedFileName).normalize();
+            if (!target.startsWith(rootDirectory)) {
+                throw new BusinessException("Invalid file storage path.");
+            }
+            try (InputStream input = new ByteArrayInputStream(content)) {
+                Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return new StoredDocumentFile(cleanedName, storedFileName, target.toString(),
+                    (long) content.length, StringUtils.hasText(contentType) ? contentType : "application/octet-stream");
+        } catch (IOException exception) {
+            throw new BusinessException("Failed to store archive entry.", exception);
         }
     }
 

@@ -1,9 +1,4 @@
-import { apiUrl } from '../constants/apiConstants.js';
-
-async function readError(response, fallbackMessage) {
-  const errorBody = await response.json().catch(() => null);
-  return new Error(errorBody?.message ?? fallbackMessage);
-}
+import { apiRequest, apiResponseError } from './apiClient.js';
 
 function queryString(filters = {}) {
   const params = new URLSearchParams();
@@ -18,57 +13,40 @@ function queryString(filters = {}) {
 }
 
 export async function fetchProjectStructures() {
-  const response = await fetch(apiUrl('/api/generations/project-structures'));
-
-  if (!response.ok) {
-    throw await readError(response, 'Project structure list request failed.');
-  }
-
-  const projectStructures = await response.json();
+  const projectStructures = await apiRequest('/api/generations/project-structures', {
+    errorMessage: 'Project structure list request failed.',
+  });
   if (!Array.isArray(projectStructures)) {
-    throw new Error('Project structure list response is invalid.');
+    throw apiResponseError('Project structure list response is invalid.');
   }
 
   return projectStructures;
 }
 
-export async function generateCode({ targetTypes, prompt, projectStructure }) {
-  const response = await fetch(apiUrl('/api/generations'), {
+export async function generateCode({ targetTypes, prompt, projectKey }) {
+  return apiRequest('/api/generations', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ targetTypes, prompt, projectStructure }),
+    body: JSON.stringify({ targetTypes, prompt, projectKey }),
+    errorMessage: 'Code generation request failed.',
   });
-
-  if (!response.ok) {
-    throw await readError(response, 'Code generation request failed.');
-  }
-
-  return response.json();
 }
 
 export async function fetchGenerationHistory(filters = {}) {
-  const response = await fetch(apiUrl(`/api/generations/history${queryString(filters)}`));
-
-  if (!response.ok) {
-    throw await readError(response, 'Generation history request failed.');
-  }
-
-  const history = await response.json();
+  const history = await apiRequest(`/api/generations/history${queryString(filters)}`, {
+    errorMessage: '생성 이력을 조회하지 못했습니다.',
+  });
   if (!Array.isArray(history)) {
-    throw new Error('Generation history response is invalid.');
+    throw apiResponseError('생성 이력 응답 형식이 올바르지 않습니다.');
   }
 
   return history;
 }
 
 export async function fetchGenerationHistoryDetail(id) {
-  const response = await fetch(apiUrl(`/api/generations/history/${id}`));
-
-  if (!response.ok) {
-    throw await readError(response, 'Generation history detail request failed.');
-  }
-
-  return response.json();
+  return apiRequest(`/api/generations/history/${id}`, {
+    errorMessage: '생성 이력 상세 정보를 조회하지 못했습니다.',
+  });
 }

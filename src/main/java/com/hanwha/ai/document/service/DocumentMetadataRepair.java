@@ -37,7 +37,8 @@ public class DocumentMetadataRepair {
 
             try {
                 String fileHash = DocumentFileSupport.sha256(filePath);
-                RagDocument duplicate = repository.findActiveByFileHashAndDocumentType(
+                RagDocument duplicate = repository.findActiveByProjectAndFileHashAndDocumentType(
+                        document.getProjectKey(),
                         fileHash,
                         document.getDocumentType()
                 );

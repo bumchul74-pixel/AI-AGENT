@@ -2,6 +2,7 @@ package com.hanwha.ai.document.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hanwha.ai.document.dto.PythonDocumentIngestResponse;
+import com.hanwha.ai.document.dto.VectorChunkIngestRequest;
 import com.hanwha.ai.rag.config.RagProperties;
 import java.nio.file.Path;
 import java.util.List;
@@ -70,5 +71,15 @@ public class PythonDocumentIngestClient {
                         .build())
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    public PythonDocumentIngestResponse ingestChunks(VectorChunkIngestRequest request) {
+        PythonDocumentIngestResponse response = restClient.post()
+                .uri("/api/chunks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(PythonDocumentIngestResponse.class);
+        return response == null ? new PythonDocumentIngestResponse(0) : response;
     }
 }

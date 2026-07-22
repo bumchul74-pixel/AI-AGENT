@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FileCode2, RotateCcw, Search, ScrollText } from 'lucide-react';
 import { fetchGenerationHistory, fetchGenerationHistoryDetail } from '../api/generateApi.js';
+import { isApiRequestError } from '../api/apiClient.js';
 import { Loading } from '../components/common/Loading.jsx';
 import { formatDateTime } from '../utils/dateUtils.js';
 
@@ -96,7 +97,7 @@ export function HistoryPage() {
       setSelectedHistory(detail);
     } catch (exception) {
       setSelectedHistory(null);
-      setDetailError(exception.message);
+      setDetailError(isApiRequestError(exception) ? '' : exception.message);
     } finally {
       setIsDetailLoading(false);
     }
@@ -125,7 +126,7 @@ export function HistoryPage() {
       setHistory([]);
       setSelectedHistory(null);
       setSelectedId(null);
-      setError(exception.message);
+      setError(isApiRequestError(exception) ? '' : exception.message);
     } finally {
       setIsLoading(false);
     }

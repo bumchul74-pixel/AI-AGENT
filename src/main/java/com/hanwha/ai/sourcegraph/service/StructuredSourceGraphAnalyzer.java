@@ -24,11 +24,13 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /** Extracts normalized ontology entities from non-Java source documents. */
 public class StructuredSourceGraphAnalyzer {
+    private static final int MAX_SQL_VARIANTS = 32;
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "(?i)\\b(?:FROM|JOIN|INTO|UPDATE)\\s+([A-Za-z0-9_.$]+)"
     );
@@ -98,6 +100,56 @@ public class StructuredSourceGraphAnalyzer {
         ));
         graph.relationship(fileUid, mapperUid, "HAS_MAPPER_XML");
 
+        for (MyBatisStatementAnalysis statement : mapperStatements(context, mapper)) {
+            Map<String, Object> properties = new LinkedHashMap<>();
+            properties.put("statementId", statement.statementId());
+            properties.put("namespace", statement.namespace());
+            properties.put("operation", statement.operation());
+            properties.put("commandType", statement.commandType());
+            properties.put("sql", statement.sqlTemplate());
+            properties.put("sqlVariants", statement.sqlVariants());
+            properties.put("dynamic", statement.dynamic());
+            properties.put("conditions", statement.conditions());
+            properties.put("parameterType", statement.parameterType());
+            properties.put("resultType", statement.resultType());
+            properties.put("sourceFormat", "mybatis-xml");
+            graph.node(statement.statementUid(), "SqlStatement", statement.statementId(), properties);
+            graph.relationship(mapperUid, statement.statementUid(), "HAS_STATEMENT");
+            String statementChunkId = statementChunkId(context.source(), statement.statementId());
+            if (context.chunkIds().contains(statementChunkId)) {
+                graph.relationship(statementChunkId, statement.statementUid(), "DESCRIBES");
+                graph.relationship(statementChunkId, statement.statementUid(), "EVIDENCE_FOR");
+            }
+            for (String sqlVariant : statement.sqlVariants()) {
+                addSqlEntities(context, graph, statement.statementUid(), mapperUid,
+                        sqlVariant, statement.operation());
+            }
+        }
+    }
+
+    public List<MyBatisStatementAnalysis> analyzeMyBatisStatements(JavaSourceGraphIngestRequest request) {
+        Context context = context(request);
+        if (!".xml".equals(extension(context.fileName()))) {
+            return List.of();
+        }
+        Element mapper = xmlRoot(context.content());
+        if (mapper == null || !"mapper".equals(mapper.getTagName())) {
+            return List.of();
+        }
+        return mapperStatements(context, mapper);
+    }
+
+    public static String statementChunkId(String sourceKey, String statementId) {
+        return sourceKey + ":statement:" + statementId;
+    }
+
+    private List<MyBatisStatementAnalysis> mapperStatements(Context context, Element mapper) {
+        String namespace = mapper.getAttribute("namespace").trim();
+        if (!StringUtils.hasText(namespace)) {
+            throw new IllegalArgumentException("MyBatis mapper namespace is required.");
+        }
+        Map<String, Element> fragments = sqlFragments(mapper, namespace);
+        List<MyBatisStatementAnalysis> result = new ArrayList<>();
         for (String tag : List.of("select", "insert", "update", "delete")) {
             NodeList statements = mapper.getElementsByTagName(tag);
             for (int index = 0; index < statements.getLength(); index++) {
@@ -106,19 +158,260 @@ public class StructuredSourceGraphAnalyzer {
                 if (!StringUtils.hasText(statementId)) {
                     continue;
                 }
-                String sql = statement.getTextContent().replaceAll("\\s+", " ").trim();
-                String operation = "select".equals(tag) ? "READ" : "WRITE";
-                String statementUid = SourceGraphIdentity.sqlStatementUid(
-                        context.projectId(), namespace, statementId
-                );
-                graph.node(statementUid, "SqlStatement", statementId, Map.of(
-                        "statementId", statementId, "namespace", namespace,
-                        "operation", operation, "sql", sql, "sourceFormat", "mybatis-xml"
+                DynamicSql rendered = renderChildren(statement, fragments, namespace, new LinkedHashSet<>());
+                List<String> variants = rendered.variants().stream()
+                        .map(this::normalizeSql)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .limit(MAX_SQL_VARIANTS)
+                        .toList();
+                String template = normalizeSql(rendered.template());
+                if (!StringUtils.hasText(template) && !variants.isEmpty()) {
+                    template = variants.get(0);
+                }
+                result.add(new MyBatisStatementAnalysis(
+                        statementId,
+                        namespace,
+                        SourceGraphIdentity.sqlStatementUid(context.projectId(), namespace, statementId),
+                        tag.toUpperCase(Locale.ROOT),
+                        "select".equals(tag) ? "READ" : "WRITE",
+                        template,
+                        variants.isEmpty() ? List.of(template) : variants,
+                        rendered.dynamic(),
+                        List.copyOf(rendered.conditions()),
+                        statement.getAttribute("parameterType").trim(),
+                        firstText(statement.getAttribute("resultType"), statement.getAttribute("resultMap"))
                 ));
-                graph.relationship(mapperUid, statementUid, "HAS_STATEMENT");
-                addSqlEntities(context, graph, statementUid, mapperUid, sql, operation);
             }
         }
+        return List.copyOf(result);
+    }
+
+    private Map<String, Element> sqlFragments(Element mapper, String namespace) {
+        Map<String, Element> fragments = new LinkedHashMap<>();
+        NodeList nodes = mapper.getElementsByTagName("sql");
+        for (int index = 0; index < nodes.getLength(); index++) {
+            Element fragment = (Element) nodes.item(index);
+            String id = fragment.getAttribute("id").trim();
+            if (StringUtils.hasText(id)) {
+                fragments.put(id, fragment);
+                fragments.put(namespace + "." + id, fragment);
+            }
+        }
+        return fragments;
+    }
+
+    private DynamicSql renderChildren(Element parent, Map<String, Element> fragments,
+                                      String namespace, Set<String> includeStack) {
+        DynamicSql result = DynamicSql.empty();
+        NodeList children = parent.getChildNodes();
+        for (int index = 0; index < children.getLength(); index++) {
+            result = concatenate(result, renderNode(children.item(index), fragments, namespace, includeStack));
+        }
+        return result;
+    }
+
+    private DynamicSql renderNode(Node node, Map<String, Element> fragments,
+                                  String namespace, Set<String> includeStack) {
+        if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.CDATA_SECTION_NODE) {
+            String text = node.getTextContent();
+            return new DynamicSql(text, List.of(text), new LinkedHashSet<>(), false);
+        }
+        if (!(node instanceof Element element)) {
+            return DynamicSql.empty();
+        }
+        String tag = element.getTagName().toLowerCase(Locale.ROOT);
+        if ("include".equals(tag)) {
+            return renderInclude(element, fragments, namespace, includeStack);
+        }
+        if ("if".equals(tag)) {
+            DynamicSql child = renderChildren(element, fragments, namespace, includeStack);
+            String test = element.getAttribute("test").trim();
+            LinkedHashSet<String> conditions = new LinkedHashSet<>(child.conditions());
+            if (StringUtils.hasText(test)) {
+                conditions.add(test);
+            }
+            List<String> variants = new ArrayList<>();
+            variants.add("");
+            variants.addAll(child.variants());
+            return new DynamicSql(
+                    " /* IF " + test + " */ " + child.template() + " /* END IF */ ",
+                    limitedDistinct(variants), conditions, true
+            );
+        }
+        if ("choose".equals(tag)) {
+            return renderChoose(element, fragments, namespace, includeStack);
+        }
+        DynamicSql child = renderChildren(element, fragments, namespace, includeStack);
+        return switch (tag) {
+            case "where" -> transform(child, value -> prefixSql("WHERE", stripPrefix(value, "AND", "OR")), true);
+            case "set" -> transform(child, value -> prefixSql("SET", stripSuffix(value, ",")), true);
+            case "trim" -> renderTrim(element, child);
+            case "foreach" -> renderForeach(element, child);
+            case "bind" -> {
+                LinkedHashSet<String> conditions = new LinkedHashSet<>(child.conditions());
+                conditions.add("bind:" + element.getAttribute("name") + "=" + element.getAttribute("value"));
+                yield new DynamicSql(child.template(), child.variants(), conditions, true);
+            }
+            default -> child;
+        };
+    }
+
+    private DynamicSql renderInclude(Element include, Map<String, Element> fragments,
+                                     String namespace, Set<String> includeStack) {
+        String refid = include.getAttribute("refid").trim();
+        String resolvedRefid = refid.contains(".") ? refid : namespace + "." + refid;
+        Element fragment = fragments.getOrDefault(resolvedRefid, fragments.get(refid));
+        if (fragment == null) {
+            return new DynamicSql(" /* UNRESOLVED INCLUDE " + refid + " */ ",
+                    List.of(""), new LinkedHashSet<>(List.of("unresolved-include:" + refid)), true);
+        }
+        if (!includeStack.add(resolvedRefid)) {
+            return new DynamicSql(" /* CYCLIC INCLUDE " + refid + " */ ",
+                    List.of(""), new LinkedHashSet<>(List.of("cyclic-include:" + refid)), true);
+        }
+        try {
+            DynamicSql rendered = renderChildren(fragment, fragments, namespace, includeStack);
+            Map<String, String> variables = new LinkedHashMap<>();
+            NodeList properties = include.getElementsByTagName("property");
+            for (int index = 0; index < properties.getLength(); index++) {
+                Element property = (Element) properties.item(index);
+                variables.put(property.getAttribute("name"), property.getAttribute("value"));
+            }
+            return replaceVariables(rendered, variables);
+        } finally {
+            includeStack.remove(resolvedRefid);
+        }
+    }
+
+    private DynamicSql renderChoose(Element choose, Map<String, Element> fragments,
+                                    String namespace, Set<String> includeStack) {
+        List<String> templates = new ArrayList<>();
+        List<String> variants = new ArrayList<>();
+        LinkedHashSet<String> conditions = new LinkedHashSet<>();
+        NodeList children = choose.getChildNodes();
+        boolean hasOtherwise = false;
+        for (int index = 0; index < children.getLength(); index++) {
+            if (!(children.item(index) instanceof Element branch)) {
+                continue;
+            }
+            String tag = branch.getTagName().toLowerCase(Locale.ROOT);
+            if (!"when".equals(tag) && !"otherwise".equals(tag)) {
+                continue;
+            }
+            DynamicSql rendered = renderChildren(branch, fragments, namespace, includeStack);
+            variants.addAll(rendered.variants());
+            conditions.addAll(rendered.conditions());
+            String test = "when".equals(tag) ? branch.getAttribute("test").trim() : "otherwise";
+            conditions.add(test);
+            templates.add("/* " + tag.toUpperCase(Locale.ROOT) + " " + test + " */ " + rendered.template());
+            hasOtherwise |= "otherwise".equals(tag);
+        }
+        if (!hasOtherwise) {
+            variants.add("");
+        }
+        return new DynamicSql(String.join(" /* OR */ ", templates), limitedDistinct(variants), conditions, true);
+    }
+
+    private DynamicSql renderForeach(Element element, DynamicSql child) {
+        String open = element.getAttribute("open");
+        String close = element.getAttribute("close");
+        String separator = element.getAttribute("separator");
+        String collection = element.getAttribute("collection");
+        String item = element.getAttribute("item");
+        List<String> variants = child.variants().stream()
+                .map(value -> open + value + close)
+                .toList();
+        LinkedHashSet<String> conditions = new LinkedHashSet<>(child.conditions());
+        conditions.add("foreach:" + collection + ":" + item + ":separator=" + separator);
+        return new DynamicSql(open + " /* FOREACH " + collection + " AS " + item + " */ "
+                + child.template() + " " + close, limitedDistinct(variants), conditions, true);
+    }
+
+    private DynamicSql renderTrim(Element element, DynamicSql child) {
+        String prefix = element.getAttribute("prefix");
+        String suffix = element.getAttribute("suffix");
+        String[] prefixOverrides = element.getAttribute("prefixOverrides").split("\\|");
+        String[] suffixOverrides = element.getAttribute("suffixOverrides").split("\\|");
+        return transform(child, value -> prefixSql(prefix,
+                stripSuffix(stripPrefix(value, prefixOverrides), suffixOverrides)) + suffix, true);
+    }
+
+    private DynamicSql replaceVariables(DynamicSql sql, Map<String, String> variables) {
+        if (variables.isEmpty()) {
+            return sql;
+        }
+        java.util.function.UnaryOperator<String> replace = value -> {
+            String result = value;
+            for (Map.Entry<String, String> variable : variables.entrySet()) {
+                result = result.replace("${" + variable.getKey() + "}", variable.getValue());
+            }
+            return result;
+        };
+        return new DynamicSql(replace.apply(sql.template()),
+                sql.variants().stream().map(replace).toList(), sql.conditions(), sql.dynamic());
+    }
+
+    private DynamicSql transform(DynamicSql sql, java.util.function.UnaryOperator<String> transform,
+                                 boolean dynamic) {
+        return new DynamicSql(transform.apply(sql.template()),
+                limitedDistinct(sql.variants().stream().map(transform).toList()),
+                sql.conditions(), sql.dynamic() || dynamic);
+    }
+
+    private DynamicSql concatenate(DynamicSql left, DynamicSql right) {
+        List<String> variants = new ArrayList<>();
+        for (String leftVariant : left.variants()) {
+            for (String rightVariant : right.variants()) {
+                variants.add(leftVariant + " " + rightVariant);
+                if (variants.size() >= MAX_SQL_VARIANTS) {
+                    break;
+                }
+            }
+            if (variants.size() >= MAX_SQL_VARIANTS) {
+                break;
+            }
+        }
+        LinkedHashSet<String> conditions = new LinkedHashSet<>(left.conditions());
+        conditions.addAll(right.conditions());
+        return new DynamicSql(left.template() + " " + right.template(),
+                limitedDistinct(variants), conditions, left.dynamic() || right.dynamic());
+    }
+
+    private List<String> limitedDistinct(List<String> values) {
+        return values.stream().distinct().limit(MAX_SQL_VARIANTS).toList();
+    }
+
+    private String prefixSql(String prefix, String value) {
+        return StringUtils.hasText(value) && StringUtils.hasText(prefix) ? prefix + " " + value : value;
+    }
+
+    private String stripPrefix(String value, String... overrides) {
+        String result = value == null ? "" : value.stripLeading();
+        for (String override : overrides) {
+            String candidate = override.trim();
+            if (StringUtils.hasText(candidate) && result.toUpperCase(Locale.ROOT)
+                    .startsWith(candidate.toUpperCase(Locale.ROOT))) {
+                return result.substring(candidate.length()).stripLeading();
+            }
+        }
+        return result;
+    }
+
+    private String stripSuffix(String value, String... overrides) {
+        String result = value == null ? "" : value.stripTrailing();
+        for (String override : overrides) {
+            String candidate = override.trim();
+            if (StringUtils.hasText(candidate) && result.toUpperCase(Locale.ROOT)
+                    .endsWith(candidate.toUpperCase(Locale.ROOT))) {
+                return result.substring(0, result.length() - candidate.length()).stripTrailing();
+            }
+        }
+        return result;
+    }
+
+    private String normalizeSql(String value) {
+        return value == null ? "" : value.replaceAll("\\s+", " ").trim();
     }
 
     private void addSqlEntities(Context context, Graph graph, String statementUid,
@@ -474,5 +767,31 @@ public class StructuredSourceGraphAnalyzer {
     }
 
     private record YamlProperty(String key, String value) {
+    }
+
+    private record DynamicSql(
+            String template,
+            List<String> variants,
+            LinkedHashSet<String> conditions,
+            boolean dynamic
+    ) {
+        private static DynamicSql empty() {
+            return new DynamicSql("", List.of(""), new LinkedHashSet<>(), false);
+        }
+    }
+
+    public record MyBatisStatementAnalysis(
+            String statementId,
+            String namespace,
+            String statementUid,
+            String commandType,
+            String operation,
+            String sqlTemplate,
+            List<String> sqlVariants,
+            boolean dynamic,
+            List<String> conditions,
+            String parameterType,
+            String resultType
+    ) {
     }
 }

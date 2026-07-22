@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class RagDocument {
     private Long id;
+    private String projectKey;
     private String originalFileName;
     private String storedFileName;
     private String filePath;
@@ -30,7 +31,20 @@ public class RagDocument {
             String contentType,
             DocumentType documentType
     ) {
+        return create("default", originalFileName, storedFileName, filePath, fileSize, contentType, documentType);
+    }
+
+    public static RagDocument create(
+            String projectKey,
+            String originalFileName,
+            String storedFileName,
+            String filePath,
+            Long fileSize,
+            String contentType,
+            DocumentType documentType
+    ) {
         RagDocument document = new RagDocument();
+        document.setProjectKey(projectKey);
         document.setOriginalFileName(originalFileName);
         document.setStoredFileName(storedFileName);
         document.setFilePath(filePath);
@@ -86,6 +100,10 @@ public class RagDocument {
     public Long getId() {
         return id;
     }
+
+    public String getProjectKey() { return projectKey; }
+
+    public void setProjectKey(String projectKey) { this.projectKey = projectKey; }
 
     public void setId(Long id) {
         this.id = id;

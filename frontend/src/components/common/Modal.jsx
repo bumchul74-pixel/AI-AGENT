@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export function Modal({ children, className = '', onClose, open, title }) {
+export function Modal({ backdropClassName = '', children, className = '', onClose, open, title }) {
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -28,7 +28,11 @@ export function Modal({ children, className = '', onClose, open, title }) {
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div
+      className={backdropClassName ? `modal-backdrop ${backdropClassName}` : 'modal-backdrop'}
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <section
         className={className ? `modal ${className}` : 'modal'}
         role="dialog"

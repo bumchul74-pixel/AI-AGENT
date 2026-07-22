@@ -3,7 +3,9 @@ package com.hanwha.ai.document.controller;
 import com.hanwha.ai.document.dto.DocumentDownload;
 import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
+import com.hanwha.ai.document.dto.ProjectArchiveUploadResponse;
 import com.hanwha.ai.document.service.DocumentService;
+import com.hanwha.ai.document.service.ProjectArchiveService;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.springframework.core.io.Resource;
@@ -25,30 +27,40 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/documents")
 public class DocumentController {
     private final DocumentService documentService;
+    private final ProjectArchiveService projectArchiveService;
 
-    public DocumentController(DocumentService documentService) {
+    public DocumentController(DocumentService documentService, ProjectArchiveService projectArchiveService) {
         this.documentService = documentService;
+        this.projectArchiveService = projectArchiveService;
+    }
+
+    @PostMapping(value = "/project-archive", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProjectArchiveUploadResponse uploadProjectArchive(
+            @RequestParam String projectKey, @RequestPart("file") MultipartFile file) {
+        return projectArchiveService.upload(projectKey, file);
     }
 
     @GetMapping
-    public List<DocumentResponse> findAll() {
-        return documentService.findAll();
+    public List<DocumentResponse> findAll(@RequestParam(required = false) String projectKey) {
+        return documentService.findAll(projectKey);
     }
 
     @GetMapping("/page")
     public DocumentPageResponse findPage(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size
+            @RequestParam(defaultValue = "30") int size,
+            @RequestParam(required = false) String projectKey
     ) {
-        return documentService.findPage(page, size);
+        return documentService.findPage(projectKey, page, size);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public DocumentResponse upload(
             @RequestPart("file") MultipartFile file,
+            @RequestParam String projectKey,
             @RequestParam(value = "documentType", required = false) String documentType
     ) {
-        return documentService.upload(file, documentType);
+        return documentService.upload(projectKey, file, documentType);
     }
 
     @PostMapping("/{id}/reindex")

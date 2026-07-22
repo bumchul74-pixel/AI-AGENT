@@ -1,5 +1,19 @@
+CREATE TABLE IF NOT EXISTS knowledge_project (
+    id BIGSERIAL PRIMARY KEY,
+    project_key VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(120) NOT NULL,
+    description VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO knowledge_project (project_key, name, description)
+VALUES ('default', 'Default Project', 'Existing documents migrated from the legacy index configuration')
+ON CONFLICT (project_key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS rag_document (
     id BIGSERIAL PRIMARY KEY,
+    project_key VARCHAR(64) NOT NULL DEFAULT 'default',
     original_file_name VARCHAR(255) NOT NULL,
     stored_file_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(1000) NOT NULL,
@@ -18,6 +32,25 @@ CREATE TABLE IF NOT EXISTS rag_document (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
+
+ALTER TABLE rag_document
+    ADD COLUMN IF NOT EXISTS project_key VARCHAR(64);
+
+UPDATE rag_document SET project_key = 'default'
+WHERE project_key IS NULL OR BTRIM(project_key) = '';
+
+ALTER TABLE rag_document
+    ALTER COLUMN project_key SET DEFAULT 'default';
+
+ALTER TABLE rag_document
+    ALTER COLUMN project_key SET NOT NULL;
+
+ALTER TABLE rag_document
+    DROP CONSTRAINT IF EXISTS fk_rag_document_knowledge_project;
+
+ALTER TABLE rag_document
+    ADD CONSTRAINT fk_rag_document_knowledge_project
+    FOREIGN KEY (project_key) REFERENCES knowledge_project(project_key) ON UPDATE CASCADE;
 
 ALTER TABLE rag_document
     ADD COLUMN IF NOT EXISTS file_hash VARCHAR(64);
@@ -50,7 +83,7 @@ WHERE deleted_at IS NULL;
 WITH duplicate_documents AS (
     SELECT id,
            ROW_NUMBER() OVER (
-               PARTITION BY file_hash, document_type
+               PARTITION BY project_key, file_hash, document_type
                ORDER BY created_at ASC, id ASC
            ) AS row_number
     FROM rag_document
@@ -70,9 +103,13 @@ FROM duplicate_documents duplicate_document
 WHERE document.id = duplicate_document.id
   AND duplicate_document.row_number > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_rag_document_active_hash_type
-    ON rag_document (file_hash, document_type)
+DROP INDEX IF EXISTS uq_rag_document_active_hash_type;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rag_document_project_hash_type
+    ON rag_document (project_key, file_hash, document_type)
     WHERE deleted_at IS NULL AND file_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_rag_document_project_key
+    ON rag_document (project_key, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_rag_document_status
     ON rag_document (index_status);
 
@@ -99,6 +136,7 @@ CREATE TABLE IF NOT EXISTS generation_history (
     target_type VARCHAR(255) NOT NULL,
     target_types JSONB,
     prompt TEXT NOT NULL,
+    project_key VARCHAR(64),
     project_structure TEXT,
     rag_documents JSONB,
     generated_code TEXT NOT NULL,
@@ -109,6 +147,17 @@ CREATE TABLE IF NOT EXISTS generation_history (
     neo4j_index_error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE generation_history
+    ADD COLUMN IF NOT EXISTS project_key VARCHAR(64);
+
+ALTER TABLE generation_history
+    DROP CONSTRAINT IF EXISTS fk_generation_history_knowledge_project;
+
+ALTER TABLE generation_history
+    ADD CONSTRAINT fk_generation_history_knowledge_project
+    FOREIGN KEY (project_key) REFERENCES knowledge_project(project_key)
+    ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE generation_history
     ADD COLUMN IF NOT EXISTS neo4j_index_status VARCHAR(30) NOT NULL DEFAULT 'PENDING';
@@ -123,6 +172,8 @@ CREATE INDEX IF NOT EXISTS idx_generation_history_neo4j_index_status
     ON generation_history (neo4j_index_status);
 CREATE INDEX IF NOT EXISTS idx_generation_history_created_at
     ON generation_history (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_generation_history_project_key
+    ON generation_history (project_key, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_generation_history_target_type
     ON generation_history (target_type);

@@ -7,6 +7,7 @@ public class GenerationHistory {
     private String targetType;
     private String targetTypesJson;
     private String prompt;
+    private String projectKey;
     private String projectStructure;
     private String ragDocumentsJson;
     private String generatedCode;
@@ -51,6 +52,14 @@ public class GenerationHistory {
 
     public String getProjectStructure() {
         return projectStructure;
+    }
+
+    public String getProjectKey() {
+        return projectKey;
+    }
+
+    public void setProjectKey(String projectKey) {
+        this.projectKey = projectKey;
     }
 
     public void setProjectStructure(String projectStructure) {

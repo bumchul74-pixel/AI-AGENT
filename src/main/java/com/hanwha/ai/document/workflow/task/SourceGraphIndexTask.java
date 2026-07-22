@@ -13,7 +13,6 @@ import com.hanwha.ai.sourcegraph.dto.SourceGraphIndexResult;
 import com.hanwha.ai.sourcegraph.service.SourceGraphService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.stream.IntStream;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -47,13 +46,11 @@ public class SourceGraphIndexTask implements DocumentIndexTask {
                     context.graphSourceKey(),
                     context.document().getOriginalFileName(),
                     content,
-                    properties.projectId(),
+                    context.document().getProjectKey(),
                     properties.moduleName(),
                     context.logicalFilePath(),
                     context.document().getFileHash(),
-                    IntStream.range(0, context.storedChunkCount())
-                            .mapToObj(index -> context.vectorSourceKey() + ":chunk:" + index)
-                            .toList()
+                    context.storedChunkIds()
             ));
             SourceGraphIndexStatus status = result == null ? SourceGraphIndexStatus.SKIPPED : result.status();
             if (SourceGraphIndexStatus.FAILED.equals(status)) {

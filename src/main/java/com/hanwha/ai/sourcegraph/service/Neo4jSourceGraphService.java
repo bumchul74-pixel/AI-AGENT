@@ -166,6 +166,40 @@ public class Neo4jSourceGraphService implements SourceGraphService {
         return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
     }
 
+    @Override
+    public SourceGraphResponse findOverview(String query, int limit, String projectId) {
+        if (!StringUtils.hasText(projectId)) return findOverview(query, limit);
+        if (!properties.enabled()) return SourceGraphResponse.empty(null);
+        int safeLimit = Math.max(20, Math.min(limit, 1500));
+        boolean hasQuery = StringUtils.hasText(query);
+        String queryClause = hasQuery ? """
+                  AND (
+                    toLower(coalesce(n.name, '')) CONTAINS $query
+                    OR toLower(coalesce(n.fileName, '')) CONTAINS $query
+                    OR toLower(coalesce(n.simpleName, '')) CONTAINS $query
+                    OR toLower(coalesce(n.fqn, '')) CONTAINS $query
+                    OR any(label IN labels(n) WHERE toLower(label) CONTAINS $query)
+                  )
+                """ : "";
+        String cypher = """
+                MATCH (n)
+                WHERE n.uid IS NOT NULL AND n.projectId = $projectId
+                """ + queryClause + """
+                RETURN n.uid AS id,
+                       head([nodeLabel IN labels(n) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
+                       coalesce(n.name, n.fileName, n.simpleName, n.fqn, n.source, n.uid) AS name,
+                       properties(n) AS properties
+                ORDER BY name
+                LIMIT $limit
+                """;
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("projectId", projectId.trim());
+        parameters.put("limit", safeLimit);
+        if (hasQuery) parameters.put("query", query.trim().toLowerCase(Locale.ROOT));
+        List<SourceGraphNodeResponse> nodes = fetchNodes(cypher, parameters);
+        return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
+    }
+
     private List<SourceGraphNodeResponse> fetchBalancedOverviewNodes(String query, int limit) {
         Map<String, SourceGraphNodeResponse> nodes = new LinkedHashMap<>();
         boolean hasQuery = StringUtils.hasText(query);
@@ -470,15 +504,17 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 WHERE n.graphKey IS NOT NULL AND trim(toString(n.graphKey)) <> ''
                 WITH n.graphKey AS graphKey,
                      coalesce(max(n.sourceKey), max(n.source), n.graphKey) AS sourceKey,
+                     coalesce(max(n.projectId), '') AS projectId,
                      coalesce(max(n.fileName), max(n.name), n.graphKey) AS fileName,
                      count(n) AS nodeCount
-                RETURN sourceKey, graphKey, fileName, nodeCount
+                RETURN sourceKey, graphKey, projectId, fileName, nodeCount
                 ORDER BY toLower(fileName), sourceKey
                 """).fetch().all();
         return rows.stream()
                 .map(row -> new SourceGraphSourceResponse(
                         stringValue(row.get("sourceKey")),
                         stringValue(row.get("graphKey")),
+                        stringValue(row.get("projectId")),
                         stringValue(row.get("fileName")),
                         intValue(row.get("nodeCount"))
                 ))

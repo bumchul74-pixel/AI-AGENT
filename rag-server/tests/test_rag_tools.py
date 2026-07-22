@@ -112,6 +112,48 @@ class RagToolsTest(unittest.TestCase):
         )
         self.assertEqual(results[0]["content"], reloaded[0]["content"])
 
+    def test_search_chunks_are_filtered_by_project_id(self) -> None:
+        rag_ingest_document(
+            self.store, source="document:project-a", content="Shared user service project alpha",
+            chunk_size=200, overlap=0, project_id="project-a",
+        )
+        rag_ingest_document(
+            self.store, source="document:project-b", content="Shared user service project beta",
+            chunk_size=200, overlap=0, project_id="project-b",
+        )
+
+        results = self.store.search_chunks("Shared user service", 10, project_id="project-b")
+
+        self.assertEqual(1, len(results))
+        self.assertEqual("document:project-b", results[0]["sourceKey"])
+
+    def test_explicit_statement_chunks_are_replaced_by_stable_chunk_id(self) -> None:
+        statement_chunk = {
+            "chunkId": "document:30:statement:findUser",
+            "sourceKey": "document:30",
+            "content": "SELECT id, name FROM users WHERE id = #{id}",
+            "documentId": 30,
+            "projectId": "commerce",
+            "filePath": "mapper/UserMapper.xml",
+            "fileHash": "hash30",
+            "entityIds": ["statement:commerce:com.example.UserMapper:findUser"],
+            "symbol": "com.example.UserMapper.findUser",
+            "metadata": {"contentType": "mybatis-statement", "dynamic": False},
+        }
+
+        self.assertEqual(1, self.store.add_chunks([statement_chunk]))
+        statement_chunk["content"] = "SELECT id, name, email FROM users WHERE id = #{id}"
+        self.assertEqual(1, self.store.add_chunks([statement_chunk]))
+
+        self.assertEqual(1, len(self.store.chunks))
+        chunk = self.store.chunks[0]
+        self.assertIn("email", chunk.content)
+        self.assertEqual(
+            ["statement:commerce:com.example.UserMapper:findUser"],
+            chunk.entity_ids,
+        )
+        self.assertEqual("mybatis-statement", chunk.metadata["contentType"])
+
 
 if __name__ == "__main__":
     unittest.main()

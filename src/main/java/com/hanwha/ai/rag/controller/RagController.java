@@ -43,7 +43,8 @@ public class RagController {
     @GetMapping("/sources")
     public RagSourcePageResponse sources(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size
+            @RequestParam(defaultValue = "30") int size,
+            @RequestParam(required = false) String projectKey
     ) {
         Map<String, SourceInventory> sources = new LinkedHashMap<>();
         for (RagSourceResponse source : ragClient.findSources()) {
@@ -62,12 +63,16 @@ public class RagController {
             inventory.graphTracked = true;
             inventory.graphKey = source.graphKey();
             inventory.graphNodeCount = source.nodeCount();
+            if (!StringUtils.hasText(inventory.projectId)) {
+                inventory.projectId = source.projectId();
+            }
             if (!StringUtils.hasText(inventory.fileName)) {
                 inventory.fileName = source.fileName();
             }
         });
         List<RagSourceResponse> allSources = sources.values().stream()
                 .map(SourceInventory::response)
+                .filter(source -> !StringUtils.hasText(projectKey) || projectKey.equals(source.projectId()))
                 .sorted((left, right) -> left.fileName().compareToIgnoreCase(right.fileName()))
                 .toList();
         int safePage = Math.max(0, page);

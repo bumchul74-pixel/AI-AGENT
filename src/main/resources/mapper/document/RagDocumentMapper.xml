@@ -5,6 +5,7 @@
 <mapper namespace="com.hanwha.ai.document.mapper.RagDocumentMapper">
     <resultMap id="ragDocumentResultMap" type="com.hanwha.ai.document.domain.RagDocument">
         <id column="id" property="id" />
+        <result column="project_key" property="projectKey" />
         <result column="original_file_name" property="originalFileName" />
         <result column="stored_file_name" property="storedFileName" />
         <result column="file_path" property="filePath" />
@@ -26,6 +27,7 @@
 
     <sql id="ragDocumentColumns">
         id,
+        project_key,
         original_file_name,
         stored_file_name,
         file_path,
@@ -51,6 +53,7 @@
             keyProperty="id"
             keyColumn="id">
         INSERT INTO rag_document (
+            project_key,
             original_file_name,
             stored_file_name,
             file_path,
@@ -66,6 +69,7 @@
             chunk_count,
             error_message
         ) VALUES (
+            #{projectKey},
             #{originalFileName},
             #{storedFileName},
             #{filePath},
@@ -81,7 +85,7 @@
             #{chunkCount},
             #{errorMessage}
         )
-        ON CONFLICT (file_hash, document_type)
+        ON CONFLICT (project_key, file_hash, document_type)
             WHERE deleted_at IS NULL AND file_hash IS NOT NULL
         DO NOTHING
     </insert>
@@ -91,6 +95,13 @@
         <include refid="ragDocumentColumns" />
         FROM rag_document
         WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <select id="findAllByProjectKey" resultMap="ragDocumentResultMap">
+        SELECT <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE deleted_at IS NULL AND project_key = #{projectKey}
         ORDER BY created_at DESC, id DESC
     </select>
 
@@ -104,10 +115,27 @@
         OFFSET #{offset}
     </select>
 
+    <select id="findPageByProjectKey" resultMap="ragDocumentResultMap">
+        SELECT <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE deleted_at IS NULL AND project_key = #{projectKey}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <select id="countAll" resultType="long">
         SELECT count(*)
         FROM rag_document
         WHERE deleted_at IS NULL
+    </select>
+
+    <select id="countByProjectKey" resultType="long">
+        SELECT count(*) FROM rag_document
+        WHERE deleted_at IS NULL AND project_key = #{projectKey}
+    </select>
+
+    <select id="projectExists" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM knowledge_project WHERE project_key = #{projectKey})
     </select>
 
     <select id="findById" parameterType="long" resultMap="ragDocumentResultMap">
@@ -123,6 +151,16 @@
         <include refid="ragDocumentColumns" />
         FROM rag_document
         WHERE file_hash = #{fileHash}
+          AND document_type = #{documentType}
+          AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+    <select id="findActiveByProjectAndFileHashAndDocumentType" resultMap="ragDocumentResultMap">
+        SELECT <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE project_key = #{projectKey}
+          AND file_hash = #{fileHash}
           AND document_type = #{documentType}
           AND deleted_at IS NULL
         ORDER BY id ASC

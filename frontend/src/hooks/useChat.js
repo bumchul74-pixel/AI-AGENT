@@ -10,6 +10,7 @@ import {
   renameChatProject,
   sendChatMessage,
 } from '../api/chatApi.js';
+import { isApiRequestError } from '../api/apiClient.js';
 
 export function useChat() {
   const [conversations, setConversations] = useState([]);
@@ -55,7 +56,7 @@ export function useChat() {
           setMessages(history);
         }
       } catch (exception) {
-        if (!cancelled) {
+        if (!cancelled && !isApiRequestError(exception)) {
           setMessages([createErrorMessage(exception.message)]);
         }
       } finally {
@@ -79,7 +80,7 @@ export function useChat() {
     try {
       setMessages(await fetchConversationMessages(conversationId));
     } catch (exception) {
-      setMessages([createErrorMessage(exception.message)]);
+      if (!isApiRequestError(exception)) setMessages([createErrorMessage(exception.message)]);
     } finally {
       setIsHistoryLoading(false);
     }
@@ -115,7 +116,7 @@ export function useChat() {
       await refreshProjects();
       return project;
     } catch (exception) {
-      setProjectError(exception.message);
+      setProjectError(isApiRequestError(exception) ? '' : exception.message);
       throw exception;
     } finally {
       setIsProjectLoading(false);
@@ -129,7 +130,7 @@ export function useChat() {
       await renameChatProject(projectId, name);
       await refreshProjects();
     } catch (exception) {
-      setProjectError(exception.message);
+      setProjectError(isApiRequestError(exception) ? '' : exception.message);
       throw exception;
     } finally {
       setIsProjectLoading(false);
@@ -143,7 +144,7 @@ export function useChat() {
       await moveChatConversation(conversationId, projectId);
       await Promise.all([refreshConversations(), refreshProjects()]);
     } catch (exception) {
-      setProjectError(exception.message);
+      setProjectError(isApiRequestError(exception) ? '' : exception.message);
       throw exception;
     } finally {
       setIsProjectLoading(false);
@@ -172,11 +173,13 @@ export function useChat() {
       }
       await refreshConversations();
     } catch (exception) {
-      appendMessage({
-        role: 'assistant',
-        content: exception.message || '채팅 요청에 실패했습니다.',
-        status: 'error',
-      });
+      if (!isApiRequestError(exception)) {
+        appendMessage({
+          role: 'assistant',
+          content: exception.message || '채팅 요청에 실패했습니다.',
+          status: 'error',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -195,11 +198,13 @@ export function useChat() {
       }
       await submit(message.content, file);
     } catch (exception) {
-      appendMessage({
-        role: 'assistant',
-        content: exception.message || '메시지를 재전송하지 못했습니다.',
-        status: 'error',
-      });
+      if (!isApiRequestError(exception)) {
+        appendMessage({
+          role: 'assistant',
+          content: exception.message || '메시지를 재전송하지 못했습니다.',
+          status: 'error',
+        });
+      }
     } finally {
       setResendingMessageId(null);
     }

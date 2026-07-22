@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
-import { Download, FileStack, RefreshCw, RotateCw, Trash2, UploadCloud } from 'lucide-react';
-import { documentDownloadUrl } from '../api/documentApi.js';
+import { useEffect, useRef, useState } from 'react';
+import { Archive, Download, FileStack, RefreshCw, RotateCw, Trash2, UploadCloud } from 'lucide-react';
+import { downloadDocument } from '../api/documentApi.js';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
+import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 import { useDocument } from '../hooks/useDocument.js';
 import { formatDateTime } from '../utils/dateUtils.js';
+import { fetchKnowledgeProjects } from '../api/projectApi.js';
 
 const TEXT = {
   standardDocument: '\uD45C\uC900 \uBB38\uC11C',
@@ -70,10 +72,25 @@ function statusLabel(status) {
 }
 
 export function DocumentManagePage() {
-  const documentStore = useDocument();
+  const [projects, setProjects] = useState([]);
+  const [projectKey, setProjectKey] = useState('');
+  const documentStore = useDocument(projectKey);
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [documentType, setDocumentType] = useState(DOCUMENT_TYPES[0].value);
+  const isArchive = selectedFile?.name?.toLowerCase().endsWith('.zip');
+
+  useEffect(() => {
+    fetchKnowledgeProjects()
+      .then((items) => {
+        setProjects(items);
+        setProjectKey((current) => current || items[0]?.projectKey || '');
+      })
+      .catch(() => {
+        setProjects([]);
+        setProjectKey('');
+      });
+  }, []);
 
   async function handleUpload() {
     const uploadedDocument = await documentStore.upload({ file: selectedFile, documentType });
@@ -89,6 +106,20 @@ export function DocumentManagePage() {
     const confirmed = window.confirm(TEXT.deleteConfirm);
     if (confirmed) {
       await documentStore.remove(documentId);
+    }
+  }
+
+  async function handleDownload(document) {
+    try {
+      const blob = await downloadDocument(document.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = objectUrl;
+      link.download = document.originalFileName || `document-${document.id}`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // The shared API client displays the server error as a toast.
     }
   }
 
@@ -112,9 +143,10 @@ export function DocumentManagePage() {
         </div>
 
         <div className="document-upload-grid">
+          <ProjectSelect projects={projects} value={projectKey} onChange={setProjectKey} />
           <label className="field">
             <span>{TEXT.documentType}</span>
-            <select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>
+            <select value={documentType} disabled={isArchive} onChange={(event) => setDocumentType(event.target.value)}>
               {DOCUMENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
@@ -126,6 +158,7 @@ export function DocumentManagePage() {
             <input
               ref={fileInputRef}
               type="file"
+              accept=".zip,.java,.kt,.xml,.yml,.yaml,.md,.js,.jsx,.ts,.tsx"
               onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
             />
           </label>
@@ -133,16 +166,33 @@ export function DocumentManagePage() {
 
         {selectedFile && (
           <div className="selected-file">
-            <strong>{selectedFile.name}</strong>
+            <strong>{isArchive ? `프로젝트 ZIP · ${selectedFile.name}` : selectedFile.name}</strong>
             <span>{formatFileSize(selectedFile.size)}</span>
+          </div>
+        )}
+
+        {isArchive && (
+          <div className="archive-upload-notice">
+            <Archive size={18} />
+            <span>ZIP 내부의 지원 소스 파일을 경로 구조 그대로 해제한 후 개별 업로드·색인합니다.</span>
+          </div>
+        )}
+
+        {documentStore.archiveResult && (
+          <div className="archive-upload-result">
+            <strong>{documentStore.archiveResult.archiveName} 처리 완료</strong>
+            <span>색인 {documentStore.archiveResult.indexedFiles} · 건너뜀 {documentStore.archiveResult.skippedFiles} · 실패 {documentStore.archiveResult.failedFiles}</span>
+            {documentStore.archiveResult.failures?.map((failure) => (
+              <small key={failure.entryPath}>{failure.entryPath}: {failure.message}</small>
+            ))}
           </div>
         )}
 
         {documentStore.error && <p className="error-text">{documentStore.error}</p>}
 
         <div className="action-row">
-          <Button icon={UploadCloud} onClick={handleUpload} disabled={!selectedFile || documentStore.isUploading}>
-            {documentStore.isUploading ? TEXT.uploading : TEXT.uploadAndIndex}
+          <Button icon={UploadCloud} onClick={handleUpload} disabled={!projectKey || !selectedFile || documentStore.isUploading}>
+            {documentStore.isUploading ? TEXT.uploading : isArchive ? '프로젝트 ZIP 업로드 및 색인' : TEXT.uploadAndIndex}
           </Button>
           <Button icon={RefreshCw} variant="secondary" onClick={documentStore.loadDocuments} disabled={documentStore.isLoading}>
             {TEXT.refresh}
@@ -211,9 +261,9 @@ export function DocumentManagePage() {
                           >
                             <RotateCw size={16} />
                           </button>
-                          <a className="icon-button" title={TEXT.download} href={documentDownloadUrl(document.id)}>
+                          <button className="icon-button" type="button" title={TEXT.download} onClick={() => handleDownload(document)}>
                             <Download size={16} />
-                          </a>
+                          </button>
                           <button
                             className="icon-button danger"
                             type="button"

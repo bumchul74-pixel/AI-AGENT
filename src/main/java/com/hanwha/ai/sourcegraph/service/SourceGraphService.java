@@ -15,6 +15,10 @@ public interface SourceGraphService {
 
     SourceGraphResponse findOverview(String query, int limit);
 
+    default SourceGraphResponse findOverview(String query, int limit, String projectId) {
+        return findOverview(query, limit);
+    }
+
     SourceGraphResponse findByHistoryId(Long historyId);
 
     SourceGraphResponse findDependencies(String fqn);

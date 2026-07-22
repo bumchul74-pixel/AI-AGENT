@@ -1412,6 +1412,9 @@ public class JavaSourceGraphAnalyzer {
     }
 
     private String generationProjectId(GenerationHistory history) {
+        if (StringUtils.hasText(history.getProjectKey())) {
+            return history.getProjectKey().trim();
+        }
         String projectStructure = firstText(history.getProjectStructure(), "generation");
         UUID stableId = UUID.nameUUIDFromBytes(projectStructure.getBytes(StandardCharsets.UTF_8));
         return "generation-" + stableId;

@@ -8,7 +8,8 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from app.directory_watcher import DirectoryIngestWatcher
 from app.file_text_extractor import extract_text_from_upload
 from app.schemas import (ChunkBatchRequest, ChunkBatchResponse, DocumentIngestRequest,
-                         RagChunkResult, RagSearchRequest, RagSearchResponse, RagStatsResponse)
+                         RagChunkResult, RagSearchRequest, RagSearchResponse, RagStatsResponse,
+                         StoredChunkBatchRequest)
 from app.settings import load_watch_settings
 from app.vector_store import LocalVectorStore
 
@@ -151,8 +152,13 @@ async def search(request: Request) -> RagSearchResponse:
     search_request = RagSearchRequest(
         query=query,
         top_k=top_k,
+        projectId=str(payload.get("projectId", "")).strip(),
     )
-    chunks = vector_store.search_chunks(query=search_request.query, top_k=search_request.top_k)
+    chunks = vector_store.search_chunks(
+        query=search_request.query,
+        top_k=search_request.top_k,
+        project_id=search_request.projectId,
+    )
     documents = [f"[source: {chunk['sourceKey']}]\n{chunk['content']}" for chunk in chunks]
     return RagSearchResponse(
         documents=documents,
@@ -164,6 +170,12 @@ async def search(request: Request) -> RagSearchResponse:
 def chunks_by_ids(request: ChunkBatchRequest) -> ChunkBatchResponse:
     chunks = vector_store.find_chunks(request.chunkIds)
     return ChunkBatchResponse(chunks=[RagChunkResult(**chunk) for chunk in chunks])
+
+
+@app.post("/api/chunks")
+def store_chunks(request: StoredChunkBatchRequest) -> dict[str, int]:
+    stored_count = vector_store.add_chunks([chunk.model_dump() for chunk in request.chunks])
+    return {"stored_count": stored_count}
 
 
 @app.get("/api/stats", response_model=RagStatsResponse)

@@ -30,9 +30,10 @@ public class SourceGraphController {
     @GetMapping
     public SourceGraphResponse overview(
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) String projectKey,
             @RequestParam(defaultValue = "600") int limit
     ) {
-        return sourceGraphService.findOverview(query, limit);
+        return sourceGraphService.findOverview(query, limit, projectKey);
     }
 
 

@@ -6,13 +6,18 @@ export function Sidebar({ activePage, onNavigate }) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
+      <button
+        className="sidebar-brand"
+        type="button"
+        onClick={() => onNavigate('dashboard')}
+        aria-label="Dashboard로 이동"
+      >
         <div className="brand-mark">AI</div>
         <div>
           <strong>AI Agent</strong>
           <span>RAG Console</span>
         </div>
-      </div>
+      </button>
 
       <nav className="sidebar-nav" aria-label="주요 업무 영역">
         {NAVIGATION_SECTIONS.map((item) => (

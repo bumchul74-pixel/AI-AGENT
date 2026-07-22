@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { FileCode2, Play, Sparkles } from 'lucide-react';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
+import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { ChatInput } from '../components/chat/ChatInput.jsx';
 import { ChatResult } from '../components/chat/ChatResult.jsx';
-import { fetchProjectStructures } from '../api/generateApi.js';
+import { fetchKnowledgeProjects } from '../api/projectApi.js';
 import { GENERATION_TARGETS } from '../constants/apiConstants.js';
 import { useGenerate } from '../hooks/useGenerate.js';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
 import { DataCleanupPage } from './DataCleanupPage.jsx';
+import { DashboardPage } from './DashboardPage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
 import { JavaGraphPage } from './JavaGraphPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
+import { ProjectManagePage } from './ProjectManagePage.jsx';
 
 const TEXT = {
   defaultPrompt: 'User CRUD API\uB97C \uC0DD\uC131\uD574\uC918.',
@@ -25,46 +28,49 @@ const TEXT = {
 
 export function TemplateGeneratePage() {
   const generation = useGenerate();
-  const [activePage, setActivePage] = useState('generate');
+  const [activePage, setActivePage] = useState('dashboard');
   const [targetTypes, setTargetTypes] = useState([GENERATION_TARGETS[0]]);
   const [prompt, setPrompt] = useState(TEXT.defaultPrompt);
-  const [projectStructure, setProjectStructure] = useState('');
-  const [projectStructureOptions, setProjectStructureOptions] = useState([]);
-  const [projectStructureError, setProjectStructureError] = useState('');
-  const [isProjectStructureLoading, setIsProjectStructureLoading] = useState(false);
+  const [projectKey, setProjectKey] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [isProjectLoading, setIsProjectLoading] = useState(false);
 
   useEffect(() => {
+    if (activePage !== 'generate') {
+      return undefined;
+    }
+
     let ignore = false;
 
-    async function loadProjectStructures() {
-      setIsProjectStructureLoading(true);
-      setProjectStructureError('');
+    async function loadProjects() {
+      setIsProjectLoading(true);
 
       try {
-        const options = await fetchProjectStructures();
+        const options = await fetchKnowledgeProjects();
         if (ignore) {
           return;
         }
 
-        setProjectStructureOptions(options);
-        setProjectStructure((current) => current || options[0]?.value || '');
-      } catch (exception) {
+        setProjects(options);
+        setProjectKey((current) => current || options[0]?.projectKey || '');
+      } catch {
         if (!ignore) {
-          setProjectStructureError(exception.message);
+          setProjects([]);
+          setProjectKey('');
         }
       } finally {
         if (!ignore) {
-          setIsProjectStructureLoading(false);
+          setIsProjectLoading(false);
         }
       }
     }
 
-    loadProjectStructures();
+    loadProjects();
 
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [activePage]);
 
   useEffect(() => {
     if (activePage === 'generate') {
@@ -83,16 +89,24 @@ export function TemplateGeneratePage() {
   }
 
   async function handleGenerate() {
-    await generation.submit({ targetTypes, prompt, projectStructure });
+    await generation.submit({ targetTypes, prompt, projectKey });
   }
 
   function renderPage() {
+    if (activePage === 'dashboard') {
+      return <DashboardPage onNavigate={setActivePage} />;
+    }
+
     if (activePage === 'chat') {
       return <ChatPage />;
     }
 
     if (activePage === 'documents') {
       return <DocumentManagePage />;
+    }
+
+    if (activePage === 'projects') {
+      return <ProjectManagePage />;
     }
 
     if (activePage === 'rag') {
@@ -138,27 +152,27 @@ export function TemplateGeneratePage() {
 
           <ChatInput value={prompt} onChange={setPrompt} />
 
-          <label className="field project-structure-field">
-            <span>Project Structure</span>
-            <select
-              value={projectStructure}
-              onChange={(event) => setProjectStructure(event.target.value)}
-              disabled={isProjectStructureLoading || projectStructureOptions.length === 0}
-            >
-              {projectStructureOptions.length === 0 ? (
-                <option value="">No project structures configured</option>
-              ) : projectStructureOptions.map((option, index) => (
-                <option key={`${option.name}-${index}`} value={option.value}>{option.name}</option>
-              ))}
-            </select>
-          </label>
+          <ProjectSelect
+            projects={projects}
+            value={projectKey}
+            onChange={setProjectKey}
+            disabled={isProjectLoading}
+            className="project-structure-field"
+          />
 
-          {projectStructureError && <p className="error-text">{projectStructureError}</p>}
+          {projectKey && (() => {
+            const project = projects.find((item) => item.projectKey === projectKey);
+            return project ? (
+              <p className="field-help">
+                {project.description || '설명 없음'} · 색인 문서 {project.documentCount ?? 0}개
+              </p>
+            ) : null;
+          })()}
 
           {generation.error && <p className="error-text">{generation.error}</p>}
 
           <div className="action-row">
-            <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading || isProjectStructureLoading || !projectStructure || targetTypes.length === 0}>
+            <Button icon={Play} onClick={handleGenerate} disabled={generation.isLoading || isProjectLoading || !projectKey || targetTypes.length === 0}>
               {TEXT.generate}
             </Button>
           </div>

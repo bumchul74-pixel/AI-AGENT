@@ -1,22 +1,14 @@
-import { apiUrl } from '../constants/apiConstants.js';
+import { apiRequest } from './apiClient.js';
 
-async function readError(response, fallbackMessage) {
-  const errorBody = await response.json().catch(() => null);
-  return errorBody?.message ?? errorBody?.detail ?? fallbackMessage;
-}
-
-export async function fetchDocuments({ page = 0, size = 30 } = {}) {
+export async function fetchDocuments({ page = 0, size = 30, projectKey } = {}) {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
   });
-  const response = await fetch(apiUrl(`/api/documents/page?${params.toString()}`));
-
-  if (!response.ok) {
-    throw new Error(await readError(response, '臾몄꽌 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??'));
-  }
-
-  const payload = await response.json();
+  if (projectKey) params.set('projectKey', projectKey);
+  const payload = await apiRequest(`/api/documents/page?${params.toString()}`, {
+    errorMessage: '문서 목록을 불러오지 못했습니다.',
+  });
   if (Array.isArray(payload)) {
     return {
       documents: payload,
@@ -36,45 +28,48 @@ export async function fetchDocuments({ page = 0, size = 30 } = {}) {
   };
 }
 
-export async function uploadDocument({ file, documentType }) {
+export async function uploadDocument({ file, documentType, projectKey }) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('documentType', documentType);
+  formData.append('projectKey', projectKey);
 
-  const response = await fetch(apiUrl('/api/documents'), {
+  return apiRequest('/api/documents', {
     method: 'POST',
     body: formData,
+    errorMessage: '문서 업로드에 실패했습니다.',
   });
+}
 
-  if (!response.ok) {
-    throw new Error(await readError(response, '臾몄꽌 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.'));
-  }
-
-  return response.json();
+export async function uploadProjectArchive(file, projectKey) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('projectKey', projectKey);
+  return apiRequest('/api/documents/project-archive', {
+    method: 'POST',
+    body: formData,
+    errorMessage: 'ZIP 프로젝트 업로드 및 색인에 실패했습니다.',
+  });
 }
 
 export async function reindexDocument(id) {
-  const response = await fetch(apiUrl(`/api/documents/${id}/reindex`), {
+  return apiRequest(`/api/documents/${id}/reindex`, {
     method: 'POST',
+    errorMessage: '문서 재색인에 실패했습니다.',
   });
-
-  if (!response.ok) {
-    throw new Error(await readError(response, '臾몄꽌 ?ъ깋?몄뿉 ?ㅽ뙣?덉뒿?덈떎.'));
-  }
-
-  return response.json();
 }
 
 export async function deleteDocument(id) {
-  const response = await fetch(apiUrl(`/api/documents/${id}`), {
+  return apiRequest(`/api/documents/${id}`, {
     method: 'DELETE',
+    responseType: 'none',
+    errorMessage: '문서 삭제에 실패했습니다.',
   });
-
-  if (!response.ok) {
-    throw new Error(await readError(response, '臾몄꽌 ??젣???ㅽ뙣?덉뒿?덈떎.'));
-  }
 }
 
-export function documentDownloadUrl(id) {
-  return apiUrl(`/api/documents/${id}/download`);
+export function downloadDocument(id) {
+  return apiRequest(`/api/documents/${id}/download`, {
+    responseType: 'blob',
+    errorMessage: '문서를 다운로드하지 못했습니다.',
+  });
 }

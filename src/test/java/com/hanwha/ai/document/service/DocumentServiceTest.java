@@ -6,6 +6,8 @@ import com.hanwha.ai.document.domain.DocumentType;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.document.dto.DocumentResponse;
 import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
+import com.hanwha.ai.knowledge.project.dto.KnowledgeProjectRequest;
+import com.hanwha.ai.knowledge.project.service.KnowledgeProjectService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -14,6 +16,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,9 @@ class DocumentServiceTest {
 
     @Autowired
     private RecordingDocumentIndexWorkflow indexWorkflow;
+
+    @Autowired
+    private KnowledgeProjectService projectService;
 
     @DynamicPropertySource
     static void documentProperties(DynamicPropertyRegistry registry) {
@@ -115,6 +121,29 @@ class DocumentServiceTest {
         assertThat(repository.findAll().stream()
                 .filter(document -> firstResponse.id().equals(document.getId()))
                 .count()).isEqualTo(1);
+    }
+
+    @Test
+    void sameContentIsStoredSeparatelyForDifferentProjects() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String firstKey = "project-a-" + suffix;
+        String secondKey = "project-b-" + suffix;
+        projectService.create(new KnowledgeProjectRequest(firstKey, "Project A", null));
+        projectService.create(new KnowledgeProjectRequest(secondKey, "Project B", null));
+
+        byte[] content = "public class SharedType {}".getBytes(StandardCharsets.UTF_8);
+        DocumentResponse first = documentService.upload(firstKey,
+                new MockMultipartFile("file", "SharedType.java", "text/x-java-source", content),
+                "STANDARD_SOURCE");
+        DocumentResponse second = documentService.upload(secondKey,
+                new MockMultipartFile("file", "SharedType.java", "text/x-java-source", content),
+                "STANDARD_SOURCE");
+
+        assertThat(first.id()).isNotEqualTo(second.id());
+        assertThat(first.projectKey()).isEqualTo(firstKey);
+        assertThat(second.projectKey()).isEqualTo(secondKey);
+        assertThat(repository.findPage(firstKey, 10, 0)).extracting(RagDocument::getId).contains(first.id());
+        assertThat(repository.findPage(secondKey, 10, 0)).extracting(RagDocument::getId).contains(second.id());
     }
     @Test
     void repositoryFindsStoredDocumentByGraphSourceKey() throws IOException {

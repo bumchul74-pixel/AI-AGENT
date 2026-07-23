@@ -17,6 +17,7 @@ import { HistoryPage } from './HistoryPage.jsx';
 import { JavaGraphPage } from './JavaGraphPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
 import { ProjectManagePage } from './ProjectManagePage.jsx';
+import { SecureCodingPage } from './SecureCodingPage.jsx';
 
 const TEXT = {
   defaultPrompt: 'User CRUD API\uB97C \uC0DD\uC131\uD574\uC918.',
@@ -123,6 +124,10 @@ export function TemplateGeneratePage() {
 
     if (activePage === 'dataCleanup') {
       return <DataCleanupPage />;
+    }
+
+    if (activePage === 'secureCoding') {
+      return <SecureCodingPage />;
     }
 
     return (

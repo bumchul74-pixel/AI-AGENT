@@ -21,6 +21,7 @@ SUPPORTED_EXTENSIONS = {
     ".java",
     ".kt",
     ".xml",
+    ".sql",
     ".yml",
     ".yaml",
     ".md",

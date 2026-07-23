@@ -223,3 +223,59 @@ CREATE INDEX IF NOT EXISTS idx_chat_project_updated_at
 
 CREATE INDEX IF NOT EXISTS idx_chat_message_conversation_created_at
     ON chat_message (conversation_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS secure_coding_scan_job (
+    id BIGSERIAL PRIMARY KEY,
+    project_key VARCHAR(64) NOT NULL REFERENCES knowledge_project(project_key) ON DELETE CASCADE,
+    status VARCHAR(30) NOT NULL,
+    total_files INTEGER NOT NULL DEFAULT 0,
+    processed_files INTEGER NOT NULL DEFAULT 0,
+    passed_files INTEGER NOT NULL DEFAULT 0,
+    finding_count INTEGER NOT NULL DEFAULT 0,
+    error_files INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS secure_coding_scan_file (
+    id BIGSERIAL PRIMARY KEY,
+    scan_job_id BIGINT NOT NULL REFERENCES secure_coding_scan_job(id) ON DELETE CASCADE,
+    document_id BIGINT NOT NULL,
+    file_name VARCHAR(1000) NOT NULL,
+    file_type VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    error_message TEXT,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    UNIQUE (scan_job_id, document_id)
+);
+
+CREATE TABLE IF NOT EXISTS secure_coding_scan_result (
+    id BIGSERIAL PRIMARY KEY,
+    scan_job_id BIGINT NOT NULL REFERENCES secure_coding_scan_job(id) ON DELETE CASCADE,
+    scan_file_id BIGINT NOT NULL REFERENCES secure_coding_scan_file(id) ON DELETE CASCADE,
+    document_id BIGINT NOT NULL,
+    file_name VARCHAR(1000) NOT NULL,
+    file_type VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    severity VARCHAR(30),
+    rule_id VARCHAR(500),
+    message TEXT NOT NULL,
+    start_line INTEGER,
+    start_column INTEGER,
+    end_line INTEGER,
+    end_column INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_secure_coding_active_project
+    ON secure_coding_scan_job (project_key) WHERE status IN ('QUEUED', 'RUNNING');
+CREATE INDEX IF NOT EXISTS idx_secure_coding_job_project_created
+    ON secure_coding_scan_job (project_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_secure_coding_file_job_status
+    ON secure_coding_scan_file (scan_job_id, status);
+CREATE INDEX IF NOT EXISTS idx_secure_coding_result_job
+    ON secure_coding_scan_result (scan_job_id, id);

@@ -30,6 +30,7 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation("org.apache.poi:poi-ooxml:5.5.1")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-json")
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")

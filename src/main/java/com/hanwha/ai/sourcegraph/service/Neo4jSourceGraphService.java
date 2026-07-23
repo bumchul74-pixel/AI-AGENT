@@ -471,8 +471,8 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                     .map(this::toNodeSourceResponse)
                     .orElseGet(() -> SourceGraphNodeSourceResponse.unavailable(nodeId, "Source graph node was not found."));
         } catch (Exception exception) {
-            log.warn("Failed to fetch Java source content for source graph node {}.", nodeId, exception);
-            return SourceGraphNodeSourceResponse.unavailable(nodeId, "Java source content request failed.");
+            log.warn("Failed to fetch source content for source graph node {}.", nodeId, exception);
+            return SourceGraphNodeSourceResponse.unavailable(nodeId, "Source content request failed.");
         }
     }
 
@@ -548,6 +548,10 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 stringValue(declaringFileProperties.get("source")),
                 stringValue(declaringTypeProperties.get("source")),
                 stringValue(methodFileProperties.get("source")),
+                stringValue(nodeProperties.get("sourceKey")),
+                stringValue(declaringFileProperties.get("sourceKey")),
+                stringValue(declaringTypeProperties.get("sourceKey")),
+                stringValue(methodFileProperties.get("sourceKey")),
                 stringValue(nodeProperties.get("graphSourceKey")),
                 stringValue(declaringFileProperties.get("graphSourceKey")),
                 stringValue(methodFileProperties.get("graphSourceKey"))
@@ -663,12 +667,12 @@ public class Neo4jSourceGraphService implements SourceGraphService {
 
     private String nodeSourceUnavailableMessage(String graphSourceKey, DocumentFileSource documentFileSource) {
         if (StringUtils.hasText(documentFileSource.filePath())) {
-            return "Physical Java source file was not found or could not be read: " + documentFileSource.filePath();
+            return "Physical source file was not found or could not be read: " + documentFileSource.filePath();
         }
         if (StringUtils.hasText(graphSourceKey)) {
             return "rag_document row was not found for graph_source_key: " + graphSourceKey;
         }
-        return "Class source content was not found for this node.";
+        return "Source content was not found for this node.";
     }
 
     private record DocumentFileSource(

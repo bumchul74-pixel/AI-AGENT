@@ -13,7 +13,7 @@ public class ServerFilesystemMcpRouter implements McpRouter {
     public static final String SERVER_NAME = "server-filesystem";
 
     private static final String ROOT_PROPERTY =
-            "spring.ai.mcp.client.stdio.connections.server-filesystem.args[2]";
+            "mcp.filesystem.root";
     private static final int SEARCH_MAX_DEPTH = 20;
 
     private final Path rootPath;

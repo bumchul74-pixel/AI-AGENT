@@ -10,6 +10,7 @@ import {
   MessageSquareText,
   Network,
   Sparkles,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react';
 
@@ -46,6 +47,16 @@ export const NAVIGATION_SECTIONS = [
     defaultPage: 'javaGraph',
     children: [
       { id: 'javaGraph', label: 'Java Graph', description: 'Neo4j 관계와 영향도 탐색', icon: GitFork },
+    ],
+  },
+  {
+    id: 'quality',
+    label: 'Quality & Security',
+    description: '코드 품질 · 보안 점검',
+    icon: ShieldCheck,
+    defaultPage: 'secureCoding',
+    children: [
+      { id: 'secureCoding', label: 'Secure Coding', description: 'Semgrep 프로젝트 보안 점검', icon: ShieldCheck },
     ],
   },
   {

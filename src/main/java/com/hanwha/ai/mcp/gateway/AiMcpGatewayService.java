@@ -21,6 +21,8 @@ public class AiMcpGatewayService {
     private static final String AI_MCP_SERVER_NAME = "ai-mcp-server";
     private static final String SERVER_INFO_TOOL = "get_server_info";
     private static final String SERVER_INFO_RESOURCE = "server://info";
+    private static final String CONNECTION_ERROR_MESSAGE =
+            "MCP 서버에 연결할 수 없습니다. MCP 서버 실행 상태와 연결 설정을 확인하세요.";
     private static final int INITIALIZE_MAX_ATTEMPTS = 3;
     private static final long INITIALIZE_RETRY_DELAY_MILLIS = 1_000L;
 
@@ -90,9 +92,7 @@ public class AiMcpGatewayService {
         return clientsProvider.getIfAvailable(List::of).stream()
                 .filter(this::isAiMcpClient)
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(
-                        "AI-MCP server is not connected. Check spring.ai.mcp.client.streamable-http.connections.ai-mcp."
-                ));
+                .orElseThrow(() -> new BusinessException(CONNECTION_ERROR_MESSAGE));
     }
 
     private boolean isAiMcpClient(McpSyncClient client) {
@@ -108,31 +108,32 @@ public class AiMcpGatewayService {
     }
 
     private void initializeWithRetry(McpSyncClient client) {
-        if (client.isInitialized()) {
-            return;
-        }
-
-        RuntimeException lastFailure = null;
-        for (int attempt = 1; attempt <= INITIALIZE_MAX_ATTEMPTS; attempt++) {
-            try {
-                client.initialize();
+        synchronized (client) {
+            if (client.isInitialized()) {
                 return;
-            } catch (RuntimeException exception) {
-                lastFailure = exception;
-                log.warn(
-                        "MCP client initialization failed. attempt={}/{}",
-                        attempt,
-                        INITIALIZE_MAX_ATTEMPTS,
-                        exception
-                );
+            }
 
-                if (attempt < INITIALIZE_MAX_ATTEMPTS) {
-                    sleepBeforeRetry();
+            RuntimeException lastFailure = null;
+            for (int attempt = 1; attempt <= INITIALIZE_MAX_ATTEMPTS; attempt++) {
+                try {
+                    client.initialize();
+                    return;
+                } catch (RuntimeException exception) {
+                    lastFailure = exception;
+                    log.warn(
+                            "MCP client initialization failed. attempt={}/{}",
+                            attempt,
+                            INITIALIZE_MAX_ATTEMPTS,
+                            exception
+                    );
+
+                    if (attempt < INITIALIZE_MAX_ATTEMPTS) {
+                        sleepBeforeRetry();
+                    }
                 }
             }
+            throw lastFailure;
         }
-
-        throw lastFailure;
     }
 
     private void sleepBeforeRetry() {

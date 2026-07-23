@@ -119,6 +119,54 @@ $env:RAG_CHUNK_OVERLAP="150"
 Do not point `RAG_WATCH_DIR` at `src\main\java` unless deleting those source
 files after indexing is intentional.
 
+## EasyOCR MCP Server
+
+EasyOCR MCP runs as a separate process and shares the rag-server virtual
+environment. Korean and English are enabled by default, and model files are
+stored under data/easyocr-models.
+
+Install OCR dependencies:
+
+    ./.venv/Scripts/python.exe -m pip install -r requirements-ocr-mcp.txt
+
+Run with the default stdio transport:
+
+    ./.venv/Scripts/python.exe -m app.ocr.easyocr_server
+
+Run with streamable HTTP on port 8001 using the start script:
+
+    ./start-easyocr-server.ps1
+
+Restart the server or skip dependency installation:
+
+    ./start-easyocr-server.ps1 -Restart
+    ./start-easyocr-server.ps1 -SkipInstall
+
+Optional arguments:
+
+    ./start-easyocr-server.ps1 -HostAddress 127.0.0.1 -Port 8001
+    ./start-easyocr-server.ps1 -Languages "ko,en"
+    ./start-easyocr-server.ps1 -Gpu
+    ./start-easyocr-server.ps1 -ModelDirectory "D:/models/easyocr"
+    ./start-easyocr-server.ps1 -AllowedDirectories "D:/images;D:/uploads"
+
+Available tools:
+
+- ocr_image_file: reads an image under rag-server/inbox or project uploads
+- ocr_image_base64: reads Base64 image data or an image data URL
+
+AI-MCP connects to this server at `http://localhost:8001/ocr` and re-exposes
+`ocr_image_file` and `ocr_image_base64` through the AI-MCP `/mcp` endpoint.
+Configure the downstream connection in the AI-MCP process with
+`EASYOCR_MCP_URL` and `EASYOCR_MCP_ENDPOINT`.
+
+Configuration environment variables:
+
+    $env:EASYOCR_LANGUAGES="ko,en"
+    $env:EASYOCR_GPU="false"
+    $env:EASYOCR_MODEL_DIR="D:/workspace/AI-AGENT/rag-server/data/easyocr-models"
+    $env:EASYOCR_ALLOWED_DIRS="D:/images;D:/workspace/AI-AGENT/uploads"
+
 ## Search API
 
 ```http

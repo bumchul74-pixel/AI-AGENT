@@ -32,14 +32,9 @@ spring:
             ai-mcp:
               url: ${AI_MCP_BASE_URL:http://localhost:8092}
               endpoint: ${AI_MCP_ENDPOINT:/mcp}
-        stdio:
-          connections:
-            server-filesystem:
-              command: ${MCP_FILESYSTEM_COMMAND:npx.cmd}
-              args:
-                - -y
-                - ${MCP_FILESYSTEM_PACKAGE:@modelcontextprotocol/server-filesystem}
-                - ${MCP_FILESYSTEM_ROOT:d:\workspace\AI-AGENT}
+mcp:
+  filesystem:
+    root: ${MCP_FILESYSTEM_ROOT:d:\workspace\AI-AGENT}
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
 
@@ -94,3 +89,8 @@ secure-coding:
   allowed-extensions:
     - java
   rule-sets: ${SECURE_CODING_RULE_SETS:}
+  worker:
+    core-size: ${SECURE_CODING_WORKER_CORE_SIZE:2}
+    max-size: ${SECURE_CODING_WORKER_MAX_SIZE:4}
+    queue-capacity: ${SECURE_CODING_QUEUE_CAPACITY:100}
+    coordinator-queue-capacity: ${SECURE_CODING_COORDINATOR_QUEUE_CAPACITY:20}

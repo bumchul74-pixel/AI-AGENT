@@ -38,7 +38,7 @@ export function useChat() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitialConversation() {
+    async function loadInitialData() {
       setIsHistoryLoading(true);
       try {
         const [items, projectItems] = await Promise.all([
@@ -48,13 +48,8 @@ export function useChat() {
         if (cancelled) return;
         setConversations(items);
         setProjects(projectItems);
-        if (items.length > 0) {
-          const firstId = items[0].id;
-          const history = await fetchConversationMessages(firstId);
-          if (cancelled) return;
-          setActiveConversationId(firstId);
-          setMessages(history);
-        }
+        setActiveConversationId(null);
+        setMessages([]);
       } catch (exception) {
         if (!cancelled && !isApiRequestError(exception)) {
           setMessages([createErrorMessage(exception.message)]);
@@ -64,7 +59,7 @@ export function useChat() {
       }
     }
 
-    loadInitialConversation();
+    loadInitialData();
     return () => { cancelled = true; };
   }, []);
 

@@ -56,6 +56,18 @@ const NODE_LEGEND = [
   { label: 'Table', meaning: '조회·변경 대상 테이블', color: NODE_COLORS.DatabaseTable },
 ];
 
+const LEGEND_ROLE_BY_LABEL = {
+  Controller: 'Controller',
+  Service: 'Service',
+  Repository: 'Repository',
+  'Mapper / XML': 'Mapper',
+  'DTO / Domain': 'DataModel',
+  Common: 'Common',
+  API: 'ApiEndpoint',
+  SQL: 'SqlStatement',
+  Table: 'DatabaseTable',
+};
+
 const NODE_RADIUS_BY_ROLE = {
   Controller: 40,
   Service: 38,
@@ -351,6 +363,7 @@ export function JavaGraphPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [graph, setGraph] = useState({ nodes: [], relationships: [] });
   const [selectedNode, setSelectedNode] = useState(null);
+  const [focusedRole, setFocusedRole] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -375,9 +388,11 @@ export function JavaGraphPage() {
       const result = await fetchSourceGraphOverview({ query: nextQuery, limit: 1500, projectKey });
       setGraph(result);
       setSelectedNode(null);
+      setFocusedRole(null);
     } catch (exception) {
       setGraph({ nodes: [], relationships: [] });
       setSelectedNode(null);
+      setFocusedRole(null);
       setError(isApiRequestError(exception) ? '' : exception.message);
     } finally {
       setIsLoading(false);
@@ -458,6 +473,11 @@ export function JavaGraphPage() {
   function handleNodeClick(node) {
     setSelectedNode(node);
   }
+
+  function handleLegendClick(role) {
+    setSelectedNode(null);
+    setFocusedRole((currentRole) => (currentRole === role ? null : role));
+  }
   useEffect(() => {
     fetchKnowledgeProjects().then((items) => {
       setProjects(items);
@@ -515,6 +535,26 @@ export function JavaGraphPage() {
 
     return () => window.clearTimeout(timer);
   }, [graphData, graphSize.width, graphSize.height]);
+
+  useEffect(() => {
+    if (!forceGraphRef.current || graphData.nodes.length === 0) return undefined;
+
+    const graphInstance = forceGraphRef.current;
+    const matchingNodes = focusedRole
+      ? graphData.nodes.filter((node) => graphNodeRole(node) === focusedRole)
+      : graphData.nodes;
+    if (matchingNodes.length === 0) return undefined;
+
+    const timer = window.setTimeout(() => {
+      graphInstance.zoomToFit?.(
+        500,
+        focusedRole ? 120 : 90,
+        focusedRole ? (node) => graphNodeRole(node) === focusedRole : undefined,
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [focusedRole, graphData]);
 
   const sourceDetail = sourceModal.source;
   const sourceTitle = sourceDetail?.name || (sourceModal.node ? graphNodeName(sourceModal.node) : TEXT.sourceModalTitle);
@@ -575,13 +615,23 @@ export function JavaGraphPage() {
                 <span>{TEXT.links}: <strong>{graphData.links.length}</strong></span>
               </div>
               <div className="java-graph-legend" aria-label="Node color legend">
-                {NODE_LEGEND.map((item) => (
-                  <span className="java-graph-legend-item" key={item.label}>
+                {NODE_LEGEND.map((item) => {
+                  const role = LEGEND_ROLE_BY_LABEL[item.label];
+                  return (
+                  <button
+                    className={`java-graph-legend-item${focusedRole === role ? ' is-active' : ''}`}
+                    key={item.label}
+                    type="button"
+                    title={item.meaning}
+                    aria-label={`${item.label}: ${item.meaning}`}
+                    aria-pressed={focusedRole === role}
+                    onClick={() => handleLegendClick(role)}
+                  >
                     <i style={{ backgroundColor: item.color }} aria-hidden="true" />
                     <strong>{item.label}</strong>
-                    <em>{item.meaning}</em>
-                  </span>
-                ))}
+                  </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -612,11 +662,21 @@ export function JavaGraphPage() {
                 linkWidth={(link) => {
                   const sourceId = graphLinkNodeId(link.source);
                   const targetId = graphLinkNodeId(link.target);
+                  const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
+                  const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
+                  if (focusedRole) return sourceRole === focusedRole || targetRole === focusedRole ? 2 : 0.7;
                   return selectedNode && (sourceId === selectedNode.id || targetId === selectedNode.id) ? 2.4 : 1.1;
                 }}
                 linkColor={(link) => {
                   const sourceId = graphLinkNodeId(link.source);
                   const targetId = graphLinkNodeId(link.target);
+                  const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
+                  const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
+                  if (focusedRole) {
+                    return sourceRole === focusedRole || targetRole === focusedRole
+                      ? 'rgba(17, 24, 39, 0.62)'
+                      : 'rgba(148, 163, 184, 0.12)';
+                  }
                   return selectedNode && (sourceId === selectedNode.id || targetId === selectedNode.id)
                     ? 'rgba(17, 24, 39, 0.72)'
                     : 'rgba(71, 85, 105, 0.38)';
@@ -649,6 +709,8 @@ export function JavaGraphPage() {
                   const lineHeight = fontSize + 2;
                   const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
 
+                  ctx.save();
+                  if (focusedRole && graphNodeRole(node) !== focusedRole) ctx.globalAlpha = 0.16;
                   ctx.beginPath();
                   ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
                   ctx.fillStyle = graphNodeColor(node);
@@ -667,6 +729,7 @@ export function JavaGraphPage() {
                     ctx.fillText(line, node.x, startY + index * lineHeight);
                   });
                   ctx.shadowBlur = 0;
+                  ctx.restore();
                 }}
               />
             </div>

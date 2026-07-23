@@ -47,6 +47,7 @@ class ProjectArchiveServiceTest {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         entries.put("sample/src/main/java/com/example/UserService.java", "class UserService {}".getBytes());
         entries.put("sample/src/main/resources/mapper/UserMapper.xml", "<mapper namespace='UserMapper'/>".getBytes());
+        entries.put("sample/src/main/resources/schema.sql", "SELECT * FROM users".getBytes());
         entries.put("sample/target/UserService.class", new byte[]{1, 2, 3});
 
         MockMultipartFile archive = archive("sample-project.zip", entries);
@@ -54,15 +55,16 @@ class ProjectArchiveServiceTest {
         ProjectArchiveUploadResponse result = projectArchiveService.upload(archive);
 
         assertThat(result.archiveName()).isEqualTo("sample-project.zip");
-        assertThat(result.discoveredFiles()).isEqualTo(3);
-        assertThat(result.indexedFiles()).isEqualTo(2);
+        assertThat(result.discoveredFiles()).isEqualTo(4);
+        assertThat(result.indexedFiles()).isEqualTo(3);
         assertThat(result.skippedFiles()).isEqualTo(1);
         assertThat(result.failedFiles()).isZero();
         assertThat(result.documents())
                 .extracting(DocumentResponse::originalFileName)
                 .containsExactly(
                         "sample/src/main/java/com/example/UserService.java",
-                        "sample/src/main/resources/mapper/UserMapper.xml"
+                        "sample/src/main/resources/mapper/UserMapper.xml",
+                        "sample/src/main/resources/schema.sql"
                 );
 
         verify(documentService).uploadExtracted(
@@ -74,6 +76,12 @@ class ProjectArchiveServiceTest {
         verify(documentService).uploadExtracted(
                 eq("default"),
                 eq("sample/src/main/resources/mapper/UserMapper.xml"),
+                any(byte[].class),
+                eq("STANDARD_SOURCE")
+        );
+        verify(documentService).uploadExtracted(
+                eq("default"),
+                eq("sample/src/main/resources/schema.sql"),
                 any(byte[].class),
                 eq("STANDARD_SOURCE")
         );

@@ -27,14 +27,11 @@ class McpClientConfigurationTest {
                 .isEqualTo("http://localhost:8092");
         assertThat(environment.getProperty("spring.ai.mcp.client.streamable-http.connections.ai-mcp.endpoint"))
                 .isEqualTo("/mcp");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.command"))
-                .isEqualTo("npx.cmd");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.args[0]"))
-                .isEqualTo("-y");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.args[1]"))
-                .isEqualTo("@modelcontextprotocol/server-filesystem");
-        assertThat(environment.getProperty("spring.ai.mcp.client.stdio.connections.server-filesystem.args[2]"))
+        assertThat(environment.getProperty("mcp.filesystem.root"))
                 .isEqualTo("d:\\workspace\\AI-AGENT");
+        assertThat(environment.getProperty(
+                "spring.ai.mcp.client.stdio.connections.server-filesystem.command"))
+                .isNull();
     }
 
     @Test
@@ -46,7 +43,7 @@ class McpClientConfigurationTest {
     @Test
     void findsSpecificJavaFileFromConfiguredFilesystemRoot() throws IOException {
         Path filesystemRoot = Path.of(environment.getRequiredProperty(
-                "spring.ai.mcp.client.stdio.connections.server-filesystem.args[2]"
+                "mcp.filesystem.root"
         ));
 
         try (var paths = Files.find(

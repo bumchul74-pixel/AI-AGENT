@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.securecoding.mapper.SecureCodingScanMapper">
+    <sql id="jobColumns">
+        id, project_key, status, total_files, processed_files, passed_files,
+        finding_count, error_files, error_message, created_at, started_at, completed_at, updated_at
+    </sql>
+    <select id="insertJob" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO secure_coding_scan_job (project_key, status, total_files)
+        VALUES (#{projectKey}, 'QUEUED', #{totalFiles}) RETURNING id
+    </select>
+    <insert id="insertFile">
+        INSERT INTO secure_coding_scan_file
+            (scan_job_id, document_id, file_name, file_type, status)
+        VALUES (#{jobId}, #{documentId}, #{fileName}, #{fileType}, 'QUEUED')
+        ON CONFLICT (scan_job_id, document_id) DO NOTHING
+    </insert>
+    <select id="findJobById" resultType="com.hanwha.ai.securecoding.domain.SecureCodingScanJob">
+        SELECT <include refid="jobColumns" /> FROM secure_coding_scan_job WHERE id = #{jobId}
+    </select>
+    <select id="findLatestByProject" resultType="com.hanwha.ai.securecoding.domain.SecureCodingScanJob">
+        SELECT <include refid="jobColumns" /> FROM secure_coding_scan_job
+        WHERE project_key = #{projectKey} ORDER BY created_at DESC LIMIT 1
+    </select>
+    <select id="findActiveByProject" resultType="com.hanwha.ai.securecoding.domain.SecureCodingScanJob">
+        SELECT <include refid="jobColumns" /> FROM secure_coding_scan_job
+        WHERE project_key = #{projectKey} AND status IN ('QUEUED', 'RUNNING')
+        ORDER BY created_at DESC LIMIT 1
+    </select>
+    <select id="findRecoverableJobs" resultType="com.hanwha.ai.securecoding.domain.SecureCodingScanJob">
+        SELECT <include refid="jobColumns" /> FROM secure_coding_scan_job
+        WHERE status IN ('QUEUED', 'RUNNING') ORDER BY created_at
+    </select>
+    <select id="findPendingFiles" resultType="com.hanwha.ai.securecoding.domain.SecureCodingScanFile">
+        SELECT id, scan_job_id, document_id, file_name, file_type, status, error_message
+        FROM secure_coding_scan_file
+        WHERE scan_job_id = #{jobId} AND status = 'QUEUED' ORDER BY id
+    </select>
+    <select id="findResults" resultType="com.hanwha.ai.securecoding.dto.SecureCodingResultRow">
+        SELECT document_id, file_name, file_type, status, severity, rule_id, message,
+               start_line, start_column, end_line, end_column
+        FROM secure_coding_scan_result WHERE scan_job_id = #{jobId} ORDER BY id
+    </select>
+    <update id="markJobRunning">
+        UPDATE secure_coding_scan_job
+        SET status = 'RUNNING', started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+            error_message = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{jobId} AND status IN ('QUEUED', 'RUNNING')
+    </update>
+    <update id="markFileRunning">
+        UPDATE secure_coding_scan_file
+        SET status = 'RUNNING', started_at = CURRENT_TIMESTAMP, error_message = NULL
+        WHERE id = #{fileId} AND status = 'QUEUED'
+    </update>
+    <insert id="insertResult">
+        INSERT INTO secure_coding_scan_result (
+            scan_job_id, scan_file_id, document_id, file_name, file_type, status,
+            severity, rule_id, message, start_line, start_column, end_line, end_column
+        ) VALUES (
+            #{jobId}, #{fileId}, #{row.documentId}, #{row.fileName}, #{row.fileType}, #{row.status},
+            #{row.severity}, #{row.ruleId}, #{row.message}, #{row.startLine}, #{row.startColumn},
+            #{row.endLine}, #{row.endColumn}
+        )
+    </insert>
+    <update id="completeFile">
+        UPDATE secure_coding_scan_file
+        SET status = #{status}, error_message = #{errorMessage}, completed_at = CURRENT_TIMESTAMP
+        WHERE id = #{fileId} AND status = 'RUNNING'
+    </update>
+    <update id="incrementProgress">
+        UPDATE secure_coding_scan_job
+        SET processed_files = processed_files + 1,
+            passed_files = passed_files + #{passed}, finding_count = finding_count + #{findings},
+            error_files = error_files + #{errors}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{jobId} AND status = 'RUNNING'
+    </update>
+    <update id="finalizeJob">
+        UPDATE secure_coding_scan_job
+        SET status = CASE WHEN error_files > 0 THEN 'COMPLETED_WITH_ERRORS' ELSE 'COMPLETED' END,
+            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{jobId} AND status = 'RUNNING' AND processed_files >= total_files
+    </update>
+    <update id="failJob">
+        UPDATE secure_coding_scan_job
+        SET status = 'FAILED', error_message = #{errorMessage},
+            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{jobId} AND status IN ('QUEUED', 'RUNNING')
+    </update>
+    <update id="resetInterruptedFiles">
+        UPDATE secure_coding_scan_file SET status = 'QUEUED', started_at = NULL
+        WHERE scan_job_id = #{jobId} AND status = 'RUNNING'
+    </update>
+</mapper>

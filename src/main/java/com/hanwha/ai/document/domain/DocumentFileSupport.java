@@ -15,6 +15,7 @@ public final class DocumentFileSupport {
             ".java",
             ".kt",
             ".xml",
+            ".sql",
             ".yml",
             ".yaml",
             ".md",

@@ -1,0 +1,116 @@
+:root {
+  --ui-font-family: Roboto, "Noto Sans KR", "Segoe UI", Arial, sans-serif;
+  --ui-font-size: 13px;
+  --ui-font-size-small: 11px;
+  --ui-title-large: 18px;
+  --ui-title-medium: 16px;
+  --ui-title-small: 14px;
+  --ui-control-height: 34px;
+  --ui-control-radius: 4px;
+  --ui-control-padding-x: 12px;
+  --ui-content-gap: 16px;
+  --ui-primary: #3f51b5;
+  --ui-primary-dark: #303f9f;
+}
+
+body {
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size);
+}
+/* Persisted application themes */
+[data-ui-theme="teal"] {
+  --primary: #00796b;
+  --primary-strong: #00695c;
+  --ui-primary: #00796b;
+  --ui-primary-dark: #00695c;
+}
+
+[data-ui-theme="purple"] {
+  --primary: #7b1fa2;
+  --primary-strong: #6a1b9a;
+  --ui-primary: #7b1fa2;
+  --ui-primary-dark: #6a1b9a;
+}
+
+[data-color-mode="dark"] {
+  color-scheme: dark;
+  --bg: #242933;
+  --surface: #303641;
+  --surface-subtle: #3a424f;
+  --ink: #f4f6f8;
+  --muted: #bac2cc;
+  --line: #4b5563;
+  --line-strong: #64748b;
+  --code-bg: #171b22;
+}
+
+[data-color-mode="dark"] body,
+[data-color-mode="dark"] .app-shell,
+[data-color-mode="dark"] .workspace {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+[data-color-mode="dark"] .sidebar,
+[data-color-mode="dark"] .sidebar-brand,
+[data-color-mode="dark"] .topbar,
+[data-color-mode="dark"] .card,
+[data-color-mode="dark"] .modal {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+[data-color-mode="dark"] .sidebar-brand-copy strong,
+[data-color-mode="dark"] .topbar-context h1,
+[data-color-mode="dark"] .workspace h1,
+[data-color-mode="dark"] .workspace h2,
+[data-color-mode="dark"] .workspace h3 {
+  color: var(--ink);
+}
+
+[data-color-mode="dark"] .gnb-dashboard,
+[data-color-mode="dark"] .gnb-depth1,
+[data-color-mode="dark"] .gnb-depth2-item,
+[data-color-mode="dark"] .topbar-icon-button,
+[data-color-mode="dark"] .topbar-user { color: #d5d8dc; }
+
+[data-color-mode="dark"] .sidebar-brand:hover,
+[data-color-mode="dark"] .gnb-depth1:hover,
+[data-color-mode="dark"] .gnb-depth2-item:hover,
+[data-color-mode="dark"] .topbar-icon-button:hover,
+[data-color-mode="dark"] .topbar-user:hover { background: var(--surface-subtle); }
+
+[data-color-mode="dark"] .gnb-divider,
+[data-color-mode="dark"] .gnb-depth2,
+[data-color-mode="dark"] .sidebar-footer,
+[data-color-mode="dark"] .topbar { border-color: var(--line); }
+
+[data-color-mode="dark"] input,
+[data-color-mode="dark"] select,
+[data-color-mode="dark"] textarea {
+  border-color: var(--line);
+  background: #39414d;
+  color: var(--ink);
+}
+
+[data-color-mode="dark"] .toast {
+  border-color: #9f4f56;
+  background: #4a2d32;
+  color: #fecaca;
+}
+[data-color-mode="dark"] .button.secondary,
+[data-color-mode="dark"] .icon-button,
+[data-color-mode="dark"] .conversation-context-menu,
+[data-color-mode="dark"] .chat-avatar,
+[data-color-mode="dark"] .chat-bubble,
+[data-color-mode="dark"] .chat-file-button,
+[data-color-mode="dark"] .document-table,
+[data-color-mode="dark"] .history-table,
+[data-color-mode="dark"] .history-table button,
+[data-color-mode="dark"] .java-graph-legend-item,
+[data-color-mode="dark"] .dashboard-action-grid > button {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}

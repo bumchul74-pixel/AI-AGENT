@@ -206,11 +206,15 @@ CREATE TABLE IF NOT EXISTS chat_message (
     message TEXT NOT NULL,
     attachment_name VARCHAR(255),
     attachment_content BYTEA,
+    mcp_context_applied BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE chat_message
     ADD COLUMN IF NOT EXISTS attachment_content BYTEA;
+
+ALTER TABLE chat_message
+    ADD COLUMN IF NOT EXISTS mcp_context_applied BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_chat_conversation_updated_at
     ON chat_conversation (updated_at DESC);

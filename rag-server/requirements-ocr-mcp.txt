@@ -4,3 +4,4 @@ mcp==1.28.0
 torch==2.12.1
 torchvision==0.27.1
 opencv-python-headless
+PyMuPDF==1.26.7

@@ -86,6 +86,7 @@ class ChatServiceImplTest {
 
         assertThat(response.message()).contains("standard controller source pattern");
         assertThat(response.ragDocuments()).containsExactly("standard controller source pattern");
+        assertThat(response.mcpContextApplied()).isFalse();
     }
 
     @Test
@@ -123,6 +124,7 @@ class ChatServiceImplTest {
         assertThat(ragCalled.get()).isFalse();
         assertThat(response.message()).contains("get_server_info");
         assertThat(response.ragDocuments()).containsExactly("MCP gateway operation: tools/list\nMCP gateway result: get_server_info");
+        assertThat(response.mcpContextApplied()).isTrue();
         assertThat(llmRequest.get().prompt()).contains("MCP gateway result", "MCP tool 목록 알려줘");
         assertThat(llmRequest.get().context()).contains("tools/list", "get_server_info");
     }

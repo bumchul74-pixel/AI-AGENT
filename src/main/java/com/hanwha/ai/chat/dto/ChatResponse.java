@@ -5,9 +5,14 @@ import java.util.List;
 public record ChatResponse(
         String message,
         List<String> ragDocuments,
-        Long conversationId
+        Long conversationId,
+        boolean mcpContextApplied
 ) {
+    public ChatResponse(String message, List<String> ragDocuments, Long conversationId) {
+        this(message, ragDocuments, conversationId, false);
+    }
+
     public ChatResponse(String message, List<String> ragDocuments) {
-        this(message, ragDocuments, null);
+        this(message, ragDocuments, null, false);
     }
 }

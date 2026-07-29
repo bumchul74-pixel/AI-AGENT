@@ -9,12 +9,14 @@ import com.hanwha.ai.chat.dto.ChatConversationProjectRequest;
 import com.hanwha.ai.chat.dto.ChatProjectRequest;
 import com.hanwha.ai.chat.dto.ChatProjectResponse;
 import com.hanwha.ai.chat.service.ChatService;
+import com.hanwha.ai.chat.service.OcrChatService;
 import com.hanwha.ai.chat.service.SecureCodingChatService;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,10 +35,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class ChatController {
     private final ChatService chatService;
     private final SecureCodingChatService secureCodingChatService;
+    private final OcrChatService ocrChatService;
 
-    public ChatController(ChatService chatService, SecureCodingChatService secureCodingChatService) {
+    public ChatController(ChatService chatService, SecureCodingChatService secureCodingChatService,
+            OcrChatService ocrChatService) {
         this.chatService = chatService;
         this.secureCodingChatService = secureCodingChatService;
+        this.ocrChatService = ocrChatService;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -45,11 +50,14 @@ public class ChatController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ChatResponse secureCodingChat(
+    public ChatResponse attachmentChat(
             @RequestParam("message") String message,
             @RequestParam(value = "conversationId", required = false) Long conversationId,
             @RequestPart("file") MultipartFile file
     ) {
+        if (ocrChatService.supports(file)) {
+            return ocrChatService.extract(message, conversationId, file);
+        }
         return secureCodingChatService.scan(message, conversationId, file);
     }
 
@@ -61,7 +69,8 @@ public class ChatController {
                 .build()
                 .toString();
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("text/x-java-source"))
+                .contentType(MediaTypeFactory.getMediaType(message.getAttachmentName())
+                        .orElse(MediaType.APPLICATION_OCTET_STREAM))
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
                 .body(message.getAttachmentContent());
     }

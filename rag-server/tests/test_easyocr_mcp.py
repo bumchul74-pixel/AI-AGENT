@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.ocr.easyocr_server import (
+    _decode_base64_document,
     _decode_base64_image,
     _normalize_results,
     _resolve_image_path,
@@ -35,6 +36,14 @@ class EasyOcrMcpTest(unittest.TestCase):
             _decode_base64_image(f"data:image/png;base64,{encoded}"),
         )
 
+    def test_decodes_pdf_data_url(self) -> None:
+        raw_pdf = b"%PDF-1.7 sample"
+        encoded = base64.b64encode(raw_pdf).decode("ascii")
+
+        self.assertEqual(
+            raw_pdf,
+            _decode_base64_document(f"data:application/pdf;base64,{encoded}"),
+        )
     def test_file_access_is_restricted_to_configured_directories(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             allowed_directory = Path(directory).resolve()

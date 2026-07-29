@@ -1,4 +1,4 @@
-import { Bot, Repeat2, UserRound } from 'lucide-react';
+import { Blocks, Bot, Repeat2, UserRound } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils.js';
 
 export function ChatMessage({ message, onResend, resendDisabled, isResending }) {
@@ -12,12 +12,18 @@ export function ChatMessage({ message, onResend, resendDisabled, isResending }) 
       </div>
       <div className="chat-bubble">
         <div className="chat-meta">
-          <strong>{isUser ? 'You' : 'AI-AGENT'}</strong>
+          <strong>{isUser ? 'You' : 'AIP'}</strong>
+          {!isUser && message.mcpContextApplied && (
+            <span className="chat-mcp-badge" title="MCP 결과를 참고해 생성된 답변입니다.">
+              <Blocks size={11} />
+              MCP 참고
+            </span>
+          )}
           <span>{formatDateTime(message.createdAt)}</span>
         </div>
         {message.attachmentName && (
           <span className='chat-message-attachment'>
-            Attached: {message.attachmentName}
+            첨부파일: {message.attachmentName}
           </span>
         )}
         <p>{message.content}</p>

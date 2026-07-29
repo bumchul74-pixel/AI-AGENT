@@ -10,11 +10,14 @@ import {
   History,
   LayoutDashboard,
   RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react';
 import { fetchGenerationHistory } from '../api/generateApi.js';
 import { fetchKnowledgeProjects } from '../api/projectApi.js';
 import { fetchRagStats } from '../api/ragApi.js';
+import { getLatestSecureCodingScan } from '../api/secureCodingApi.js';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { formatDateTime } from '../utils/dateUtils.js';
@@ -25,17 +28,31 @@ const QUICK_ACTIONS = [
   { id: 'documents', label: '문서 관리', description: '소스와 표준 문서를 업로드하고 색인합니다.', icon: FileStack },
   { id: 'rag', label: 'RAG 조회', description: 'VectorDB에 저장된 코드와 문서를 검색합니다.', icon: DatabaseZap },
   { id: 'javaGraph', label: 'Ontology', description: 'Neo4j 타입·메서드·DB 관계를 탐색합니다.', icon: GitFork },
+  { id: 'secureCoding', label: '코드 품질·보안 점검', description: 'Semgrep으로 프로젝트 소스의 취약점을 점검합니다.', icon: ShieldCheck },
   { id: 'dataCleanup', label: 'Data Operations', description: '프로젝트 단위로 색인 데이터를 정리합니다.', icon: Trash2 },
 ];
 
+const SCAN_STATUS_LABELS = {
+  QUEUED: '대기 중',
+  RUNNING: '점검 중',
+  COMPLETED: '완료',
+  COMPLETED_WITH_ERRORS: '일부 오류',
+  FAILED: '실패',
+};
+
 function metricValue(value) {
   return Number(value ?? 0).toLocaleString();
+}
+
+function scanDate(scan) {
+  return scan.scannedAt ?? scan.startedAt ?? scan.requestedAt ?? '';
 }
 
 export function DashboardPage({ onNavigate }) {
   const [projects, setProjects] = useState([]);
   const [javaFileCount, setJavaFileCount] = useState(0);
   const [history, setHistory] = useState([]);
+  const [secureCodingScans, setSecureCodingScans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -51,11 +68,20 @@ export function DashboardPage({ onNavigate }) {
       ]);
       if (cancelled) return;
 
-      setProjects(projectResult.status === 'fulfilled' ? projectResult.value : []);
+      const loadedProjects = projectResult.status === 'fulfilled' ? projectResult.value : [];
+      setProjects(loadedProjects);
       setJavaFileCount(statsResult.status === 'fulfilled'
         ? statsResult.value.javaFileCount ?? statsResult.value.java_file_count ?? 0
         : 0);
       setHistory(historyResult.status === 'fulfilled' ? historyResult.value : []);
+
+      const scanResults = await Promise.allSettled(
+        loadedProjects.map((project) => getLatestSecureCodingScan(project.projectKey)),
+      );
+      if (cancelled) return;
+      setSecureCodingScans(scanResults
+        .filter((result) => result.status === 'fulfilled' && result.value)
+        .map((result) => result.value));
       setIsLoading(false);
     }
 
@@ -75,6 +101,21 @@ export function DashboardPage({ onNavigate }) {
   const recentProjects = [...projects]
     .sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))
     .slice(0, 5);
+  const recentSecureCodingScans = [...secureCodingScans]
+    .sort((left, right) => String(scanDate(right)).localeCompare(String(scanDate(left))))
+    .slice(0, 5);
+  const projectNames = useMemo(
+    () => new Map(projects.map((project) => [project.projectKey, project.name])),
+    [projects],
+  );
+  const securitySummary = useMemo(
+    () => secureCodingScans.reduce((summary, scan) => ({
+      findings: summary.findings + Number(scan.findingCount ?? 0),
+      passedFiles: summary.passedFiles + Number(scan.passedFiles ?? 0),
+      errorFiles: summary.errorFiles + Number(scan.errorFiles ?? 0),
+    }), { findings: 0, passedFiles: 0, errorFiles: 0 }),
+    [secureCodingScans],
+  );
 
   const metrics = [
     { label: 'Knowledge 프로젝트', value: projects.length, detail: `${indexedProjectCount}개 프로젝트 색인됨`, icon: FolderKanban, tone: 'blue' },
@@ -89,7 +130,7 @@ export function DashboardPage({ onNavigate }) {
         <div className="panel-title">
           <LayoutDashboard size={19} />
           <div>
-            <h1>AI Agent Dashboard</h1>
+            <h1>AIP Dashboard</h1>
             <p>프로젝트 색인 현황을 확인하고 주요 AI 개발 작업으로 바로 이동합니다.</p>
           </div>
         </div>
@@ -150,6 +191,49 @@ export function DashboardPage({ onNavigate }) {
             </div>
           )}
         </article>
+      </section>
+
+      <section className="card dashboard-security-panel">
+        <div className="page-heading">
+          <div>
+            <h2><ShieldCheck size={19} /> 코드 품질·보안 점검</h2>
+            <p>프로젝트별 최신 Secure Coding 점검 결과를 요약합니다.</p>
+          </div>
+          <button className="dashboard-text-link" type="button" onClick={() => onNavigate('secureCoding')}>
+            상세 점검 <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {isLoading ? <Loading /> : recentSecureCodingScans.length === 0 ? (
+          <button className="dashboard-security-empty" type="button" onClick={() => onNavigate('secureCoding')}>
+            <ShieldAlert size={22} />
+            <span><strong>아직 보안 점검 결과가 없습니다.</strong><small>Secure Coding에서 프로젝트의 첫 점검을 실행해 주세요.</small></span>
+            <ArrowRight size={16} />
+          </button>
+        ) : (
+          <div className="dashboard-security-content">
+            <div className="dashboard-security-summary" aria-label="보안 점검 요약">
+              <div><span>점검 프로젝트</span><strong>{metricValue(secureCodingScans.length)}</strong></div>
+              <div className="finding"><span>발견 항목</span><strong>{metricValue(securitySummary.findings)}</strong></div>
+              <div className="passed"><span>통과 파일</span><strong>{metricValue(securitySummary.passedFiles)}</strong></div>
+              <div className="error"><span>점검 오류</span><strong>{metricValue(securitySummary.errorFiles)}</strong></div>
+            </div>
+            <div className="dashboard-security-list">
+              {recentSecureCodingScans.map((scan) => (
+                <button type="button" key={scan.jobId} onClick={() => onNavigate('secureCoding')}>
+                  <span>
+                    <strong>{projectNames.get(scan.projectKey) ?? scan.projectKey}</strong>
+                    <small>{scan.totalFiles}개 파일 점검 · {scan.findingCount}개 항목 발견</small>
+                  </span>
+                  <span className={`dashboard-scan-status status-${String(scan.status).toLowerCase()}`}>
+                    {SCAN_STATUS_LABELS[scan.status] ?? scan.status}
+                  </span>
+                  <time>{scanDate(scan) ? formatDateTime(scanDate(scan)) : '-'}</time>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card dashboard-actions-panel">

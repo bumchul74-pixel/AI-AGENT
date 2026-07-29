@@ -154,11 +154,13 @@ Available tools:
 
 - ocr_image_file: reads an image under rag-server/inbox or project uploads
 - ocr_image_base64: reads Base64 image data or an image data URL
+- ocr_document_base64: reads a Base64 PDF or image; PDFs are rendered and
+  processed page by page
 
-AI-MCP connects to this server at `http://localhost:8001/ocr` and re-exposes
-`ocr_image_file` and `ocr_image_base64` through the AI-MCP `/mcp` endpoint.
-Configure the downstream connection in the AI-MCP process with
-`EASYOCR_MCP_URL` and `EASYOCR_MCP_ENDPOINT`.
+The Spring Boot application connects directly to this server at
+`http://localhost:8001/ocr`. Override it with `EASYOCR_MCP_BASE_URL` and
+`EASYOCR_MCP_ENDPOINT`. AI chat OCR accepts PDF and common image formats,
+with a default limit of 20 MB and 10 PDF pages.
 
 Configuration environment variables:
 

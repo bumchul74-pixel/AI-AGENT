@@ -35,6 +35,7 @@ export function TemplateGeneratePage() {
   const [projectKey, setProjectKey] = useState('');
   const [projects, setProjects] = useState([]);
   const [isProjectLoading, setIsProjectLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (activePage !== 'generate') {
@@ -71,13 +72,13 @@ export function TemplateGeneratePage() {
     return () => {
       ignore = true;
     };
-  }, [activePage]);
+  }, [activePage, refreshKey]);
 
   useEffect(() => {
     if (activePage === 'generate') {
       generation.clearError();
     }
-  }, [activePage]);
+  }, [activePage, refreshKey]);
 
   function toggleTargetType(target) {
     setTargetTypes((current) => {
@@ -199,7 +200,12 @@ export function TemplateGeneratePage() {
   }
 
   return (
-    <MainLayout activePage={activePage} onNavigate={setActivePage}>
+    <MainLayout
+      activePage={activePage}
+      onNavigate={setActivePage}
+      onRefresh={() => setRefreshKey((current) => current + 1)}
+      refreshKey={refreshKey}
+    >
       {renderPage()}
     </MainLayout>
   );

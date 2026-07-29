@@ -4,11 +4,49 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.hanwha.ai.generation.service.ProjectStructureAnalyzer;
 import com.hanwha.ai.mcp.gateway.AiMcpGatewayService;
+import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class AiMcpChatContextProviderTest {
+    @Test
+    void routesJavaSourceQuestionToSourceOntologyTool() {
+        AtomicReference<String> toolName = new AtomicReference<>();
+        AtomicReference<Map<String, Object>> arguments = new AtomicReference<>();
+        AiMcpGatewayService gateway = new AiMcpGatewayService(null) {
+            @Override
+            public McpSchema.CallToolResult callTool(String name, Map<String, Object> toolArguments) {
+                toolName.set(name);
+                arguments.set(toolArguments);
+                return new McpSchema.CallToolResult(
+                        List.of(new McpSchema.TextContent("OrderService -> OrderRepository")),
+                        false,
+                        null,
+                        Map.of()
+                );
+            }
+        };
+        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+                gateway,
+                (projectPath, targetTypes) -> ""
+        );
+        String message = "AuthController와 관련된 Java소스들을 MCP에서 조회해줘";
+
+        assertThat(provider.supports(message)).isTrue();
+        List<String> contexts = provider.resolveContext(message);
+
+        assertThat(toolName.get()).isEqualTo("search_source_ontology");
+        assertThat(arguments.get()).containsExactlyEntriesOf(Map.of("query", "AuthController"));
+        assertThat(arguments.get()).doesNotContainKey("projectId");
+        assertThat(contexts).singleElement().asString().contains(
+                "tools/call search_source_ontology",
+                "query=AuthController",
+                "OrderService -> OrderRepository"
+        );
+    }
+
     @Test
     void routesLocalProjectStructureRequestToProjectStructureAnalyzer() {
         AtomicReference<String> analyzedPath = new AtomicReference<>();

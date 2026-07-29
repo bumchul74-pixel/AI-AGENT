@@ -9,28 +9,41 @@ public class ChatMessage {
     private String message;
     private String attachmentName;
     private byte[] attachmentContent;
+    private boolean mcpContextApplied;
     private LocalDateTime createdAt;
 
     public ChatMessage() {
     }
 
     public ChatMessage(Long id, String role, String message, LocalDateTime createdAt) {
-        this(id, null, role, message, null, createdAt);
+        this(id, null, role, message, null, false, createdAt);
     }
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, LocalDateTime createdAt) {
-        this(id, conversationId, role, message, attachmentName, null, createdAt);
+        this(id, conversationId, role, message, attachmentName, null, false, createdAt);
+    }
+
+    public ChatMessage(Long id, Long conversationId, String role, String message,
+            String attachmentName, boolean mcpContextApplied, LocalDateTime createdAt) {
+        this(id, conversationId, role, message, attachmentName, null, mcpContextApplied, createdAt);
     }
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, byte[] attachmentContent, LocalDateTime createdAt) {
+        this(id, conversationId, role, message, attachmentName, attachmentContent, false, createdAt);
+    }
+
+    public ChatMessage(Long id, Long conversationId, String role, String message,
+            String attachmentName, byte[] attachmentContent, boolean mcpContextApplied,
+            LocalDateTime createdAt) {
         this.id = id;
         this.conversationId = conversationId;
         this.role = role;
         this.message = message;
         this.attachmentName = attachmentName;
         this.attachmentContent = attachmentContent;
+        this.mcpContextApplied = mcpContextApplied;
         this.createdAt = createdAt;
     }
 
@@ -46,6 +59,8 @@ public class ChatMessage {
     public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
     public byte[] getAttachmentContent() { return attachmentContent; }
     public void setAttachmentContent(byte[] attachmentContent) { this.attachmentContent = attachmentContent; }
+    public boolean isMcpContextApplied() { return mcpContextApplied; }
+    public void setMcpContextApplied(boolean mcpContextApplied) { this.mcpContextApplied = mcpContextApplied; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -60,7 +60,7 @@ public class SecureCodingChatService {
             conversation = chatRepository.createConversation(createTitle(message));
         }
         saveMessages(conversation.getId(), message, fileName, source, answer);
-        return new ChatResponse(answer, List.of(scanResult), conversation.getId());
+        return new ChatResponse(answer, List.of(scanResult), conversation.getId(), true);
     }
 
     private String validateFile(MultipartFile file) {
@@ -164,6 +164,6 @@ public class SecureCodingChatService {
                 null, conversationId, "user", message, fileName,
                 source.getBytes(StandardCharsets.UTF_8), LocalDateTime.now()));
         chatRepository.save(new ChatMessage(
-                null, conversationId, "assistant", answer, null, LocalDateTime.now()));
+                null, conversationId, "assistant", answer, null, true, LocalDateTime.now()));
     }
 }

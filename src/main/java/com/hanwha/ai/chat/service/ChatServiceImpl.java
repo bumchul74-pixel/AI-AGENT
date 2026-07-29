@@ -69,7 +69,7 @@ public class ChatServiceImpl implements ChatService {
         List<String> documents = hybridResult.documents();
         String answer = generateAnswer(prompt, hybridResult.context());
 
-        saveMessages(conversation.getId(), request.message(), answer);
+        saveMessages(conversation.getId(), request.message(), answer, false);
 
         return new ChatResponse(answer, documents, conversation.getId());
     }
@@ -84,9 +84,9 @@ public class ChatServiceImpl implements ChatService {
         String prompt = buildMcpPrompt(request, context, formatHistory(history));
         String answer = generateAnswer(prompt, context);
 
-        saveMessages(conversation.getId(), request.message(), answer);
+        saveMessages(conversation.getId(), request.message(), answer, true);
 
-        return new ChatResponse(answer, mcpContexts, conversation.getId());
+        return new ChatResponse(answer, mcpContexts, conversation.getId(), true);
     }
 
     private String generateAnswer(String prompt, String context) {
@@ -95,11 +95,11 @@ public class ChatServiceImpl implements ChatService {
                 .content();
     }
 
-    private void saveMessages(Long conversationId, String userMessage, String answer) {
+    private void saveMessages(Long conversationId, String userMessage, String answer, boolean mcpContextApplied) {
         chatRepository.save(new ChatMessage(
                 null, conversationId, "user", userMessage, null, LocalDateTime.now()));
         chatRepository.save(new ChatMessage(
-                null, conversationId, "assistant", answer, null, LocalDateTime.now()));
+                null, conversationId, "assistant", answer, null, mcpContextApplied, LocalDateTime.now()));
     }
 
     @Override
@@ -148,7 +148,8 @@ public class ChatServiceImpl implements ChatService {
         return chatRepository.findMessages(conversationId).stream()
                 .map(message -> new ChatMessageResponse(
                         message.getId(), message.getConversationId(), message.getRole(),
-                        message.getMessage(), message.getAttachmentName(), message.getCreatedAt()
+                        message.getMessage(), message.getAttachmentName(),
+                        message.isMcpContextApplied(), message.getCreatedAt()
                 ))
                 .toList();
     }
@@ -267,9 +268,13 @@ public class ChatServiceImpl implements ChatService {
     private String buildMcpPrompt(ChatRequest request, String mcpContext, String history) {
         return """
                 You are an assistant for a Spring Boot code generation system.
-                The user is asking about an MCP server connected to this application.
                 Answer in a friendly, concise way using only the MCP gateway result below.
-                If a requested MCP detail is not present in the MCP result, say that it was not returned.
+                The result may contain Java source ontology, project analysis, database metadata,
+                security scan output, or MCP server metadata.
+                For source ontology results, explain the matching Java types, methods, fields,
+                endpoints, SQL statements, and relationships relevant to the user's question.
+                Do not invent source code, relationships, or MCP details that are not present.
+                If the requested information is absent, clearly say that it was not returned.
 
                 User message:
                 %s

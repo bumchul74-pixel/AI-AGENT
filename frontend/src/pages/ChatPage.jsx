@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CornerDownLeft, Paperclip, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Paperclip, Sparkles, X } from 'lucide-react';
 import { ChatConversationList } from '../components/chat/ChatConversationList.jsx';
 import { ChatMessage } from '../components/chat/ChatMessage.jsx';
 import { useChat } from '../hooks/useChat.js';
@@ -9,6 +9,7 @@ export function ChatPage() {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState(null);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
   const chatThreadRef = useRef(null);
 
   useEffect(() => {
@@ -29,7 +30,25 @@ export function ChatPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '';
+    }
     chat.submit(nextInput, nextAttachment);
+  }
+
+  function handleAttachmentClear(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setAttachment(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  function handleInputChange(event) {
+    setInput(event.target.value);
+    event.target.style.height = 'auto';
+    event.target.style.height = `${Math.min(event.target.scrollHeight, 160)}px`;
   }
 
   return (
@@ -71,11 +90,11 @@ export function ChatPage() {
               />
             ))}
             {chat.isLoading && (
-              <article className="chat-message assistant">
+              <article className="chat-message assistant chat-loading-message">
                 <div className="chat-avatar">
                   <Sparkles size={17} />
                 </div>
-                <div className="chat-bubble">
+                <div className="chat-bubble chat-loading-bubble" role="status" aria-label="AI 응답 생성 중">
                   <div className="typing-dots">
                     <span />
                     <span />
@@ -87,29 +106,56 @@ export function ChatPage() {
           </div>
 
           <form className="chat-composer" onSubmit={handleSubmit}>
-            <label className={attachment ? 'chat-file-button selected' : 'chat-file-button'} title={attachment?.name ?? 'Attach Java source'}>
-              {attachment ? <X size={18} onClick={() => setAttachment(null)} /> : <Paperclip size={18} />}
-              <input
-                ref={fileInputRef}
-                type='file'
-                accept='.java,text/x-java-source'
-                onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
-              />
-            </label>
+            {attachment && (
+              <div className="chat-attachment-chip">
+                <Paperclip size={14} />
+                <span>{attachment.name}</span>
+                <button
+                  className="chat-attachment-remove"
+                  type="button"
+                  aria-label={`${attachment.name} 첨부 취소`}
+                  onClick={handleAttachmentClear}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
             <textarea
+              ref={textareaRef}
+              rows={1}
               value={input}
               placeholder="메시지를 입력하세요."
-              onChange={(event) => setInput(event.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   handleSubmit(event);
                 }
               }}
             />
-            <button type="submit" disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null || input.trim().length === 0}>
-              <CornerDownLeft size={18} />
-              <span>Send</span>
-            </button>
+            <div className="chat-composer-actions">
+              <label
+                className="chat-file-button"
+                title="PDF, image, or Java source attachment"
+                aria-label="파일 첨부"
+              >
+                <Paperclip size={17} />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".java,.pdf,.png,.jpg,.jpeg,.bmp,.gif,.tif,.tiff,.webp,text/x-java-source,application/pdf,image/*"
+                  onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <button
+                className="chat-send-button"
+                type="submit"
+                aria-label="메시지 전송"
+                disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null
+                  || (input.trim().length === 0 && !attachment)}
+              >
+                <ArrowUp size={17} />
+              </button>
+            </div>
           </form>
         </div>
       </div>

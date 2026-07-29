@@ -23,7 +23,7 @@ export async function fetchChatAttachment(messageId, fileName) {
     includeResponse: true,
     errorMessage: '첨부파일을 불러오지 못했습니다.',
   });
-  const contentType = response.headers.get('Content-Type') ?? 'text/x-java-source';
+  const contentType = response.headers.get('Content-Type') ?? 'application/octet-stream';
   return new File([data], fileName, { type: contentType });
 }
 

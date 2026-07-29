@@ -6,6 +6,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class HomeService {
     public HomeResponse getHome() {
-        return new HomeResponse("AI-AGENT Spring Boot is running.");
+        return new HomeResponse("AIP (AI Integration Platform) Spring Boot is running.");
     }
 }

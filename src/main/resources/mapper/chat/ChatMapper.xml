@@ -26,6 +26,7 @@
         <result column='role' property='role' />
         <result column='message' property='message' />
         <result column='attachment_name' property='attachmentName' />
+        <result column='mcp_context_applied' property='mcpContextApplied' />
         <result column='created_at' property='createdAt' />
     </resultMap>
 
@@ -103,28 +104,31 @@
 
     <insert id='insertMessage' useGeneratedKeys='true' keyProperty='id' keyColumn='id'>
         INSERT INTO chat_message (
-            conversation_id, role, message, attachment_name, attachment_content, created_at
+            conversation_id, role, message, attachment_name, attachment_content,
+            mcp_context_applied, created_at
         )
         VALUES (#{conversationId}, #{role}, #{message}, #{attachmentName}, #{attachmentContent},
-                COALESCE(#{createdAt}, CURRENT_TIMESTAMP))
+                #{mcpContextApplied}, COALESCE(#{createdAt}, CURRENT_TIMESTAMP))
     </insert>
 
     <select id='findMessageById' resultMap='messageAttachmentResultMap'>
-        SELECT id, conversation_id, role, message, attachment_name, attachment_content, created_at
+        SELECT id, conversation_id, role, message, attachment_name, attachment_content,
+               mcp_context_applied, created_at
         FROM chat_message
         WHERE id = #{id}
     </select>
 
     <select id='findMessages' resultMap='messageResultMap'>
-        SELECT id, conversation_id, role, message, attachment_name, created_at
+        SELECT id, conversation_id, role, message, attachment_name, mcp_context_applied, created_at
         FROM chat_message
         WHERE conversation_id = #{conversationId}
         ORDER BY created_at ASC, id ASC
     </select>
 
     <select id='findRecentMessages' resultMap='messageResultMap'>
-        SELECT id, conversation_id, role, message, attachment_name, created_at
-        FROM (SELECT id, conversation_id, role, message, attachment_name, created_at
+        SELECT id, conversation_id, role, message, attachment_name, mcp_context_applied, created_at
+        FROM (SELECT id, conversation_id, role, message, attachment_name,
+                     mcp_context_applied, created_at
               FROM chat_message
               WHERE conversation_id = #{conversationId}
               ORDER BY created_at DESC, id DESC

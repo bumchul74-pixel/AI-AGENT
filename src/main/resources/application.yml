@@ -1,6 +1,6 @@
 spring:
   application:
-    name: AI-AGENT
+    name: AIP
   datasource:
     url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/mcp}
     username: ${POSTGRES_USERNAME:mcp}
@@ -32,6 +32,9 @@ spring:
             ai-mcp:
               url: ${AI_MCP_BASE_URL:http://localhost:8092}
               endpoint: ${AI_MCP_ENDPOINT:/mcp}
+            easyocr:
+              url: ${EASYOCR_MCP_BASE_URL:http://localhost:8001}
+              endpoint: ${EASYOCR_MCP_ENDPOINT:/ocr}
 mcp:
   filesystem:
     root: ${MCP_FILESYSTEM_ROOT:d:\workspace\AI-AGENT}
@@ -94,3 +97,17 @@ secure-coding:
     max-size: ${SECURE_CODING_WORKER_MAX_SIZE:4}
     queue-capacity: ${SECURE_CODING_QUEUE_CAPACITY:100}
     coordinator-queue-capacity: ${SECURE_CODING_COORDINATOR_QUEUE_CAPACITY:20}
+
+ocr-chat:
+  max-file-size: ${OCR_CHAT_MAX_FILE_SIZE:20MB}
+  max-pdf-pages: ${OCR_CHAT_MAX_PDF_PAGES:10}
+  allowed-extensions:
+    - pdf
+    - png
+    - jpg
+    - jpeg
+    - bmp
+    - gif
+    - tif
+    - tiff
+    - webp

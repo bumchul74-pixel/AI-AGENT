@@ -46,6 +46,7 @@ class SecureCodingChatServiceTest {
         var response = service.scan("Check the attached Java source for vulnerabilities.", file);
 
         assertThat(response.message()).contains("HIGH: SQL injection at line 12");
+        assertThat(response.mcpContextApplied()).isTrue();
         assertThat(toolName.get()).isEqualTo("scan_source");
         assertThat(arguments.get())
                 .containsEntry("fileName", "UnsafeMapper.java")

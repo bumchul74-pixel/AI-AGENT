@@ -19,6 +19,7 @@ class GenerationControllerTest {
                 ))
         );
 
+
         assertThat(controller.projectStructures())
                 .extracting("name", "value")
                 .containsExactly(

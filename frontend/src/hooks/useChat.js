@@ -147,7 +147,8 @@ export function useChat() {
   }
 
   async function submit(content, file = null) {
-    const trimmed = content.trim();
+    const trimmed = content.trim()
+      || (file ? '첨부파일에서 텍스트를 추출해 주세요.' : '');
     if (!trimmed || isLoading) return;
 
     appendMessage({
@@ -162,6 +163,7 @@ export function useChat() {
       appendMessage({
         role: 'assistant',
         content: response.message ?? response.content ?? '응답 메시지가 비어 있습니다.',
+        mcpContextApplied: Boolean(response.mcpContextApplied),
       });
       if (response.conversationId != null) {
         setActiveConversationId(response.conversationId);

@@ -17,7 +17,9 @@ DEFAULT_ALLOWED_DIRS = (RAG_SERVER_DIR / "inbox", PROJECT_DIR / "uploads")
 SUPPORTED_IMAGE_EXTENSIONS = {
     ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"
 }
+SUPPORTED_DOCUMENT_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS | {".pdf"}
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_PDF_PAGES = 20
 
 _reader: Any | None = None
 _reader_lock = Lock()
@@ -94,6 +96,28 @@ def _decode_base64_image(image_base64: str) -> bytes:
     return raw_image
 
 
+def _decode_base64_document(file_base64: str) -> bytes:
+    if not file_base64 or not file_base64.strip():
+        raise ValueError("file_base64 is required.")
+
+    encoded = file_base64.strip()
+    if encoded.startswith("data:"):
+        _, separator, encoded = encoded.partition(",")
+        if not separator:
+            raise ValueError("Invalid Base64 data URL.")
+
+    try:
+        raw_document = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exception:
+        raise ValueError("file_base64 is not valid Base64 data.") from exception
+
+    if not raw_document:
+        raise ValueError("Decoded document is empty.")
+    if len(raw_document) > MAX_IMAGE_BYTES:
+        raise ValueError("Document exceeds the 20 MB size limit.")
+    return raw_document
+
+
 def _get_reader() -> Any:
     global _reader
     if _reader is not None:
@@ -139,10 +163,44 @@ def _read_image(image: str | bytes) -> dict[str, Any]:
     return _normalize_results(results)
 
 
+def _read_pdf(document: bytes, max_pages: int) -> dict[str, Any]:
+    try:
+        import fitz
+    except ImportError as exception:
+        raise ValueError("PDF OCR requires PyMuPDF to be installed.") from exception
+
+    page_limit = min(max(1, int(max_pages)), MAX_PDF_PAGES)
+    pages: list[dict[str, Any]] = []
+    with fitz.open(stream=document, filetype="pdf") as pdf:
+        if pdf.page_count > page_limit:
+            raise ValueError(
+                f"PDF has {pdf.page_count} pages; the configured limit is {page_limit}.")
+        for page_number, page in enumerate(pdf, start=1):
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            result = _read_image(pixmap.tobytes("png"))
+            pages.append({
+                "page": page_number,
+                "text": result["text"],
+                "regions": result["regions"],
+                "region_count": result["region_count"],
+            })
+
+    text = "\n\n".join(
+        f"[Page {page['page']}]\n{page['text']}" for page in pages if page["text"].strip()
+    )
+    return {
+        "text": text,
+        "pages": pages,
+        "page_count": len(pages),
+        "region_count": sum(page["region_count"] for page in pages),
+        "languages": _languages(),
+    }
+
+
 ocr_server = FastMCP(
     "easyocr",
     instructions=(
-        "Extract Korean and English text from image files or Base64 image data. "
+        "Extract Korean and English text from PDF and image files or Base64 data. "
         "File access is restricted to EASYOCR_ALLOWED_DIRS."
     ),
     host=os.getenv("EASYOCR_MCP_HOST", "127.0.0.1"),
@@ -163,6 +221,21 @@ def ocr_image_file(file_path: str) -> dict[str, Any]:
 def ocr_image_base64(image_base64: str) -> dict[str, Any]:
     result = _read_image(_decode_base64_image(image_base64))
     result["source"] = "base64"
+    return result
+
+
+@ocr_server.tool(description="Extract text from a Base64-encoded PDF or image document.")
+def ocr_document_base64(
+        file_base64: str, file_name: str, max_pages: int = 10) -> dict[str, Any]:
+    extension = Path(file_name or "").suffix.lower()
+    if extension not in SUPPORTED_DOCUMENT_EXTENSIONS:
+        raise ValueError(f"Unsupported OCR document type: {extension or 'unknown'}")
+
+    document = _decode_base64_document(file_base64)
+    result = (_read_pdf(document, max_pages)
+              if extension == ".pdf" else _read_image(document))
+    result["source"] = file_name
+    result["file_type"] = extension.lstrip(".")
     return result
 
 

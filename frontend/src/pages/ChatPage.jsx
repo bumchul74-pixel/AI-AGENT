@@ -64,6 +64,7 @@ export function ChatPage() {
           onDelete={chat.removeConversation}
           onCreateProject={chat.createProject}
           onRenameProject={chat.renameProject}
+          onDeleteProject={chat.deleteProject}
           onMoveConversation={chat.moveConversation}
           projectError={chat.projectError}
         />

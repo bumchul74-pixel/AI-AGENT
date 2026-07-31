@@ -9,6 +9,7 @@ public record ChatMessageResponse(
         String content,
         String attachmentName,
         boolean mcpContextApplied,
+        String mcpReference,
         LocalDateTime createdAt
 ) {
 }

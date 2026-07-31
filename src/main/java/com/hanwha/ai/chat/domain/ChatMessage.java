@@ -10,6 +10,7 @@ public class ChatMessage {
     private String attachmentName;
     private byte[] attachmentContent;
     private boolean mcpContextApplied;
+    private String mcpReference;
     private LocalDateTime createdAt;
 
     public ChatMessage() {
@@ -21,22 +22,38 @@ public class ChatMessage {
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, LocalDateTime createdAt) {
-        this(id, conversationId, role, message, attachmentName, null, false, createdAt);
+        this(id, conversationId, role, message, attachmentName, null, false, null, createdAt);
     }
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, boolean mcpContextApplied, LocalDateTime createdAt) {
-        this(id, conversationId, role, message, attachmentName, null, mcpContextApplied, createdAt);
+        this(id, conversationId, role, message, attachmentName, null,
+                mcpContextApplied, null, createdAt);
+    }
+
+    public ChatMessage(Long id, Long conversationId, String role, String message,
+            String attachmentName, boolean mcpContextApplied, String mcpReference,
+            LocalDateTime createdAt) {
+        this(id, conversationId, role, message, attachmentName, null,
+                mcpContextApplied, mcpReference, createdAt);
     }
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, byte[] attachmentContent, LocalDateTime createdAt) {
-        this(id, conversationId, role, message, attachmentName, attachmentContent, false, createdAt);
+        this(id, conversationId, role, message, attachmentName, attachmentContent,
+                false, null, createdAt);
     }
 
     public ChatMessage(Long id, Long conversationId, String role, String message,
             String attachmentName, byte[] attachmentContent, boolean mcpContextApplied,
             LocalDateTime createdAt) {
+        this(id, conversationId, role, message, attachmentName, attachmentContent,
+                mcpContextApplied, null, createdAt);
+    }
+
+    public ChatMessage(Long id, Long conversationId, String role, String message,
+            String attachmentName, byte[] attachmentContent, boolean mcpContextApplied,
+            String mcpReference, LocalDateTime createdAt) {
         this.id = id;
         this.conversationId = conversationId;
         this.role = role;
@@ -44,6 +61,7 @@ public class ChatMessage {
         this.attachmentName = attachmentName;
         this.attachmentContent = attachmentContent;
         this.mcpContextApplied = mcpContextApplied;
+        this.mcpReference = mcpReference;
         this.createdAt = createdAt;
     }
 
@@ -61,6 +79,8 @@ public class ChatMessage {
     public void setAttachmentContent(byte[] attachmentContent) { this.attachmentContent = attachmentContent; }
     public boolean isMcpContextApplied() { return mcpContextApplied; }
     public void setMcpContextApplied(boolean mcpContextApplied) { this.mcpContextApplied = mcpContextApplied; }
+    public String getMcpReference() { return mcpReference; }
+    public void setMcpReference(String mcpReference) { this.mcpReference = mcpReference; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -66,6 +66,14 @@ public class ChatRepository {
         return mapper != null && id != null && mapper.updateProjectName(id, name) > 0;
     }
 
+    public int clearProjectConversations(Long id) {
+        return mapper == null || id == null ? 0 : mapper.clearProjectConversations(id);
+    }
+
+    public boolean deleteProject(Long id) {
+        return mapper != null && id != null && mapper.deleteProject(id) > 0;
+    }
+
     public boolean deleteConversation(Long id) {
         return mapper != null && id != null && mapper.deleteConversation(id) > 0;
     }

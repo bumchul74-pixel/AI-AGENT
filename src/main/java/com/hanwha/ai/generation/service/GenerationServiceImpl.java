@@ -199,15 +199,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         String ragContext = hybridSearchResult.context();
         String context = buildLlmContext(projectReference, analyzedProjectStructure, ragContext, databaseSchemaContext);
-        String prompt = buildGenerationPrompt(
-                request,
-                targetTypes,
-                targetTypesText,
-                projectReference,
-                analyzedProjectStructure,
-                ragContext,
-                databaseSchemaContext
-        );
+        String prompt = buildGenerationPrompt(request, targetTypes, targetTypesText);
         LlmClient llmClient = llmClientFactory.current();
         String generatedCode = generateWithMapperColumnValidation(llmClient, prompt, context, targetTypes, databaseSchemaContext);
 
@@ -464,11 +456,7 @@ public class GenerationServiceImpl implements GenerationService {
     private String buildGenerationPrompt(
             GenerationRequest request,
             List<String> targetTypes,
-            String targetTypesText,
-            String projectReference,
-            String analyzedProjectStructure,
-            String ragContext,
-            DatabaseSchemaContext databaseSchemaContext
+            String targetTypesText
     ) {
         return """
                 You generate Java source for a Spring Boot project.
@@ -483,33 +471,18 @@ public class GenerationServiceImpl implements GenerationService {
                 1. Generate source only for the selected target types: %s.
                 2. Do not output Java source for any unselected target type. For example, when Controller and DTO are selected, return Controller and DTO code only and do not generate Service, ServiceImpl, Repository, Mapper, Domain, Exception, or Test Code files.
                 3. If the user request mentions unselected target types, treat them only as dependency or design context and do not include their source code in the output.
-                4. Use the MCP analyzed project structure and selected project full path for legacy requests, or the selected project metadata, indexed sources, and ontology for project-managed requests, to choose package, module, layer, and file path only for selected target types.
-                5. For Mapper, DTO, or DOMAIN selected targets, if MCP database schema context contains matched table metadata, use that DB context before RAG for table names, columns, Java field names, Java types, keys, indexes, comments, and MyBatis SQL.
-                6. If generate_mybatis_mapper output is present in MCP database schema context, adapt that SQL and MyBatis mapping instead of inventing Mapper SQL.
-                7. If MCP database schema context is unavailable or no matching DB table was found, use the retrieved RAG source for table and field information and do not invent columns.
-                8. Use the retrieved RAG source as the primary code pattern for annotations, method style, dependency style, and exception style.
-                9. If retrieved source is incomplete, complete only the missing parts needed for compilable selected-target results.
+                4. Use the project metadata, MCP analysis, database schema, and retrieved RAG source supplied separately as context.
+                5. For Mapper, DTO, or DOMAIN selected targets, use matched database metadata before RAG for table and column details.
+                6. If generate_mybatis_mapper output is present, adapt it instead of inventing Mapper SQL.
+                7. If database metadata is unavailable, use retrieved RAG source and do not invent columns.
+                8. Use retrieved RAG source as the primary code pattern.
+                9. If retrieved source is incomplete, complete only what is needed for compilable selected-target results.
                 10. %s
-
-                Selected project (Selected project full path for legacy requests):
-                %s
-
-                Selected project context (MCP analyzed project structure for legacy requests):
-                %s
-
-                %s
-
-                Retrieved RAG source:
-                %s
                 """.formatted(
                 targetTypesText,
                 request.prompt(),
                 targetTypesText,
-                outputFormatRule(targetTypes),
-                projectReference,
-                analyzedProjectStructure,
-                databaseSchemaContextText(databaseSchemaContext),
-                ragContext
+                outputFormatRule(targetTypes)
         );
     }
 

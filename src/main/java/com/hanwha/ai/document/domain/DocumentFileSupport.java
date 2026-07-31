@@ -1,7 +1,5 @@
 package com.hanwha.ai.document.domain;
 
-import java.util.Locale;
-import java.util.Set;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -9,8 +7,20 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public final class DocumentFileSupport {
+    private static final Set<String> TEST_SOURCE_DIRECTORIES = Set.of(
+            "test",
+            "tests",
+            "testcase",
+            "testcases"
+    );
+    private static final Pattern TEST_JAVA_FILE_NAME = Pattern.compile(
+            "^(?:Test.*|.*Test|.*Tests|.*TestCase|IT.*|.*IT|.*ITCase)\\.java$"
+    );
     private static final Set<String> SUPPORTED_VECTOR_EXTENSIONS = Set.of(
             ".java",
             ".kt",
@@ -39,6 +49,21 @@ public final class DocumentFileSupport {
 
     public static boolean isJavaSourceFile(String fileName) {
         return ".java".equals(extension(fileName));
+    }
+
+    public static boolean isTestJavaSourceFile(String fileName) {
+        if (!isJavaSourceFile(fileName)) {
+            return false;
+        }
+        String normalizedPath = fileName == null ? "" : fileName.trim().replace('\\', '/');
+        String[] segments = normalizedPath.split("/");
+        for (int index = 0; index < segments.length - 1; index++) {
+            if (TEST_SOURCE_DIRECTORIES.contains(segments[index].toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        String baseName = segments.length == 0 ? normalizedPath : segments[segments.length - 1];
+        return TEST_JAVA_FILE_NAME.matcher(baseName).matches();
     }
 
     public static boolean isGraphSourceFile(String fileName) {
@@ -70,6 +95,7 @@ public final class DocumentFileSupport {
             throw new IllegalStateException("Failed to calculate document file hash.", exception);
         }
     }
+
     private static String extension(String fileName) {
         String normalized = normalize(fileName);
         int dotIndex = normalized.lastIndexOf('.');

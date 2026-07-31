@@ -75,6 +75,7 @@ public class DocumentService {
     @Transactional
     public DocumentResponse upload(String projectKey, MultipartFile file, String documentTypeValue) {
         requireProject(projectKey);
+        rejectTestJavaSource(file == null ? null : file.getOriginalFilename());
         StoredDocumentFile storedFile = storageService.store(file);
         return saveAndIndex(projectKey, storedFile, documentTypeValue);
     }
@@ -88,6 +89,7 @@ public class DocumentService {
     public DocumentResponse uploadExtracted(
             String projectKey, String entryPath, byte[] content, String documentTypeValue) {
         requireProject(projectKey);
+        rejectTestJavaSource(entryPath);
         StoredDocumentFile storedFile = storageService.store(entryPath, content, "application/octet-stream");
         return saveAndIndex(projectKey, storedFile, documentTypeValue);
     }
@@ -133,6 +135,7 @@ public class DocumentService {
     @Transactional
     public DocumentResponse reindex(Long id) {
         RagDocument document = requireDocument(id);
+        rejectTestJavaSource(document.getOriginalFileName());
         indexWorkflow.run(document);
         return DocumentResponse.from(requireDocument(id));
     }
@@ -172,6 +175,12 @@ public class DocumentService {
             throw new BusinessException("Document not found.");
         }
         return document;
+    }
+
+    private void rejectTestJavaSource(String fileName) {
+        if (DocumentFileSupport.isTestJavaSourceFile(fileName)) {
+            throw new BusinessException("Test Java source files are excluded from indexing: " + fileName);
+        }
     }
 
     private void requireProject(String projectKey) {

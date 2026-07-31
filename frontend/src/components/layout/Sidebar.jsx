@@ -61,15 +61,17 @@ export function Sidebar({ activePage, collapsed, onNavigate }) {
 
         {NAVIGATION_SECTIONS.map((section) => {
           const isActive = activeSection?.id === section.id;
-          const isExpanded = expandedSections.has(section.id) && !collapsed;
+          const isDirect = section.children.length === 1;
+          const isExpanded = !isDirect && expandedSections.has(section.id) && !collapsed;
           return (
             <section className={isActive ? 'gnb-group active' : 'gnb-group'} key={section.id}>
               <button
-                aria-expanded={isExpanded}
+                aria-current={isDirect && isActive ? 'page' : undefined}
+                aria-expanded={isDirect ? undefined : isExpanded}
                 className="gnb-depth1"
                 type="button"
                 title={collapsed ? section.label : undefined}
-                onClick={() => collapsed
+                onClick={() => isDirect || collapsed
                   ? onNavigate(section.defaultPage)
                   : toggleSection(section.id)}
               >
@@ -78,7 +80,7 @@ export function Sidebar({ activePage, collapsed, onNavigate }) {
                   <strong>{section.label}</strong>
                   <small>{section.description}</small>
                 </span>
-                <ChevronDown className="gnb-expand-icon" size={17} />
+                {!isDirect && <ChevronDown className="gnb-expand-icon" size={17} />}
               </button>
 
               {isExpanded && (

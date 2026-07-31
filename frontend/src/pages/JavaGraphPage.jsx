@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { forceCollide, forceX, forceY } from 'd3-force-3d';
 import ForceGraph2D from 'react-force-graph-2d';
-import { FileCode, Network, RotateCcw, Search, X } from 'lucide-react';
+import { FileCode, FolderTree, Network, RotateCcw, Search, X } from 'lucide-react';
 import { fetchSourceGraphNodeSource, fetchSourceGraphOverview } from '../api/sourceGraphApi.js';
 import { isApiRequestError } from '../api/apiClient.js';
 import { Loading } from '../components/common/Loading.jsx';
@@ -11,12 +11,12 @@ import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 
 const TEXT = {
   title: 'Java Graph',
-  description: 'Controller부터 Service, Mapper XML, SQL까지 애플리케이션 구조 중심으로 조회합니다.',
+  description: '패키지를 선택하면 해당 소스와 직접 연결된 외부 패키지 관계를 표시합니다.',
   searchLabel: '\uAC80\uC0C9\uC5B4',
   searchPlaceholder: 'FQN, \uD30C\uC77C\uBA85, \uB178\uB4DC \uC720\uD615, source',
   search: '\uAC80\uC0C9',
   reset: '\uCD08\uAE30\uD654',
-  graphTitle: '\uADF8\uB798\uD504 \uAD6C\uC870',
+  graphTitle: '패키지 관계도',
   detailTitle: '\uB178\uB4DC \uC0C1\uC138',
   emptyTitle: '\uD45C\uC2DC\uD560 Graph \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.',
   emptyDescription: 'inbox\uC5D0 Java \uC18C\uC2A4\uB97C \uC801\uC7AC\uD558\uAC70\uB098 Generate \uC774\uB825\uC744 \uC0DD\uC131\uD574 \uC8FC\uC138\uC694.',
@@ -80,8 +80,7 @@ const NODE_RADIUS_BY_ROLE = {
   DatabaseTable: 36,
 };
 
-const CORE_LAYERS = new Set(['Controller', 'Service', 'ServiceImpl', 'Repository', 'Mapper', 'DTO', 'Domain']);
-const TYPE_RELATIONSHIPS = new Set(['INJECTS', 'IMPLEMENTS', 'EXTENDS', 'USES', 'USES_DTO', 'MAPS_TO']);
+const TYPE_RELATIONSHIPS = new Set(['IMPORTS', 'INJECTS', 'IMPLEMENTS', 'EXTENDS', 'USES', 'USES_DTO', 'MAPS_TO']);
 
 function isExternalType(node) {
   return node.properties?.external === true || node.properties?.external === 'true';
@@ -102,28 +101,6 @@ function commonPackagePrefix(packages) {
     common.push(candidate);
   }
   return common.length >= 2 ? common.join('.') : '';
-}
-
-function projectPackageRoots(javaTypes) {
-  const internalPackages = javaTypes
-    .filter((node) => !isExternalType(node))
-    .map(typeFqn)
-    .filter(Boolean)
-    .map((fqn) => fqn.split('.').slice(0, -1).join('.'))
-    .filter(Boolean);
-  const commonRoot = commonPackagePrefix(internalPackages);
-  if (commonRoot) return [commonRoot];
-
-  return [...new Set(internalPackages.map((packageName) => {
-    const segments = packageName.split('.');
-    return segments.slice(0, Math.min(3, segments.length)).join('.');
-  }))];
-}
-
-function isProjectPackageType(node, packageRoots) {
-  if (!isExternalType(node)) return true;
-  const fqn = typeFqn(node);
-  return Boolean(fqn) && packageRoots.some((root) => fqn === root || fqn.startsWith(`${root}.`));
 }
 
 function graphNodeRole(node) {
@@ -205,8 +182,44 @@ function graphLinkDistance(link) {
   return sourceRadius + targetRadius + 150;
 }
 
-function transformGraph(graph) {
-  const allNodes = graph.nodes.map((node) => ({
+function javaTypePackage(node) {
+  const explicitPackage = String(node.properties?.packageName ?? '').trim();
+  if (explicitPackage) return explicitPackage;
+  const fqn = typeFqn(node);
+  return fqn.includes('.') ? fqn.slice(0, fqn.lastIndexOf('.')) : '(default package)';
+}
+
+function buildPackageCatalog(graph) {
+  const javaTypes = (graph.nodes ?? [])
+    .filter((node) => node.label === 'JavaType' && !isExternalType(node))
+    .map((node) => ({
+      id: node.id,
+      label: node.label,
+      name: node.name,
+      properties: node.properties ?? {},
+      architectureRole: graphNodeRole(node),
+    }));
+  const packageNames = [...new Set(javaTypes.map(javaTypePackage))]
+    .sort((left, right) => left.localeCompare(right));
+  const root = commonPackagePrefix(packageNames.filter((name) => name !== '(default package)'));
+  const entries = packageNames.map((name) => {
+    const relativeName = root && name.startsWith(`${root}.`)
+      ? name.slice(root.length + 1)
+      : name === root ? '(root)' : name;
+    return {
+      name,
+      relativeName,
+      depth: Math.max(0, relativeName.split('.').filter(Boolean).length - 1),
+      types: javaTypes
+        .filter((node) => javaTypePackage(node) === name)
+        .sort((left, right) => graphNodeDisplayName(left).localeCompare(graphNodeDisplayName(right))),
+    };
+  });
+  return { root, entries };
+}
+
+function transformPackageGraph(graph, selectedPackage, showRelatedPackages = true) {
+  const allNodes = (graph.nodes ?? []).map((node) => ({
     id: node.id,
     label: node.label,
     name: node.name,
@@ -220,17 +233,10 @@ function transformGraph(graph) {
   });
 
   const javaTypes = allNodes.filter((node) => node.label === 'JavaType');
-  const packageRoots = projectPackageRoots(javaTypes);
   const typeIds = new Set(javaTypes.map((node) => node.id));
-  const coreTypeIds = new Set(javaTypes
-    .filter((node) => CORE_LAYERS.has(node.properties?.layer) && isProjectPackageType(node, packageRoots))
+  const selectedTypeIds = new Set(javaTypes
+    .filter((node) => !isExternalType(node) && javaTypePackage(node) === selectedPackage)
     .map((node) => node.id));
-  if (coreTypeIds.size === 0) {
-    javaTypes
-      .filter((node) => !isExternalType(node))
-      .forEach((node) => coreTypeIds.add(node.id));
-  }
-
   const typeAdjacency = new Map();
   const connectTypes = (sourceId, targetId) => {
     if (!typeIds.has(sourceId) || !typeIds.has(targetId) || sourceId === targetId) return;
@@ -239,7 +245,6 @@ function transformGraph(graph) {
     typeAdjacency.get(sourceId).add(targetId);
     typeAdjacency.get(targetId).add(sourceId);
   };
-
   relationships.forEach((relationship) => {
     if (TYPE_RELATIONSHIPS.has(relationship.type)) {
       connectTypes(relationship.sourceId, relationship.targetId);
@@ -249,22 +254,18 @@ function transformGraph(graph) {
     }
   });
 
-  const includedTypeIds = new Set(coreTypeIds);
-  let frontier = [...coreTypeIds];
-  for (let depth = 0; depth < 2; depth += 1) {
-    const next = [];
-    frontier.forEach((typeId) => {
+  const relatedTypeIds = new Set();
+  if (showRelatedPackages) {
+    selectedTypeIds.forEach((typeId) => {
       (typeAdjacency.get(typeId) ?? []).forEach((relatedId) => {
         const related = nodeMap.get(relatedId);
-        if (!includedTypeIds.has(relatedId) && related && isProjectPackageType(related, packageRoots)) {
-          includedTypeIds.add(relatedId);
-          next.push(relatedId);
+        if (related && !isExternalType(related) && !selectedTypeIds.has(relatedId)) {
+          relatedTypeIds.add(relatedId);
         }
       });
     });
-    frontier = next;
   }
-
+  const includedTypeIds = new Set([...selectedTypeIds, ...relatedTypeIds]);
   const includedIds = new Set(includedTypeIds);
   const links = [];
   const linkKeys = new Set();
@@ -275,37 +276,42 @@ function transformGraph(graph) {
     linkKeys.add(key);
     links.push({ id: key, source, target, type, properties });
   };
+  const touchesSelected = (sourceId, targetId) => (
+    selectedTypeIds.has(sourceId) || selectedTypeIds.has(targetId)
+  );
 
   relationships.forEach((relationship) => {
     if (includedTypeIds.has(relationship.sourceId) && includedTypeIds.has(relationship.targetId)
-        && TYPE_RELATIONSHIPS.has(relationship.type)) {
+        && TYPE_RELATIONSHIPS.has(relationship.type)
+        && touchesSelected(relationship.sourceId, relationship.targetId)) {
       addLink(relationship.sourceId, relationship.targetId, relationship.type, relationship.properties);
     }
     if (relationship.type === 'CALLS') {
       const sourceType = methodOwner.get(relationship.sourceId);
       const targetType = methodOwner.get(relationship.targetId);
-      if (includedTypeIds.has(sourceType) && includedTypeIds.has(targetType)) {
+      if (includedTypeIds.has(sourceType) && includedTypeIds.has(targetType)
+          && touchesSelected(sourceType, targetType)) {
         addLink(sourceType, targetType, 'CALLS', relationship.properties);
       }
     }
-    if (relationship.type === 'HAS_MAPPER_XML' && includedTypeIds.has(relationship.targetId)) {
+    if (relationship.type === 'HAS_MAPPER_XML' && selectedTypeIds.has(relationship.targetId)) {
       includedIds.add(relationship.sourceId);
       addLink(relationship.sourceId, relationship.targetId, relationship.type, relationship.properties);
     }
-    if (relationship.type === 'HAS_STATEMENT' && includedTypeIds.has(relationship.sourceId)) {
+    if (relationship.type === 'HAS_STATEMENT' && selectedTypeIds.has(relationship.sourceId)) {
       includedIds.add(relationship.targetId);
       addLink(relationship.sourceId, relationship.targetId, relationship.type, relationship.properties);
     }
     if (relationship.type === 'HANDLED_BY') {
       const ownerType = methodOwner.get(relationship.targetId);
-      if (includedTypeIds.has(ownerType)) {
+      if (selectedTypeIds.has(ownerType)) {
         includedIds.add(relationship.sourceId);
         addLink(relationship.sourceId, ownerType, relationship.type, relationship.properties);
       }
     }
     if (relationship.type === 'READS_FROM' || relationship.type === 'WRITES_TO') {
       const ownerType = methodOwner.get(relationship.sourceId);
-      if (includedTypeIds.has(ownerType)) {
+      if (selectedTypeIds.has(ownerType)) {
         includedIds.add(relationship.targetId);
         addLink(ownerType, relationship.targetId, relationship.type, relationship.properties);
       }
@@ -318,7 +324,7 @@ function transformGraph(graph) {
     const statementToTable = includedIds.has(relationship.sourceId)
       && sourceNode?.label === 'SqlStatement'
       && targetNode?.label === 'DatabaseTable';
-    const mapperToTable = includedTypeIds.has(relationship.sourceId)
+    const mapperToTable = selectedTypeIds.has(relationship.sourceId)
       && targetNode?.label === 'DatabaseTable';
     if (statementToTable || mapperToTable) {
       includedIds.add(relationship.targetId);
@@ -328,10 +334,19 @@ function transformGraph(graph) {
 
   const nodes = allNodes
     .filter((node) => includedIds.has(node.id))
-    .map((node) => ({ ...node, architectureRole: graphNodeRole(node) }));
-  return { nodes, links };
+    .map((node) => ({
+      ...node,
+      architectureRole: graphNodeRole(node),
+      graphScope: relatedTypeIds.has(node.id) ? 'related-package' : 'selected-package',
+      packageName: node.label === 'JavaType' ? javaTypePackage(node) : selectedPackage,
+    }));
+  return {
+    nodes,
+    links,
+    selectedTypeCount: selectedTypeIds.size,
+    relatedTypeCount: relatedTypeIds.size,
+  };
 }
-
 function useElementSize(ref) {
   const [size, setSize] = useState({ width: 1200, height: 820 });
 
@@ -368,6 +383,8 @@ export function JavaGraphPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState([]);
   const [projectKey, setProjectKey] = useState('');
+  const [selectedPackage, setSelectedPackage] = useState('');
+  const [showRelatedPackages, setShowRelatedPackages] = useState(true);
   const [sourceModal, setSourceModal] = useState({
     open: false,
     node: null,
@@ -377,7 +394,15 @@ export function JavaGraphPage() {
   });
   const sourceRequestIdRef = useRef(0);
 
-  const graphData = useMemo(() => transformGraph(graph), [graph]);
+  const packageCatalog = useMemo(() => buildPackageCatalog(graph), [graph]);
+  const effectivePackage = packageCatalog.entries.some((entry) => entry.name === selectedPackage)
+    ? selectedPackage
+    : packageCatalog.entries[0]?.name ?? '';
+  const selectedPackageEntry = packageCatalog.entries.find((entry) => entry.name === effectivePackage);
+  const graphData = useMemo(
+    () => transformPackageGraph(graph, effectivePackage, showRelatedPackages),
+    [graph, effectivePackage, showRelatedPackages],
+  );
 
   async function loadGraph(nextQuery = submittedQuery) {
     setIsLoading(true);
@@ -478,6 +503,13 @@ export function JavaGraphPage() {
     setSelectedNode(null);
     setFocusedRole((currentRole) => (currentRole === role ? null : role));
   }
+
+  function handlePackageSelect(packageName) {
+    setSelectedPackage(packageName);
+    setSelectedNode(null);
+    setFocusedRole(null);
+    closeSourceModal();
+  }
   useEffect(() => {
     fetchKnowledgeProjects().then((items) => {
       setProjects(items);
@@ -491,6 +523,14 @@ export function JavaGraphPage() {
   useEffect(() => {
     if (projectKey) loadGraph('');
   }, [projectKey]);
+
+  useEffect(() => {
+    setSelectedPackage((current) => (
+      packageCatalog.entries.some((entry) => entry.name === current)
+        ? current
+        : packageCatalog.entries[0]?.name ?? ''
+    ));
+  }, [packageCatalog]);
 
   useEffect(() => {
     if (!selectedNode) return undefined;
@@ -525,7 +565,9 @@ export function JavaGraphPage() {
     linkForce?.distance(graphLinkDistance).strength(0.18);
     chargeForce?.strength(-900).distanceMin(120).distanceMax(1200);
     graphInstance.d3Force('collide', forceCollide((node) => estimateGraphNodeRadius(node) + 30).strength(1).iterations(4));
-    graphInstance.d3Force('x', forceX(0).strength(0.018));
+    graphInstance.d3Force('x', forceX((node) => (
+      node.graphScope === 'related-package' ? 300 : -80
+    )).strength(0.035));
     graphInstance.d3Force('y', forceY(0).strength(0.018));
     graphInstance.d3ReheatSimulation?.();
 
@@ -606,12 +648,13 @@ export function JavaGraphPage() {
               <Network size={18} />
               <div>
                 <h2>{TEXT.graphTitle}</h2>
-                <p>{submittedQuery ? submittedQuery : 'Application architecture view'}</p>
+                <p>{effectivePackage || (submittedQuery ? submittedQuery : '패키지를 선택해 주세요.')}</p>
               </div>
             </div>
             <div className="java-graph-toolbar-side">
               <div className="java-graph-stats">
-                <span>{TEXT.nodes}: <strong>{graphData.nodes.length}</strong></span>
+                <span>패키지 클래스: <strong>{graphData.selectedTypeCount}</strong></span>
+                <span>외부 연결: <strong>{graphData.relatedTypeCount}</strong></span>
                 <span>{TEXT.links}: <strong>{graphData.links.length}</strong></span>
               </div>
               <div className="java-graph-legend" aria-label="Node color legend">
@@ -646,13 +689,84 @@ export function JavaGraphPage() {
               <span>{TEXT.emptyDescription}</span>
             </div>
           ) : (
-            <div className="java-graph-canvas" ref={graphRef}>
+            <div className="java-graph-workbench">
+              <aside className="java-package-browser" aria-label="Java 패키지 탐색기">
+                <div className="java-package-browser-heading">
+                  <FolderTree size={17} aria-hidden="true" />
+                  <div>
+                    <strong>패키지 구조</strong>
+                    <small>{packageCatalog.root || '프로젝트 패키지'}</small>
+                  </div>
+                </div>
+
+                <div className="java-package-tree">
+                  {packageCatalog.entries.map((entry) => (
+                    <button
+                      className={`java-package-item${entry.name === effectivePackage ? ' is-active' : ''}`}
+                      key={entry.name}
+                      type="button"
+                      title={entry.name}
+                      aria-pressed={entry.name === effectivePackage}
+                      style={{ '--package-depth': Math.min(entry.depth, 4) }}
+                      onClick={() => handlePackageSelect(entry.name)}
+                    >
+                      <FolderTree size={14} aria-hidden="true" />
+                      <span>
+                        <strong>{entry.relativeName}</strong>
+                        <small>{entry.types.length}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <label className="java-related-package-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showRelatedPackages}
+                    onChange={(event) => setShowRelatedPackages(event.target.checked)}
+                  />
+                  <span>
+                    <strong>외부 패키지 관계</strong>
+                    <small>직접 연결된 내부 소스만 표시</small>
+                  </span>
+                </label>
+
+                <div className="java-package-sources">
+                  <div className="java-package-sources-heading">
+                    <strong>패키지 소스</strong>
+                    <small>{selectedPackageEntry?.types.length ?? 0}</small>
+                  </div>
+                  <div className="java-package-source-list">
+                    {(selectedPackageEntry?.types ?? []).map((node) => (
+                      <button
+                        key={node.id}
+                        type="button"
+                        title={`${graphNodeDisplayName(node)} 원문 보기`}
+                        onClick={() => openNodeSource(node)}
+                      >
+                        <FileCode size={13} aria-hidden="true" />
+                        <span>
+                          <strong>{graphNodeDisplayName(node)}</strong>
+                          <small>{graphNodeRole(node)}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="java-package-scope-legend">
+                  <span><i />선택 패키지</span>
+                  <span><i className="is-related" />외부 패키지</span>
+                </div>
+              </aside>
+
+              <div className="java-graph-canvas" ref={graphRef}>
               <ForceGraph2D
                 ref={forceGraphRef}
                 width={graphSize.width}
                 height={graphSize.height}
                 graphData={graphData}
-                nodeLabel={(node) => `${graphNodeRole(node)}: ${graphNodeName(node)}`}
+                nodeLabel={(node) => `${node.graphScope === 'related-package' ? '외부 패키지 · ' : ''}${graphNodeRole(node)}: ${graphNodeName(node)}${node.packageName ? `\n${node.packageName}` : ''}`}
                 nodeColor={graphNodeColor}
                 nodeRelSize={11}
                 nodeVal={(node) => Math.max(10, estimateGraphNodeRadius(node) / 3)}
@@ -710,14 +824,20 @@ export function JavaGraphPage() {
                   const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
 
                   ctx.save();
+                  const isRelatedPackage = node.graphScope === 'related-package';
+                  if (isRelatedPackage) ctx.globalAlpha = 0.72;
                   if (focusedRole && graphNodeRole(node) !== focusedRole) ctx.globalAlpha = 0.16;
                   ctx.beginPath();
                   ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
                   ctx.fillStyle = graphNodeColor(node);
                   ctx.fill();
                   ctx.lineWidth = selectedNode?.id === node.id ? 4 : 2;
-                  ctx.strokeStyle = selectedNode?.id === node.id ? '#111827' : '#ffffff';
+                  ctx.strokeStyle = selectedNode?.id === node.id
+                    ? '#111827'
+                    : isRelatedPackage ? '#334155' : '#ffffff';
+                  ctx.setLineDash(isRelatedPackage ? [6, 4] : []);
                   ctx.stroke();
+                  ctx.setLineDash([]);
 
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
@@ -732,6 +852,7 @@ export function JavaGraphPage() {
                   ctx.restore();
                 }}
               />
+              </div>
             </div>
           )}
         </section>

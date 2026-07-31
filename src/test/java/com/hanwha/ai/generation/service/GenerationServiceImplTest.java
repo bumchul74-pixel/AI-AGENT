@@ -154,7 +154,7 @@ class GenerationServiceImplTest {
                 "Controller, DTO",
                 "Generate source only for the selected target types: Controller, DTO",
                 "do not include sections for unselected target types",
-                "Use the MCP analyzed project structure and selected project full path"
+                "Use the project metadata, MCP analysis, database schema"
         );
         assertThat(llmRequest.get().context()).contains(
                 "Selected project full path",

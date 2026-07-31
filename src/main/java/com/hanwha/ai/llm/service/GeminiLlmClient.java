@@ -5,6 +5,7 @@ import com.hanwha.ai.llm.config.GeminiProperties;
 import com.hanwha.ai.llm.domain.LlmProvider;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
 import com.hanwha.ai.llm.dto.LlmGenerateResponse;
+import com.hanwha.ai.llm.exception.LlmRateLimitException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -61,6 +62,11 @@ public class GeminiLlmClient implements LlmClient {
 
             return new LlmGenerateResponse(extractText(response));
         } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 429) {
+                log.warn("Gemini API rate limit exceeded. model={} status={}",
+                        properties.model(), exception.getStatusCode());
+                throw new LlmRateLimitException(provider(), exception);
+            }
             log.error(
                     "Gemini API request failed. status={} responseBody={}",
                     exception.getStatusCode(),
@@ -142,7 +148,7 @@ public class GeminiLlmClient implements LlmClient {
                 Prompt:
                 %s
 
-                RAG Context:
+                Reference Context:
                 %s
                 """.formatted(request.prompt(), request.context());
     }

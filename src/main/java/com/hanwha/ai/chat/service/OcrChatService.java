@@ -67,7 +67,8 @@ public class OcrChatService {
                 ? chatRepository.createConversation(createTitle(normalizedMessage))
                 : requiredConversation(conversationId);
         saveMessages(conversation.getId(), normalizedMessage, fileName, content, answer);
-        return new ChatResponse(answer, List.of(extractedText), conversation.getId(), true);
+        return new ChatResponse(answer, List.of(extractedText), conversation.getId(), true,
+                "EasyOCR MCP · " + OCR_TOOL);
     }
 
     private String validate(MultipartFile file) {
@@ -167,9 +168,8 @@ public class OcrChatService {
                 첨부파일:
                 %s
 
-                OCR 추출 문자:
-                %s
-                """.formatted(message, fileName, extractedText);
+                OCR extracted text is supplied separately as context.
+                """.formatted(message, fileName);
         return llmClientFactory.current()
                 .generate(new LlmGenerateRequest(prompt, extractedText))
                 .content();
@@ -198,7 +198,8 @@ public class OcrChatService {
         chatRepository.save(new ChatMessage(
                 null, conversationId, "user", message, fileName, content, LocalDateTime.now()));
         chatRepository.save(new ChatMessage(
-                null, conversationId, "assistant", answer, null, true, LocalDateTime.now()));
+                null, conversationId, "assistant", answer, null, true,
+                "EasyOCR MCP · " + OCR_TOOL, LocalDateTime.now()));
     }
 
     private String extension(String fileName) {

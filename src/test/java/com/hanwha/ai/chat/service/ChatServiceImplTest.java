@@ -87,6 +87,7 @@ class ChatServiceImplTest {
         assertThat(response.message()).contains("standard controller source pattern");
         assertThat(response.ragDocuments()).containsExactly("standard controller source pattern");
         assertThat(response.mcpContextApplied()).isFalse();
+        assertThat(response.mcpReference()).isNull();
     }
 
     @Test
@@ -125,6 +126,7 @@ class ChatServiceImplTest {
         assertThat(response.message()).contains("get_server_info");
         assertThat(response.ragDocuments()).containsExactly("MCP gateway operation: tools/list\nMCP gateway result: get_server_info");
         assertThat(response.mcpContextApplied()).isTrue();
+        assertThat(response.mcpReference()).isEqualTo("AI-MCP · tools/list");
         assertThat(llmRequest.get().prompt()).contains("MCP gateway result", "MCP tool 목록 알려줘");
         assertThat(llmRequest.get().context()).contains("tools/list", "get_server_info");
     }
@@ -186,6 +188,48 @@ class ChatServiceImplTest {
         assertThat(movedProjectId.get()).isEqualTo(3L);
     }
 
+    @Test
+    void deletingProjectMovesConversationsToUngroupedBeforeDeletion() {
+        ChatProject project = new ChatProject();
+        project.setId(3L);
+        project.setName("Legacy project");
+        AtomicBoolean projectExists = new AtomicBoolean(true);
+        AtomicReference<Long> clearedProjectId = new AtomicReference<>();
+        AtomicReference<Long> deletedProjectId = new AtomicReference<>();
+        ChatRepository repository = new ChatRepository() {
+            @Override
+            public ChatProject findProjectById(Long id) {
+                return projectExists.get() ? project : null;
+            }
+
+            @Override
+            public int clearProjectConversations(Long id) {
+                clearedProjectId.set(id);
+                return 2;
+            }
+
+            @Override
+            public boolean deleteProject(Long id) {
+                deletedProjectId.set(id);
+                projectExists.set(false);
+                return true;
+            }
+        };
+        ChatService service = new ChatServiceImpl(
+                request -> new RagSearchResponse(List.of()),
+                new LlmClientFactory(
+                        new LlmProperties("openai"),
+                        List.of(fakeLlmClient(new AtomicReference<>()))
+                ),
+                repository,
+                noOpMcpContextProvider()
+        );
+
+        service.deleteProject(3L);
+
+        assertThat(clearedProjectId.get()).isEqualTo(3L);
+        assertThat(deletedProjectId.get()).isEqualTo(3L);
+    }
     private McpChatContextProvider noOpMcpContextProvider() {
         return new McpChatContextProvider() {
             @Override

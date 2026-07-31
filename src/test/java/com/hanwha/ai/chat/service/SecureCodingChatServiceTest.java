@@ -47,6 +47,7 @@ class SecureCodingChatServiceTest {
 
         assertThat(response.message()).contains("HIGH: SQL injection at line 12");
         assertThat(response.mcpContextApplied()).isTrue();
+        assertThat(response.mcpReference()).isEqualTo("AI-MCP · scan_source");
         assertThat(toolName.get()).isEqualTo("scan_source");
         assertThat(arguments.get())
                 .containsEntry("fileName", "UnsafeMapper.java")

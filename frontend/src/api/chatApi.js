@@ -47,6 +47,14 @@ export async function renameChatProject(projectId, name) {
   );
 }
 
+export async function deleteChatProject(projectId) {
+  return apiRequest(`/api/chat/projects/${projectId}`, {
+    method: 'DELETE',
+    responseType: 'none',
+    errorMessage: '프로젝트를 삭제하지 못했습니다.',
+  });
+}
+
 export async function moveChatConversation(conversationId, projectId) {
   return apiRequest(`/api/chat/conversations/${conversationId}/project`, {
       method: 'PATCH',

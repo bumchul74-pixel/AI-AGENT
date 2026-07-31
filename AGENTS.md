@@ -193,3 +193,77 @@ Embedding Model
 Vector DB
 
 
+```
+
+## Canonical Documentation
+
+코드 변경 전 `ARCHITECTURE.md`, 관련 `docs/product-specs`, `docs/DESIGN.md`, 관련 ADR, `docs/RELIABILITY.md`, `docs/SECURITY.md`, 관련 `docs/references` 순서로 확인한다. 코드와 문서가 충돌하면 승인된 제품 명세와 아키텍처 결정을 우선한다.
+
+## Harness Workflow
+
+1. 관련 문서, 구성, 소스, 테스트를 읽는다.
+2. 목표, 제약, 비목표, 검증 증거를 정한다.
+3. `docs/PLANS.md` 기준에 해당하면 `docs/exec-plans/active`에 실행 계획을 만든다.
+4. 기존 경계와 확장 지점을 사용하고 지속적인 설계 변경은 ADR로 기록한다.
+5. 제품, 신뢰성, 보안, 참조 문서의 영향을 같은 변경에 반영한다.
+6. 기본 gate인 `verifyAll`을 실행한다. 실제 외부 LLM, MCP, DB, Neo4j, RAG 호출은 허가된 경우에만 `liveTest`로 검증한다.
+7. 완료된 계획은 `docs/exec-plans/completed`로 옮기고 수용한 gap은 기술부채 추적기에 기록한다.
+
+## Component Boundaries
+
+### Spring Boot Backend
+
+- Controller는 HTTP 검증과 응답 매핑만 담당한다.
+- Service는 유스케이스와 트랜잭션 흐름을 담당한다.
+- Repository와 Mapper는 영속성 접근을 담당하며 SQL은 MyBatis XML에 둔다.
+- LLM, RAG, MCP, graph DB는 인터페이스와 설정 경계를 통해 연결한다.
+- Provider 교체가 feature service 변경으로 이어지지 않게 한다.
+
+### React/Vite Frontend
+
+- `api`, `components`, `pages`, `hooks`, `store`, `utils`, `constants`, `routes` 역할 분리를 유지한다.
+- 생성 판단, RAG ranking, DB 규칙을 프런트엔드에 중복 구현하지 않는다.
+- API의 loading, error, empty state를 명시적으로 처리한다.
+
+### Python RAG Server
+
+- 추출, chunk, embedding, vector 저장, 검색은 `rag-server`가 담당한다.
+- Spring Boot는 Python 내부 저장소 구현이 아닌 REST 계약에만 의존한다.
+- 검색 결과에는 생성 근거를 식별할 source/chunk metadata를 유지한다.
+
+## Generation Invariants
+
+- 생성 전에 반드시 표준 문서 또는 표준 소스코드를 RAG/MCP로 검색한다.
+- 검색된 구조, 명명, 예외 처리, mapping 패턴을 우선 적용한다.
+- 근거가 없거나 불충분하면 임의 패턴을 표준인 것처럼 생성하지 않고 부족한 근거를 명시한다.
+- 생성 결과와 사용한 검색 근거를 추적 가능하게 유지한다.
+- 부분 예제가 아니라 컴파일 가능하고 테스트 가능한 구현을 제공한다.
+
+## Security and Configuration
+
+- LLM Provider는 Strategy로 분리하고 `application.yml` 설정으로 선택한다.
+- API key, token, password, 실제 endpoint credential을 하드코딩하지 않는다.
+- 환경변수 또는 승인된 secret store를 사용한다.
+- 로그, 오류 응답, 생성 이력에 credential, 개인정보, 전체 prompt 원문을 남기지 않는다.
+- deterministic test에서는 외부 연동을 비활성화하거나 mock/fake로 대체한다.
+
+## Standard Validation Commands
+
+```powershell
+.\gradlew.bat test
+.\gradlew.bat integrationTest
+.\gradlew.bat ragTest
+.\gradlew.bat frontendCheck
+.\gradlew.bat verifyAll
+```
+
+- `test`: 외부 서비스 없는 Java 테스트
+- `integrationTest`: `integration` tag Spring/local integration test
+- `ragTest`: Python RAG unittest
+- `frontendCheck`: React/Vite production build
+- `validateHarnessDocs`: 필수 harness 문서와 로컬 Markdown 링크 검증
+- `doctor`: Java 21과 Wrapper/lockfile 검증
+- `verifyAll`: deterministic 기본 gate
+- `liveTest`: 기본 gate에서 제외된 외부 시스템 검증
+
+전체 검증을 실행하지 못하면 가능한 가장 큰 범위를 실행하고 생략한 명령과 이유를 보고한다. build 결과, runtime log, upload 데이터, credential, 무관한 변경을 포함하지 않는다.

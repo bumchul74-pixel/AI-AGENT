@@ -1,5 +1,7 @@
 package com.hanwha.ai.global.exception;
 
+import com.hanwha.ai.llm.exception.LlmRateLimitException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(LlmRateLimitException.class)
+    public ResponseEntity<ErrorResponse> handleLlmRateLimitException(
+            LlmRateLimitException exception
+    ) {
+        log.warn("LLM rate limit exceeded. provider={}", exception.getProvider());
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ErrorResponse.of(exception.getMessage()));
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {

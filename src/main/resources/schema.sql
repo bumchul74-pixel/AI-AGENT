@@ -207,6 +207,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
     attachment_name VARCHAR(255),
     attachment_content BYTEA,
     mcp_context_applied BOOLEAN NOT NULL DEFAULT FALSE,
+    mcp_reference VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -215,6 +216,9 @@ ALTER TABLE chat_message
 
 ALTER TABLE chat_message
     ADD COLUMN IF NOT EXISTS mcp_context_applied BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE chat_message
+    ADD COLUMN IF NOT EXISTS mcp_reference VARCHAR(500);
 
 CREATE INDEX IF NOT EXISTS idx_chat_conversation_updated_at
     ON chat_conversation (updated_at DESC);

@@ -48,6 +48,8 @@ class ProjectArchiveServiceTest {
         entries.put("sample/src/main/java/com/example/UserService.java", "class UserService {}".getBytes());
         entries.put("sample/src/main/resources/mapper/UserMapper.xml", "<mapper namespace='UserMapper'/>".getBytes());
         entries.put("sample/src/main/resources/schema.sql", "SELECT * FROM users".getBytes());
+        entries.put("sample/src/test/java/com/example/UserServiceTest.java", "class UserServiceTest {}".getBytes());
+        entries.put("sample/src/integrationTest/java/com/example/UserServiceIT.java", "class UserServiceIT {}".getBytes());
         entries.put("sample/target/UserService.class", new byte[]{1, 2, 3});
 
         MockMultipartFile archive = archive("sample-project.zip", entries);
@@ -55,9 +57,9 @@ class ProjectArchiveServiceTest {
         ProjectArchiveUploadResponse result = projectArchiveService.upload(archive);
 
         assertThat(result.archiveName()).isEqualTo("sample-project.zip");
-        assertThat(result.discoveredFiles()).isEqualTo(4);
+        assertThat(result.discoveredFiles()).isEqualTo(6);
         assertThat(result.indexedFiles()).isEqualTo(3);
-        assertThat(result.skippedFiles()).isEqualTo(1);
+        assertThat(result.skippedFiles()).isEqualTo(3);
         assertThat(result.failedFiles()).isZero();
         assertThat(result.documents())
                 .extracting(DocumentResponse::originalFileName)

@@ -26,6 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class SecureCodingChatService {
+    private static final String SCAN_TOOL = "scan_source";
+
     private final ObjectProvider<AiMcpGatewayService> gatewayProvider;
     private final LlmClientFactory llmClientFactory;
     private final ChatRepository chatRepository;
@@ -50,7 +52,7 @@ public class SecureCodingChatService {
                 : requiredConversation(conversationId);
         String fileName = validateFile(file);
         String source = decodeUtf8(file);
-        McpSchema.CallToolResult result = gateway().callTool("scan_source", Map.of(
+        McpSchema.CallToolResult result = gateway().callTool(SCAN_TOOL, Map.of(
                 "fileName", fileName,
                 "source", source,
                 "ruleSets", properties.ruleSets().stream().filter(StringUtils::hasText).toList()));
@@ -60,7 +62,8 @@ public class SecureCodingChatService {
             conversation = chatRepository.createConversation(createTitle(message));
         }
         saveMessages(conversation.getId(), message, fileName, source, answer);
-        return new ChatResponse(answer, List.of(scanResult), conversation.getId(), true);
+        return new ChatResponse(answer, List.of(scanResult), conversation.getId(), true,
+                "AI-MCP · " + SCAN_TOOL);
     }
 
     private String validateFile(MultipartFile file) {
@@ -136,9 +139,8 @@ public class SecureCodingChatService {
 
                 User command: %s
                 Attached file: %s
-                Semgrep CE MCP result:
-                %s
-                """.formatted(message, fileName, scanResult);
+                Semgrep CE MCP result is supplied separately as context.
+                """.formatted(message, fileName);
         return llmClientFactory.current().generate(new LlmGenerateRequest(prompt, scanResult)).content();
     }
 
@@ -164,6 +166,7 @@ public class SecureCodingChatService {
                 null, conversationId, "user", message, fileName,
                 source.getBytes(StandardCharsets.UTF_8), LocalDateTime.now()));
         chatRepository.save(new ChatMessage(
-                null, conversationId, "assistant", answer, null, true, LocalDateTime.now()));
+                null, conversationId, "assistant", answer, null, true,
+                "AI-MCP · " + SCAN_TOOL, LocalDateTime.now()));
     }
 }

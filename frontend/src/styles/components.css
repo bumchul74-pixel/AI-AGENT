@@ -452,6 +452,7 @@
 /* MCP answer provenance */
 .chat-meta { flex-wrap: wrap; }
 .chat-meta .chat-mcp-badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -464,5 +465,339 @@
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
+  cursor: help;
+  outline: none;
 }
 .chat-mcp-badge svg { width: 10px; height: 10px; }
+
+.chat-mcp-tooltip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 7px);
+  z-index: 60;
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: min(320px, 72vw);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 18%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+}
+
+.chat-mcp-tooltip strong {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.chat-mcp-tooltip span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.chat-mcp-badge:hover .chat-mcp-tooltip,
+.chat-mcp-badge:focus-visible .chat-mcp-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.chat-mcp-badge:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+/* Java package-scoped graph explorer */
+.java-graph-workbench {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.java-package-browser {
+  display: grid;
+  grid-template-rows: auto minmax(120px, 0.9fr) auto minmax(160px, 1.1fr) auto;
+  gap: 10px;
+  height: min(76vh, 860px);
+  min-height: 720px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius);
+  background: var(--surface-subtle);
+}
+
+.java-package-browser-heading,
+.java-package-browser-heading > div,
+.java-package-sources-heading {
+  display: flex;
+  align-items: center;
+}
+
+.java-package-browser-heading {
+  gap: 8px;
+  min-width: 0;
+  color: var(--primary);
+}
+
+.java-package-browser-heading > div {
+  align-items: flex-start;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.java-package-browser-heading strong,
+.java-package-sources-heading strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.java-package-browser-heading small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.java-package-tree,
+.java-package-source-list {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.java-package-tree {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 3px 2px 3px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.java-package-item,
+.java-package-source-list button {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.java-package-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 7px 4px calc(7px + var(--package-depth, 0) * 10px);
+  border-radius: 4px;
+}
+
+.java-package-item > span,
+.java-package-source-list button > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.java-package-item strong,
+.java-package-source-list strong {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.java-package-item small,
+.java-package-source-list small,
+.java-package-sources-heading small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.java-package-item:hover,
+.java-package-source-list button:hover {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.java-package-item.is-active {
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--line));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.java-package-item:focus-visible,
+.java-package-source-list button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.java-related-package-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.java-related-package-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.java-related-package-toggle > span {
+  display: grid;
+  gap: 1px;
+}
+
+.java-related-package-toggle strong {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.java-related-package-toggle small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.java-package-sources {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 5px;
+  min-height: 0;
+}
+
+.java-package-sources-heading {
+  justify-content: space-between;
+}
+
+.java-package-source-list {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+}
+
+.java-package-source-list button {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-height: 31px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.java-package-source-list button > svg {
+  color: var(--muted);
+}
+
+.java-package-scope-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.java-package-scope-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.java-package-scope-legend i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.java-package-scope-legend i.is-related {
+  border: 2px dashed var(--line-strong);
+  background: color-mix(in srgb, var(--primary) 65%, var(--surface));
+  box-shadow: none;
+}
+
+.java-graph-workbench .java-graph-canvas {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .java-graph-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .java-package-browser {
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.3fr);
+    grid-template-rows: auto minmax(150px, 220px) auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .java-package-browser-heading,
+  .java-related-package-toggle,
+  .java-package-scope-legend {
+    grid-column: 1 / -1;
+  }
+
+  .java-package-tree {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .java-package-sources {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .java-package-browser {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(130px, 200px) auto minmax(130px, 200px) auto;
+  }
+
+  .java-package-browser-heading,
+  .java-package-tree,
+  .java-related-package-toggle,
+  .java-package-sources,
+  .java-package-scope-legend {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

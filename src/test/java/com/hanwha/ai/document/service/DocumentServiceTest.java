@@ -1,11 +1,13 @@
 package com.hanwha.ai.document.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.hanwha.ai.document.domain.DocumentType;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.document.dto.DocumentResponse;
 import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
+import com.hanwha.ai.global.exception.BusinessException;
 import com.hanwha.ai.knowledge.project.dto.KnowledgeProjectRequest;
 import com.hanwha.ai.knowledge.project.service.KnowledgeProjectService;
 import java.io.IOException;
@@ -101,6 +103,21 @@ class DocumentServiceTest {
         assertThat(workflowDocument).isNotNull();
         assertThat(workflowDocument.getId()).isEqualTo(savedDocument.getId());
         assertThat(workflowDocument.getFilePath()).isEqualTo(savedDocument.getFilePath());
+    }
+
+    @Test
+    void testJavaSourceUploadIsRejectedBeforeStorageAndIndexing() {
+        MockMultipartFile testSource = new MockMultipartFile(
+                "file", "UserServiceTest.java", "text/x-java-source",
+                "public class UserServiceTest {}".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertThatThrownBy(() -> documentService.upload(testSource, "STANDARD_SOURCE"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("excluded from indexing")
+                .hasMessageContaining("UserServiceTest.java");
+        assertThat(STORAGE_DIRECTORY).isEmptyDirectory();
+        assertThat(indexWorkflow.lastDocument()).isNull();
     }
 
     @Test

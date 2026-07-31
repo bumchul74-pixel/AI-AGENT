@@ -98,6 +98,11 @@ public class ChatController {
         return chatService.renameProject(projectId, request.name());
     }
 
+    @DeleteMapping("/projects/{projectId}")
+    public void deleteProject(@PathVariable Long projectId) {
+        chatService.deleteProject(projectId);
+    }
+
     @PatchMapping("/conversations/{conversationId}/project")
     public void moveConversation(
             @PathVariable Long conversationId,

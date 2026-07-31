@@ -48,7 +48,8 @@ public class ProjectArchiveService {
                 if (entry.isDirectory()) continue;
                 if (++discovered > MAX_ENTRIES) throw new BusinessException("ZIP contains too many files.");
                 String entryPath = safeEntryPath(entry.getName());
-                if (!DocumentFileSupport.isSupportedVectorFile(entryPath)) {
+                if (!DocumentFileSupport.isSupportedVectorFile(entryPath)
+                        || DocumentFileSupport.isTestJavaSourceFile(entryPath)) {
                     skipped++;
                     continue;
                 }

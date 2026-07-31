@@ -18,6 +18,7 @@ import com.hanwha.ai.global.exception.BusinessException;
 import com.hanwha.ai.llm.config.GeminiProperties;
 import com.hanwha.ai.llm.domain.LlmProvider;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
+import com.hanwha.ai.llm.exception.LlmRateLimitException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -93,6 +94,37 @@ class GeminiLlmClientTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("LLM response code=503")
                 .hasMessageContaining("This model is currently experiencing high demand");
+
+        server.verify();
+    }
+    @Test
+    void generateMapsQuotaResponseToRateLimitException() {
+        RestClient.Builder restClientBuilder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
+        GeminiLlmClient client = new GeminiLlmClient(
+                new GeminiProperties("test-gemini-key", "gemini-2.5-flash",
+                        "https://generativelanguage.googleapis.com"),
+                restClientBuilder
+        );
+
+        server.expect(once(), requestTo(
+                        "https://generativelanguage.googleapis.com/v1beta/models/"
+                                + "gemini-2.5-flash:generateContent"))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
+                                {
+                                  "error": {
+                                    "code": 429,
+                                    "message": "Quota exceeded",
+                                    "status": "RESOURCE_EXHAUSTED"
+                                  }
+                                }
+                                """));
+
+        assertThatThrownBy(() -> client.generate(new LlmGenerateRequest("hello", "context")))
+                .isInstanceOf(LlmRateLimitException.class)
+                .hasMessageContaining("GEMINI 사용량 한도를 초과했습니다");
 
         server.verify();
     }

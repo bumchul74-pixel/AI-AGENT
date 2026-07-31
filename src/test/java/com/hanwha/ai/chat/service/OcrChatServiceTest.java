@@ -48,6 +48,7 @@ class OcrChatServiceTest {
 
         assertThat(response.message()).isEqualTo("계약 금액은 1억원입니다.");
         assertThat(response.mcpContextApplied()).isTrue();
+        assertThat(response.mcpReference()).isEqualTo("EasyOCR MCP · ocr_document_base64");
         assertThat(toolName.get()).isEqualTo("ocr_document_base64");
         assertThat(arguments.get())
                 .containsEntry("file_name", "contract.pdf")

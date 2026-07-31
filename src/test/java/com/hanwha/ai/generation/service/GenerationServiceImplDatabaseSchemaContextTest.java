@@ -67,11 +67,10 @@ class GenerationServiceImplDatabaseSchemaContextTest {
                 "standard mapper dto domain pattern"
         );
         assertThat(llmRequest.get().prompt()).contains(
-                "use that DB context before RAG",
+                "database schema",
                 "generate_mybatis_mapper output is present",
-                "no matching DB table was found",
-                "<select id=\"findList\">SELECT id, user_name FROM users</select>"
-        );
+                "database metadata is unavailable"
+        ).doesNotContain("<select id=\"findList\">SELECT id, user_name FROM users</select>");
     }
 
     @Test

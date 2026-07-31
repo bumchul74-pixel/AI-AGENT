@@ -14,9 +14,17 @@ export function ChatMessage({ message, onResend, resendDisabled, isResending }) 
         <div className="chat-meta">
           <strong>{isUser ? 'You' : 'AIP'}</strong>
           {!isUser && message.mcpContextApplied && (
-            <span className="chat-mcp-badge" title="MCP 결과를 참고해 생성된 답변입니다.">
+            <span
+              className="chat-mcp-badge"
+              tabIndex={0}
+              aria-label={`MCP 참고: ${message.mcpReference || '상세 Tool 정보 없음'}`}
+            >
               <Blocks size={11} />
               MCP 참고
+              <span className="chat-mcp-tooltip" role="tooltip">
+                <strong>참고한 MCP</strong>
+                <span>{message.mcpReference || '이전 답변에는 상세 Tool 정보가 없습니다.'}</span>
+              </span>
             </span>
           )}
           <span>{formatDateTime(message.createdAt)}</span>

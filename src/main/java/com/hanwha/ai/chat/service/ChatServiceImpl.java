@@ -14,7 +14,6 @@ import com.hanwha.ai.llm.dto.LlmGenerateRequest;
 import com.hanwha.ai.llm.service.LlmClientFactory;
 import com.hanwha.ai.mcp.service.McpChatContextProvider;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
-import com.hanwha.ai.rag.dto.RagSearchResponse;
 import com.hanwha.ai.rag.dto.HybridSearchResult;
 import com.hanwha.ai.rag.service.HybridSearchService;
 import com.hanwha.ai.rag.service.RagClient;
@@ -22,6 +21,7 @@ import com.hanwha.ai.sourcegraph.service.NoOpSourceGraphService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
@@ -64,12 +64,11 @@ public class ChatServiceImpl implements ChatService {
         }
 
         HybridSearchResult hybridResult = hybridSearchService.search(new RagSearchRequest(request.message()));
-        RagSearchResponse ragSearchResponse = new RagSearchResponse(hybridResult.documents());
-        String prompt = buildRagPrompt(request, ragSearchResponse, formatHistory(history));
+        String prompt = buildRagPrompt(request, formatHistory(history));
         List<String> documents = hybridResult.documents();
         String answer = generateAnswer(prompt, hybridResult.context());
 
-        saveMessages(conversation.getId(), request.message(), answer, false);
+        saveMessages(conversation.getId(), request.message(), answer, false, null);
 
         return new ChatResponse(answer, documents, conversation.getId());
     }
@@ -81,12 +80,13 @@ public class ChatServiceImpl implements ChatService {
     ) {
         List<String> mcpContexts = mcpChatContextProvider.resolveContext(request.message());
         String context = String.join("\n\n--- MCP RESULT ---\n\n", mcpContexts);
-        String prompt = buildMcpPrompt(request, context, formatHistory(history));
+        String prompt = buildMcpPrompt(request, formatHistory(history));
         String answer = generateAnswer(prompt, context);
+        String mcpReference = resolveMcpReference(mcpContexts);
 
-        saveMessages(conversation.getId(), request.message(), answer, true);
+        saveMessages(conversation.getId(), request.message(), answer, true, mcpReference);
 
-        return new ChatResponse(answer, mcpContexts, conversation.getId(), true);
+        return new ChatResponse(answer, mcpContexts, conversation.getId(), true, mcpReference);
     }
 
     private String generateAnswer(String prompt, String context) {
@@ -95,11 +95,13 @@ public class ChatServiceImpl implements ChatService {
                 .content();
     }
 
-    private void saveMessages(Long conversationId, String userMessage, String answer, boolean mcpContextApplied) {
+    private void saveMessages(Long conversationId, String userMessage, String answer,
+            boolean mcpContextApplied, String mcpReference) {
         chatRepository.save(new ChatMessage(
                 null, conversationId, "user", userMessage, null, LocalDateTime.now()));
         chatRepository.save(new ChatMessage(
-                null, conversationId, "assistant", answer, null, mcpContextApplied, LocalDateTime.now()));
+                null, conversationId, "assistant", answer, null,
+                mcpContextApplied, mcpReference, LocalDateTime.now()));
     }
 
     @Override
@@ -132,6 +134,16 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    @Transactional
+    public void deleteProject(Long projectId) {
+        requiredProject(projectId);
+        chatRepository.clearProjectConversations(projectId);
+        if (!chatRepository.deleteProject(projectId)) {
+            throw new BusinessException("Project could not be deleted.");
+        }
+    }
+
+    @Override
     public void moveConversation(Long conversationId, Long projectId) {
         requiredConversation(conversationId);
         if (projectId != null) {
@@ -149,7 +161,7 @@ public class ChatServiceImpl implements ChatService {
                 .map(message -> new ChatMessageResponse(
                         message.getId(), message.getConversationId(), message.getRole(),
                         message.getMessage(), message.getAttachmentName(),
-                        message.isMcpContextApplied(), message.getCreatedAt()
+                        message.isMcpContextApplied(), message.getMcpReference(), message.getCreatedAt()
                 ))
                 .toList();
     }
@@ -226,6 +238,26 @@ public class ChatServiceImpl implements ChatService {
                 .orElse("(no previous messages)");
     }
 
+    private String resolveMcpReference(List<String> contexts) {
+        String content = String.join("\n", contexts);
+        if (content.contains("search_source_ontology")) {
+            return "AI-MCP · search_source_ontology";
+        }
+        String marker = "MCP gateway operation:";
+        int markerIndex = content.indexOf(marker);
+        if (markerIndex >= 0) {
+            String operation = content.substring(markerIndex + marker.length()).stripLeading()
+                    .lines()
+                    .findFirst()
+                    .orElse("")
+                    .trim();
+            if (!operation.isBlank()) {
+                return "AI-MCP · " + operation;
+            }
+        }
+        return "AI-MCP";
+    }
+
     private ChatConversationResponse toConversationResponse(ChatConversation conversation) {
         return new ChatConversationResponse(
                 conversation.getId(), conversation.getTitle(), conversation.getProjectId(),
@@ -241,31 +273,21 @@ public class ChatServiceImpl implements ChatService {
         );
     }
 
-    private String buildRagPrompt(
-            ChatRequest request,
-            RagSearchResponse ragSearchResponse,
-            String history
-    ) {
+    private String buildRagPrompt(ChatRequest request, String history) {
         return """
                 You are an assistant for a Spring Boot code generation system.
-                Answer using the retrieved RAG documents and project source patterns.
+                Answer using the retrieved RAG documents and project source patterns supplied
+                separately as context.
 
                 User message:
                 %s
 
                 Previous conversation:
                 %s
-
-                Retrieved documents:
-                %s
-                """.formatted(
-                        request.message(),
-                        history,
-                        String.join("\n", ragSearchResponse.documents())
-                );
+                """.formatted(request.message(), history);
     }
 
-    private String buildMcpPrompt(ChatRequest request, String mcpContext, String history) {
+    private String buildMcpPrompt(ChatRequest request, String history) {
         return """
                 You are an assistant for a Spring Boot code generation system.
                 Answer in a friendly, concise way using only the MCP gateway result below.
@@ -282,8 +304,7 @@ public class ChatServiceImpl implements ChatService {
                 Previous conversation:
                 %s
 
-                MCP gateway result:
-                %s
-                """.formatted(request.message(), history, mcpContext);
+                Use the MCP gateway result supplied separately as context.
+                """.formatted(request.message(), history);
     }
 }

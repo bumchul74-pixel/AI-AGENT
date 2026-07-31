@@ -54,10 +54,12 @@ server:
 
 llm:
   provider: ${LLM_PROVIDER:gemini}
+  fallback-enabled: ${LLM_FALLBACK_ENABLED:false}
+  fallback-provider: ${LLM_FALLBACK_PROVIDER:openai}
 
 openai:
   api-key: ${OPENAI_API_KEY:}
-  model: gpt-5
+  model: ${OPENAI_MODEL:gpt-5}
   base-url: https://api.openai.com/v1
   ssl:
     trust-all: ${OPENAI_SSL_TRUST_ALL:true}

@@ -22,6 +22,7 @@ export function ChatConversationList({
   onDelete,
   onCreateProject,
   onRenameProject,
+  onDeleteProject,
   onMoveConversation,
   projectError,
 }) {
@@ -29,6 +30,7 @@ export function ChatConversationList({
   const [newProjectName, setNewProjectName] = useState('');
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [editingProjectName, setEditingProjectName] = useState('');
+  const [openProjectMenu, setOpenProjectMenu] = useState(null);
   const [draggedConversationId, setDraggedConversationId] = useState(null);
   const [dropTargetProjectId, setDropTargetProjectId] = useState(undefined);
 
@@ -75,9 +77,77 @@ export function ChatConversationList({
   }
 
   function beginRename(project) {
+    setOpenProjectMenu(null);
     setEditingProjectId(project.id);
     setEditingProjectName(project.name);
   }
+
+  function toggleProjectMenu(event, project) {
+    event.stopPropagation();
+    if (openProjectMenu?.projectId === project.id) {
+      setOpenProjectMenu(null);
+      return;
+    }
+    const trigger = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 200;
+    const estimatedHeight = 86;
+    const spaceBelow = window.innerHeight - trigger.bottom;
+    setOpenProjectMenu({
+      projectId: project.id,
+      left: Math.max(8, trigger.right - menuWidth),
+      top: spaceBelow >= estimatedHeight
+        ? trigger.bottom + 4
+        : Math.max(8, trigger.top - estimatedHeight - 4),
+    });
+  }
+
+  async function handleDeleteProject(event, project) {
+    event.stopPropagation();
+    setOpenProjectMenu(null);
+    if (!window.confirm(
+      `'${project.name}' 프로젝트를 삭제할까요?\n소속 대화는 프로젝트 없음으로 이동합니다.`,
+    )) return;
+    try {
+      await onDeleteProject(project.id);
+      if (editingProjectId === project.id) {
+        setEditingProjectId(null);
+        setEditingProjectName('');
+      }
+    } catch {
+      // The hook exposes the server message in the panel.
+    }
+  }
+
+  useEffect(() => {
+    if (!openProjectMenu) return undefined;
+
+    function closeOnOutsidePointer(event) {
+      if (
+        event.target.closest('.project-context-menu')
+        || event.target.closest('.project-menu-trigger')
+      ) return;
+      setOpenProjectMenu(null);
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') setOpenProjectMenu(null);
+    }
+
+    function closeOnViewportChange() {
+      setOpenProjectMenu(null);
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', closeOnViewportChange);
+    window.addEventListener('scroll', closeOnViewportChange, true);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', closeOnViewportChange);
+      window.removeEventListener('scroll', closeOnViewportChange, true);
+    };
+  }, [openProjectMenu]);
 
   function handleDragStart(event, conversation) {
     if (disabled || event.target.closest('.conversation-menu-trigger')) {
@@ -204,13 +274,40 @@ export function ChatConversationList({
                     <small>{project.conversations.length}</small>
                   </span>
                   <button
+                    className='project-menu-trigger'
                     type='button'
-                    title='프로젝트 이름 변경'
+                    title='프로젝트 메뉴'
+                    aria-label={`${project.name} 프로젝트 메뉴`}
+                    aria-haspopup='menu'
+                    aria-expanded={openProjectMenu?.projectId === project.id}
                     disabled={disabled}
-                    onClick={() => beginRename(project)}
+                    onClick={(event) => toggleProjectMenu(event, project)}
                   >
-                    <Pencil size={13} />
+                    <MoreHorizontal size={16} />
                   </button>
+                  {openProjectMenu?.projectId === project.id && createPortal(
+                    <div
+                      className='conversation-context-menu project-context-menu'
+                      role='menu'
+                      aria-label={`${project.name} 프로젝트 작업`}
+                      style={{ left: openProjectMenu.left, top: openProjectMenu.top }}
+                    >
+                      <button type='button' role='menuitem' onClick={() => beginRename(project)}>
+                        <Pencil size={14} />
+                        <span>이름 수정</span>
+                      </button>
+                      <button
+                        className='conversation-context-delete'
+                        type='button'
+                        role='menuitem'
+                        onClick={(event) => handleDeleteProject(event, project)}
+                      >
+                        <Trash2 size={14} />
+                        <span>프로젝트 삭제</span>
+                      </button>
+                    </div>,
+                    document.body,
+                  )}
                 </>
               )}
             </div>

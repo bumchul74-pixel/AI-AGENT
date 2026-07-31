@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   createChatProject,
   deleteChatConversation,
+  deleteChatProject,
   fetchChatAttachment,
   fetchChatConversations,
   fetchChatProjects,
@@ -132,6 +133,20 @@ export function useChat() {
     }
   }
 
+  async function deleteProject(projectId) {
+    setProjectError('');
+    setIsProjectLoading(true);
+    try {
+      await deleteChatProject(projectId);
+      await Promise.all([refreshConversations(), refreshProjects()]);
+    } catch (exception) {
+      setProjectError(isApiRequestError(exception) ? '' : exception.message);
+      throw exception;
+    } finally {
+      setIsProjectLoading(false);
+    }
+  }
+
   async function moveConversation(conversationId, projectId) {
     setProjectError('');
     setIsProjectLoading(true);
@@ -164,6 +179,7 @@ export function useChat() {
         role: 'assistant',
         content: response.message ?? response.content ?? '응답 메시지가 비어 있습니다.',
         mcpContextApplied: Boolean(response.mcpContextApplied),
+        mcpReference: response.mcpReference || null,
       });
       if (response.conversationId != null) {
         setActiveConversationId(response.conversationId);
@@ -223,6 +239,7 @@ export function useChat() {
     removeConversation,
     createProject,
     renameProject,
+    deleteProject,
     moveConversation,
     submit,
     resend,

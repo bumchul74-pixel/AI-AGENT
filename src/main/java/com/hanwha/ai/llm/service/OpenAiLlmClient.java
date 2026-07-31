@@ -5,6 +5,7 @@ import com.hanwha.ai.llm.config.OpenAiProperties;
 import com.hanwha.ai.llm.domain.LlmProvider;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
 import com.hanwha.ai.llm.dto.LlmGenerateResponse;
+import com.hanwha.ai.llm.exception.LlmRateLimitException;
 import java.net.http.HttpClient;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
@@ -107,6 +108,11 @@ public class OpenAiLlmClient implements LlmClient {
 
             return new LlmGenerateResponse(extractText(response));
         } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 429) {
+                log.warn("OpenAI API rate limit exceeded. model={} status={}",
+                        properties.model(), exception.getStatusCode());
+                throw new LlmRateLimitException(provider(), exception);
+            }
             log.error(
                     "OpenAI API request failed. status={} responseBody={}",
                     exception.getStatusCode(),
@@ -131,7 +137,7 @@ public class OpenAiLlmClient implements LlmClient {
                 Prompt:
                 %s
 
-                RAG Context:
+                Reference Context:
                 %s
                 """.formatted(request.prompt(), request.context());
     }

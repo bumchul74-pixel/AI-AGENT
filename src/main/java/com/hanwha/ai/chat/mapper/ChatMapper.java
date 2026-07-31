@@ -21,6 +21,8 @@ public interface ChatMapper {
     ChatProject findProjectById(@Param("id") Long id);
     List<ChatProject> findProjects();
     int updateProjectName(@Param("id") Long id, @Param("name") String name);
+    int clearProjectConversations(@Param("id") Long id);
+    int deleteProject(@Param("id") Long id);
     void insertMessage(ChatMessage message);
     ChatMessage findMessageById(@Param("id") Long id);
     List<ChatMessage> findMessages(@Param("conversationId") Long conversationId);

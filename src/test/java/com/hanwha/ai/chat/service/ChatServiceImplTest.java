@@ -110,7 +110,7 @@ class ChatServiceImplTest {
 
             @Override
             public List<String> resolveContext(String message) {
-                return List.of("MCP gateway operation: tools/list\nMCP gateway result: get_server_info");
+                return List.of("MCP gateway operation: tools/list\nMCP gateway result: get_server_info, search_source_ontology");
             }
         };
         ChatService chatService = new ChatServiceImpl(
@@ -124,7 +124,9 @@ class ChatServiceImplTest {
 
         assertThat(ragCalled.get()).isFalse();
         assertThat(response.message()).contains("get_server_info");
-        assertThat(response.ragDocuments()).containsExactly("MCP gateway operation: tools/list\nMCP gateway result: get_server_info");
+        assertThat(response.ragDocuments()).containsExactly(
+                "MCP gateway operation: tools/list\nMCP gateway result: get_server_info, search_source_ontology"
+        );
         assertThat(response.mcpContextApplied()).isTrue();
         assertThat(response.mcpReference()).isEqualTo("AI-MCP · tools/list");
         assertThat(llmRequest.get().prompt()).contains("MCP gateway result", "MCP tool 목록 알려줘");

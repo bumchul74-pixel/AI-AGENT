@@ -302,6 +302,15 @@
   box-shadow: none;
 }
 
+.chat-composer .chat-send-button.is-stop {
+  background: #dc2626;
+}
+
+.chat-composer .chat-send-button.is-stop:hover {
+  background: #b91c1c;
+  box-shadow: none;
+}
+
 .chat-composer .chat-send-button:disabled {
   background: var(--line-strong);
   color: var(--surface);

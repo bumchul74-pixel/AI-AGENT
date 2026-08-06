@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Paperclip, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Paperclip, Sparkles, Square, X } from 'lucide-react';
 import { ChatConversationList } from '../components/chat/ChatConversationList.jsx';
 import { ChatMessage } from '../components/chat/ChatMessage.jsx';
 import { useChat } from '../hooks/useChat.js';
@@ -147,15 +147,26 @@ export function ChatPage() {
                   onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
                 />
               </label>
-              <button
-                className="chat-send-button"
-                type="submit"
-                aria-label="메시지 전송"
-                disabled={chat.isLoading || chat.isHistoryLoading || chat.resendingMessageId != null
-                  || (input.trim().length === 0 && !attachment)}
-              >
-                <ArrowUp size={17} />
-              </button>
+              {chat.isLoading ? (
+                <button
+                  className="chat-send-button is-stop"
+                  type="button"
+                  aria-label="AI 응답 요청 중지"
+                  onClick={chat.stopResponse}
+                >
+                  <Square size={13} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  className="chat-send-button"
+                  type="submit"
+                  aria-label="메시지 전송"
+                  disabled={chat.isHistoryLoading || chat.resendingMessageId != null
+                    || (input.trim().length === 0 && !attachment)}
+                >
+                  <ArrowUp size={17} />
+                </button>
+              )}
             </div>
           </form>
         </div>

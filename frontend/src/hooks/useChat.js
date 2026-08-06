@@ -181,9 +181,11 @@ export function useChat() {
       attachmentName: file?.name,
       attachmentFile: file,
     });
+    const requestController = new AbortController();
+    requestControllerRef.current = requestController;
     setIsLoading(true);
     try {
-      const response = await sendChatMessage(trimmed, file, activeConversationId);
+      const response = await sendChatMessage(trimmed, file, activeConversationId, requestController.signal);
       appendMessage({
         role: 'assistant',
         content: response.message ?? response.content ?? '응답 메시지가 비어 있습니다.',
@@ -193,8 +195,9 @@ export function useChat() {
       if (response.conversationId != null) {
         setActiveConversationId(response.conversationId);
       }
-      await refreshConversations();
+      await refreshConversations(requestController.signal);
     } catch (exception) {
+      if (isApiRequestCancelledError(exception)) return;
       if (!isApiRequestError(exception)) {
         appendMessage({
           role: 'assistant',
@@ -203,8 +206,20 @@ export function useChat() {
         });
       }
     } finally {
-      setIsLoading(false);
+      if (requestControllerRef.current === requestController) {
+        requestControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
+  }
+
+  function stopResponse() {
+    const requestController = requestControllerRef.current;
+    if (!requestController) return;
+    requestControllerRef.current = null;
+    requestController.abort();
+    setIsLoading(false);
+    notifyApp('응답 요청을 중지했습니다.', 'warning');
   }
 
   async function resend(message) {
@@ -252,6 +267,7 @@ export function useChat() {
     moveConversation,
     submit,
     resend,
+    stopResponse,
   };
 }
 

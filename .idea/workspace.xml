@@ -4,48 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="harness engineering 적용">
+    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="소스 내용 수정">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/FRONTEND.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/FRONTEND.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/RELIABILITY.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/RELIABILITY.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/product-specs/document-indexing.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/product-specs/document-indexing.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/apiClient.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/apiClient.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/chatApi.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/chatApi.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/documentApi.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/documentApi.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/common/Toast.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/common/Toast.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/common/ToastHost.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/common/ToastHost.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/references/configuration.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/references/configuration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/references/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/references/index.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useChat.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/hooks/useChat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useDocument.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/hooks/useDocument.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useRagSearch.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/hooks/useRagSearch.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DocumentManagePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DocumentManagePage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/HistoryPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/HistoryPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/RagSearchPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/RagSearchPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/styles/theme.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles/theme.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-20.0.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-21.0.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-22.0.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-22.1.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-23.0.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.2026-07-23.1.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/ai-agent.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rag-server/app/vector_store.py" beforeDir="false" afterPath="$PROJECT_DIR$/rag-server/app/vector_store.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rag-server/tests/test_rag_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/rag-server/tests/test_rag_tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/controller/DocumentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/controller/DocumentController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/mapper/RagDocumentMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/mapper/RagDocumentMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/service/DocumentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/service/DocumentService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/service/RagDocumentRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/service/RagDocumentRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/generation/service/GenerationServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/generation/service/GenerationServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/rag/config/RagProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/rag/config/RagProperties.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/rag/service/HybridSearchService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/rag/service/HybridSearchService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/Neo4jSourceGraphService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/Neo4jSourceGraphService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/SourceGraphService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/SourceGraphService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/mapper/document/RagDocumentMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/mapper/document/RagDocumentMapper.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/document/service/DocumentServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/document/service/DocumentServiceTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/rag/service/HybridSearchServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/rag/service/HybridSearchServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/ChatPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/ChatPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles/components.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/AiMcpChatContextProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/AiMcpChatContextProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/service/AiMcpChatContextProviderTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/service/AiMcpChatContextProviderTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,6 +80,7 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.android.studio.ml.bot.mainConfigurable&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -150,7 +122,9 @@
       <workItem from="1785377024416" duration="25000" />
       <workItem from="1785451125756" duration="4797000" />
       <workItem from="1785741454574" duration="2191000" />
-      <workItem from="1785906122490" duration="15065000" />
+      <workItem from="1785906122490" duration="15904000" />
+      <workItem from="1786003517612" duration="720000" />
+      <workItem from="1786004286413" duration="1917000" />
     </task>
     <task id="LOCAL-00001" summary="수정 작업 진행">
       <option name="closed" value="true" />
@@ -176,7 +150,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785483842251</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="소스 내용 수정">
+      <option name="closed" value="true" />
+      <created>1785998458276</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1785998458276</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -185,6 +167,11 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="수정 작업 진행" />
     <MESSAGE value="harness engineering 적용" />
-    <option name="LAST_COMMIT_MESSAGE" value="harness engineering 적용" />
+    <MESSAGE value="소스 내용 수정" />
+    <option name="LAST_COMMIT_MESSAGE" value="소스 내용 수정" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

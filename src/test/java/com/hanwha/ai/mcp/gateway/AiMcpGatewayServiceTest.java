@@ -87,4 +87,30 @@ class AiMcpGatewayServiceTest {
         assertThat(second.join().name()).isEqualTo("ai-mcp-server");
         verify(client, times(1)).initialize();
     }
+    @Test
+    void usesLiveSchemaArgumentNameForServerInfoTool() {
+        McpSyncClient client = mock(McpSyncClient.class);
+        when(client.isInitialized()).thenReturn(true);
+        when(client.getServerInfo())
+                .thenReturn(new McpSchema.Implementation("ai-mcp-server", "0.0.1"));
+        when(client.callTool(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new McpSchema.CallToolResult(List.of(), false, null, java.util.Map.of()));
+        ObjectProvider<List<McpSyncClient>> clientsProvider = new ObjectProvider<>() {
+            @Override
+            public List<McpSyncClient> getIfAvailable(Supplier<List<McpSyncClient>> defaultSupplier) {
+                return List.of(client);
+            }
+        };
+        AiMcpGatewayService service = new AiMcpGatewayService(clientsProvider);
+
+        service.getServerInfo("EXTENDED");
+
+        org.mockito.ArgumentCaptor<McpSchema.CallToolRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
+        verify(client).callTool(captor.capture());
+        assertThat(captor.getValue().name()).isEqualTo("get_server_info");
+        assertThat(captor.getValue().arguments())
+                .containsExactlyEntriesOf(java.util.Map.of("detailLevel", "EXTENDED"));
+    }
+
 }

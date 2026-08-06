@@ -240,9 +240,6 @@ public class ChatServiceImpl implements ChatService {
 
     private String resolveMcpReference(List<String> contexts) {
         String content = String.join("\n", contexts);
-        if (content.contains("search_source_ontology")) {
-            return "AI-MCP · search_source_ontology";
-        }
         String marker = "MCP gateway operation:";
         int markerIndex = content.indexOf(marker);
         if (markerIndex >= 0) {

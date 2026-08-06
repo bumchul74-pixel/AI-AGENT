@@ -54,7 +54,7 @@ public class AiMcpGatewayService {
 
     public McpSchema.CallToolResult getServerInfo(String detailLevel) {
         Map<String, Object> arguments = StringUtils.hasText(detailLevel)
-                ? Map.of("arg0", detailLevel)
+                ? Map.of("detailLevel", detailLevel)
                 : Map.of();
 
         return callTool(SERVER_INFO_TOOL, arguments);

@@ -118,7 +118,6 @@ export function RagSearchPage() {
           />
         </div>
 
-        {ragSearch.error && <p className="error-text">{ragSearch.error}</p>}
 
         <Button icon={Search} disabled={ragSearch.isLoading || !projectKey} onClick={handleSearch}>
           {TEXT.search}

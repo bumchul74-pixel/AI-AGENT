@@ -199,6 +199,15 @@ public class GenerationServiceImpl implements GenerationService {
 
         String ragContext = hybridSearchResult.context();
         String context = buildLlmContext(projectReference, analyzedProjectStructure, ragContext, databaseSchemaContext);
+        log.debug(
+                "Prepared generation LLM context. projectKey={} projectContextLength={} "
+                        + "databaseContextLength={} ragContextLength={} totalContextLength={}",
+                projectKey,
+                analyzedProjectStructure.length(),
+                databaseSchemaContextText(databaseSchemaContext).length(),
+                ragContext.length(),
+                context.length()
+        );
         String prompt = buildGenerationPrompt(request, targetTypes, targetTypesText);
         LlmClient llmClient = llmClientFactory.current();
         String generatedCode = generateWithMapperColumnValidation(llmClient, prompt, context, targetTypes, databaseSchemaContext);

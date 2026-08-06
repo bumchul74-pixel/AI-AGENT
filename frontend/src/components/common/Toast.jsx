@@ -1,8 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 
-export function Toast({ message, onClose, duration = 5000 }) {
+const ICONS = {
+  error: AlertCircle,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+};
+
+export function Toast({ message, variant = 'error', onClose, duration = 5000 }) {
   const onCloseRef = useRef(onClose);
+  const Icon = ICONS[variant] ?? AlertCircle;
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -19,8 +26,8 @@ export function Toast({ message, onClose, duration = 5000 }) {
 
   return (
     <div className="toast-region" aria-live="polite" aria-atomic="true">
-      <div className="toast toast-error" role="alert">
-        <AlertCircle size={18} aria-hidden="true" />
+      <div className={`toast toast-${variant}`} role={variant === 'error' ? 'alert' : 'status'}>
+        <Icon size={18} aria-hidden="true" />
         <span>{message}</span>
         <button type="button" onClick={onClose} aria-label="알림 닫기">
           <X size={16} aria-hidden="true" />

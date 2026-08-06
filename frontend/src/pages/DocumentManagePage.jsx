@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Archive, Download, FileStack, RefreshCw, RotateCw, Trash2, UploadCloud } from 'lucide-react';
+import { Download, FileStack, RefreshCw, RotateCw, Trash2, UploadCloud } from 'lucide-react';
 import { downloadDocument } from '../api/documentApi.js';
+import { notifyApp } from '../api/apiClient.js';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
@@ -15,6 +16,7 @@ const TEXT = {
   indexing: '\uC0C9\uC778 \uC911',
   indexed: '\uC644\uB8CC',
   failed: '\uC2E4\uD328',
+  skipped: '\uAC74\uB108\uB700',
   deleted: '\uC0AD\uC81C\uB428',
   deleteConfirm: '\uBB38\uC11C\uB97C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
   description: '\uD45C\uC900 \uBB38\uC11C\uC640 \uC18C\uC2A4\uCF54\uB4DC\uB97C \uC5C5\uB85C\uB4DC\uD558\uACE0 RAG \uAC80\uC0C9 \uB300\uC0C1\uC73C\uB85C \uC0C9\uC778\uD569\uB2C8\uB2E4.',
@@ -49,8 +51,18 @@ const STATUS_LABELS = {
   INDEXING: TEXT.indexing,
   INDEXED: TEXT.indexed,
   FAILED: TEXT.failed,
+  SKIPPED: TEXT.skipped,
   DELETED: TEXT.deleted,
 };
+
+const STATUS_OPTIONS = [
+  { value: '', label: '\uC804\uCCB4' },
+  { value: 'PENDING', label: TEXT.pending },
+  { value: 'INDEXING', label: TEXT.indexing },
+  { value: 'INDEXED', label: TEXT.indexed },
+  { value: 'SKIPPED', label: TEXT.skipped },
+  { value: 'FAILED', label: TEXT.failed },
+];
 
 function formatFileSize(value) {
   if (!value) {
@@ -74,7 +86,8 @@ function statusLabel(status) {
 export function DocumentManagePage() {
   const [projects, setProjects] = useState([]);
   const [projectKey, setProjectKey] = useState('');
-  const documentStore = useDocument(projectKey);
+  const [indexStatus, setIndexStatus] = useState('');
+  const documentStore = useDocument(projectKey, indexStatus);
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [documentType, setDocumentType] = useState(DOCUMENT_TYPES[0].value);
@@ -93,8 +106,21 @@ export function DocumentManagePage() {
   }, []);
 
   async function handleUpload() {
-    const uploadedDocument = await documentStore.upload({ file: selectedFile, documentType });
+    const file = selectedFile;
+    const uploadedDocument = await documentStore.upload({ file, documentType });
     if (uploadedDocument) {
+      if (isArchive) {
+        const indexedFiles = uploadedDocument.indexedFiles ?? 0;
+        const skippedFiles = uploadedDocument.skippedFiles ?? 0;
+        const failedFiles = uploadedDocument.failedFiles ?? 0;
+        const archiveName = uploadedDocument.archiveName || file?.name || 'ZIP';
+        notifyApp(
+          `${archiveName} \uCC98\uB9AC \uC644\uB8CC \u00B7 \uC0C9\uC778 ${indexedFiles} \u00B7 \uAC74\uB108\uB700 ${skippedFiles} \u00B7 \uC2E4\uD328 ${failedFiles}`,
+          failedFiles > 0 ? 'warning' : 'success',
+        );
+      } else {
+        notifyApp(`${file?.name || '\uD30C\uC77C'} \uC5C5\uB85C\uB4DC \uBC0F \uC0C9\uC778 \uC694\uCCAD\uC744 \uC644\uB8CC\uD588\uC2B5\uB2C8\uB2E4.`, 'success');
+      }
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -137,7 +163,7 @@ export function DocumentManagePage() {
         <div className="panel-title">
           <FileStack size={18} />
           <div>
-            <h1>Documents</h1>
+            <h1>{'\uBB38\uC11C \uC5C5\uB85C\uB4DC'}</h1>
             <p>{TEXT.description}</p>
           </div>
         </div>
@@ -166,33 +192,16 @@ export function DocumentManagePage() {
 
         {selectedFile && (
           <div className="selected-file">
-            <strong>{isArchive ? `프로젝트 ZIP · ${selectedFile.name}` : selectedFile.name}</strong>
+            <strong>{isArchive ? `\uD504\uB85C\uC81D\uD2B8 ZIP \u00B7 ${selectedFile.name}` : selectedFile.name}</strong>
             <span>{formatFileSize(selectedFile.size)}</span>
           </div>
         )}
 
-        {isArchive && (
-          <div className="archive-upload-notice">
-            <Archive size={18} />
-            <span>ZIP 내부의 지원 소스 파일을 경로 구조 그대로 해제한 후 개별 업로드·색인합니다.</span>
-          </div>
-        )}
 
-        {documentStore.archiveResult && (
-          <div className="archive-upload-result">
-            <strong>{documentStore.archiveResult.archiveName} 처리 완료</strong>
-            <span>색인 {documentStore.archiveResult.indexedFiles} · 건너뜀 {documentStore.archiveResult.skippedFiles} · 실패 {documentStore.archiveResult.failedFiles}</span>
-            {documentStore.archiveResult.failures?.map((failure) => (
-              <small key={failure.entryPath}>{failure.entryPath}: {failure.message}</small>
-            ))}
-          </div>
-        )}
 
-        {documentStore.error && <p className="error-text">{documentStore.error}</p>}
-
-        <div className="action-row">
+        <div className="action-row document-upload-actions">
           <Button icon={UploadCloud} onClick={handleUpload} disabled={!projectKey || !selectedFile || documentStore.isUploading}>
-            {documentStore.isUploading ? TEXT.uploading : isArchive ? '프로젝트 ZIP 업로드 및 색인' : TEXT.uploadAndIndex}
+            {documentStore.isUploading ? TEXT.uploading : isArchive ? '\uD504\uB85C\uC81D\uD2B8 ZIP \uC5C5\uB85C\uB4DC \uBC0F \uC0C9\uC778' : TEXT.uploadAndIndex}
           </Button>
           <Button icon={RefreshCw} variant="secondary" onClick={documentStore.loadDocuments} disabled={documentStore.isLoading}>
             {TEXT.refresh}
@@ -206,6 +215,17 @@ export function DocumentManagePage() {
             <h1>{TEXT.uploadedDocuments}</h1>
             <p>{`\uCD1D ${documentStore.totalCount}\uAC1C \uC911 ${documentStore.documents.length}\uAC1C \uD45C\uC2DC`}</p>
           </div>
+        </div>
+
+        <div className="document-search-condition">
+          <label className="field">
+            <span>{TEXT.status}</span>
+            <select value={indexStatus} onChange={(event) => setIndexStatus(event.target.value)}>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status.value || 'ALL'} value={status.value}>{status.label}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {documentStore.isLoading ? (

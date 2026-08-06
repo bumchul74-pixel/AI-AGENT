@@ -2,6 +2,7 @@ package com.hanwha.ai.document.service;
 
 import com.hanwha.ai.document.domain.DocumentType;
 import com.hanwha.ai.document.domain.DocumentFileSupport;
+import com.hanwha.ai.document.domain.IndexStatus;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.document.dto.DocumentDownload;
 import com.hanwha.ai.document.dto.DocumentPageResponse;
@@ -56,13 +57,18 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public DocumentPageResponse findPage(String projectKey, int page, int size) {
+        return findPage(projectKey, null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentPageResponse findPage(String projectKey, IndexStatus indexStatus, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 100));
         int offset = safePage * safeSize;
-        List<DocumentResponse> documents = repository.findPage(projectKey, safeSize, offset).stream()
+        List<DocumentResponse> documents = repository.findPage(projectKey, indexStatus, safeSize, offset).stream()
                 .map(DocumentResponse::from)
                 .toList();
-        long totalCount = repository.countAll(projectKey);
+        long totalCount = repository.countAll(projectKey, indexStatus);
         boolean hasNext = offset + documents.size() < totalCount;
         return new DocumentPageResponse(documents, safePage, safeSize, totalCount, hasNext);
     }

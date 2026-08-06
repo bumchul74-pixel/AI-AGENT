@@ -1,5 +1,6 @@
 package com.hanwha.ai.document.controller;
 
+import com.hanwha.ai.document.domain.IndexStatus;
 import com.hanwha.ai.document.dto.DocumentDownload;
 import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
@@ -49,9 +50,10 @@ public class DocumentController {
     public DocumentPageResponse findPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size,
-            @RequestParam(required = false) String projectKey
+            @RequestParam(required = false) String projectKey,
+            @RequestParam(required = false) IndexStatus indexStatus
     ) {
-        return documentService.findPage(projectKey, page, size);
+        return documentService.findPage(projectKey, indexStatus, page, size);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.hanwha.ai.document.domain.DocumentType;
+import com.hanwha.ai.document.domain.IndexStatus;
 import com.hanwha.ai.document.domain.RagDocument;
+import com.hanwha.ai.document.dto.DocumentPageResponse;
 import com.hanwha.ai.document.dto.DocumentResponse;
 import com.hanwha.ai.document.workflow.DocumentIndexWorkflow;
 import com.hanwha.ai.global.exception.BusinessException;
@@ -162,6 +164,25 @@ class DocumentServiceTest {
         assertThat(repository.findPage(firstKey, 10, 0)).extracting(RagDocument::getId).contains(first.id());
         assertThat(repository.findPage(secondKey, 10, 0)).extracting(RagDocument::getId).contains(second.id());
     }
+    @Test
+    void findPageFiltersDocumentsAndTotalCountByIndexStatus() {
+        DocumentResponse failed = documentService.upload(
+                new MockMultipartFile("file", "failed.md", "text/markdown",
+                        "failed".getBytes(StandardCharsets.UTF_8)),
+                "STANDARD_DOCUMENT");
+        documentService.upload(
+                new MockMultipartFile("file", "pending.md", "text/markdown",
+                        "pending".getBytes(StandardCharsets.UTF_8)),
+                "STANDARD_DOCUMENT");
+        repository.updateIndexStatus(failed.id(), IndexStatus.FAILED.name(), "index failed");
+
+        DocumentPageResponse page = documentService.findPage("default", IndexStatus.FAILED, 0, 30);
+
+        assertThat(page.documents()).extracting(DocumentResponse::id).containsExactly(failed.id());
+        assertThat(page.totalCount()).isEqualTo(1);
+        assertThat(page.hasNext()).isFalse();
+    }
+
     @Test
     void repositoryFindsStoredDocumentByGraphSourceKey() throws IOException {
         Path javaFile = STORAGE_DIRECTORY.resolve("RoleController.java");

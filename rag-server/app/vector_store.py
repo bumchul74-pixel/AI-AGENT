@@ -156,9 +156,24 @@ class LocalVectorStore:
 
     def java_file_count(self) -> int:
         with self._lock:
-            sources = {chunk.source_key for chunk in self.chunks}
+            chunks = list(self.chunks)
 
-        return sum(1 for source in sources if source.lower().endswith(".java"))
+        java_sources = {
+            chunk.source_key or f"{chunk.project_id}:{chunk.file_path}"
+            for chunk in chunks
+            if self._is_java_source_chunk(chunk)
+        }
+        return len(java_sources)
+
+    @staticmethod
+    def _is_java_source_chunk(chunk: StoredChunk) -> bool:
+        candidates = (
+            chunk.file_path,
+            chunk.metadata.get("fileName", ""),
+            chunk.metadata.get("originalFileName", ""),
+            chunk.source_key,
+        )
+        return any(str(candidate).strip().lower().endswith(".java") for candidate in candidates)
 
     def list_sources(self) -> list[dict[str, Any]]:
         with self._lock:

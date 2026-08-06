@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createChatProject,
   deleteChatConversation,
@@ -11,7 +11,11 @@ import {
   renameChatProject,
   sendChatMessage,
 } from '../api/chatApi.js';
-import { isApiRequestError } from '../api/apiClient.js';
+import {
+  isApiRequestCancelledError,
+  isApiRequestError,
+  notifyApp,
+} from '../api/apiClient.js';
 
 export function useChat() {
   const [conversations, setConversations] = useState([]);
@@ -23,9 +27,10 @@ export function useChat() {
   const [resendingMessageId, setResendingMessageId] = useState(null);
   const [projectError, setProjectError] = useState('');
   const [isProjectLoading, setIsProjectLoading] = useState(false);
+  const requestControllerRef = useRef(null);
 
-  const refreshConversations = useCallback(async () => {
-    const items = await fetchChatConversations();
+  const refreshConversations = useCallback(async (signal = undefined) => {
+    const items = await fetchChatConversations(signal);
     setConversations(items);
     return items;
   }, []);
@@ -34,6 +39,10 @@ export function useChat() {
     const items = await fetchChatProjects();
     setProjects(items);
     return items;
+  }, []);
+
+  useEffect(() => () => {
+    requestControllerRef.current?.abort();
   }, []);
 
   useEffect(() => {

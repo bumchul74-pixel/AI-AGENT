@@ -1,5 +1,6 @@
 package com.hanwha.ai.document.service;
 
+import com.hanwha.ai.document.domain.IndexStatus;
 import com.hanwha.ai.document.domain.RagDocument;
 import com.hanwha.ai.document.mapper.RagDocumentMapper;
 import java.util.List;
@@ -42,12 +43,20 @@ public class RagDocumentRepository {
         return hasText(projectKey) ? mapper.findPageByProjectKey(projectKey, limit, offset) : mapper.findPage(limit, offset);
     }
 
+    public List<RagDocument> findPage(String projectKey, IndexStatus indexStatus, int limit, int offset) {
+        return mapper.findPageFiltered(projectKey, indexStatus == null ? null : indexStatus.name(), limit, offset);
+    }
+
     public long countAll() {
         return mapper.countAll();
     }
 
     public long countAll(String projectKey) {
         return hasText(projectKey) ? mapper.countByProjectKey(projectKey) : mapper.countAll();
+    }
+
+    public long countAll(String projectKey, IndexStatus indexStatus) {
+        return mapper.countFiltered(projectKey, indexStatus == null ? null : indexStatus.name());
     }
 
     public boolean projectExists(String projectKey) { return hasText(projectKey) && mapper.projectExists(projectKey); }

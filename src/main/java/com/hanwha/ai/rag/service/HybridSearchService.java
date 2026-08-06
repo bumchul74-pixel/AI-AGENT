@@ -2,6 +2,7 @@ package com.hanwha.ai.rag.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hanwha.ai.rag.config.RagProperties;
 import com.hanwha.ai.rag.dto.HybridSearchResult;
 import com.hanwha.ai.rag.dto.RagChunkResult;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
@@ -12,27 +13,44 @@ import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
 import com.hanwha.ai.sourcegraph.service.SourceGraphService;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
 public class HybridSearchService {
-    private static final int GRAPH_DEPTH = 5;
+    private static final Logger log = LoggerFactory.getLogger(HybridSearchService.class);
+    private static final String TRUNCATION_MARKER = "\n\n[Context truncated to configured character limit]";
+
     private final RagClient ragClient;
     private final SourceGraphService sourceGraphService;
+    private final RagProperties properties;
     private final ObjectMapper objectMapper;
 
     public HybridSearchService(
             RagClient ragClient,
             SourceGraphService sourceGraphService
     ) {
+        this(ragClient, sourceGraphService, new RagProperties("", "", 5));
+    }
+
+    @Autowired
+    public HybridSearchService(
+            RagClient ragClient,
+            SourceGraphService sourceGraphService,
+            RagProperties properties
+    ) {
         this.ragClient = ragClient;
         this.sourceGraphService = sourceGraphService;
+        this.properties = properties;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -52,24 +70,71 @@ public class HybridSearchService {
                 .filter(StringUtils::hasText)
                 .distinct()
                 .toList();
-        SourceGraphResponse graph = graphNeighborhood(entityIds);
-        Set<String> evidenceChunkIds = evidenceChunkIds(vectorChunks, graph);
-        List<RagChunkResult> evidenceChunks = ragClient.findChunks(List.copyOf(evidenceChunkIds));
-        List<RagChunkResult> mergedChunks = mergeChunks(vectorChunks, evidenceChunks);
+        SourceGraphResponse graph = graphNeighborhood(entityIds, request.projectId());
+        List<String> evidenceChunkIds = evidenceChunkIds(vectorChunks, graph).stream()
+                .limit(properties.hybridMaxEvidenceChunks())
+                .toList();
+        List<RagChunkResult> evidenceChunks = ragClient.findChunks(evidenceChunkIds);
+        List<RagChunkResult> mergedChunks = mergeChunks(vectorChunks, evidenceChunks).stream()
+                .limit(properties.hybridMaxEvidenceChunks())
+                .toList();
         List<String> documents = mergedChunks.stream().map(this::formatChunk).toList();
-        return new HybridSearchResult(documents, mergedChunks, graph, buildContext(graph, mergedChunks));
+        String context = buildContext(graph, mergedChunks);
+        log.debug(
+                "Built hybrid RAG context. projectId={} vectorChunks={} evidenceChunks={} graphNodes={} "
+                        + "graphRelationships={} contextLength={}",
+                request.projectId(),
+                vectorChunks.size(),
+                mergedChunks.size(),
+                graph.nodes().size(),
+                graph.relationships().size(),
+                context.length()
+        );
+        return new HybridSearchResult(documents, mergedChunks, graph, context);
     }
 
-    private SourceGraphResponse graphNeighborhood(List<String> entityIds) {
+    private SourceGraphResponse graphNeighborhood(List<String> entityIds, String projectId) {
         if (entityIds.isEmpty()) {
             return SourceGraphResponse.empty(null);
         }
         try {
-            SourceGraphResponse graph = sourceGraphService.findNeighborhoodByEntityIds(entityIds, GRAPH_DEPTH);
-            return graph == null ? SourceGraphResponse.empty(null) : graph;
+            SourceGraphResponse graph = sourceGraphService.findNeighborhoodByEntityIds(
+                    entityIds,
+                    properties.hybridGraphDepth(),
+                    projectId,
+                    properties.hybridMaxGraphNodes(),
+                    properties.hybridMaxGraphRelationships()
+            );
+            return limitGraph(graph, projectId);
         } catch (RuntimeException exception) {
+            log.debug("Source graph neighborhood lookup failed.", exception);
             return SourceGraphResponse.empty(null);
         }
+    }
+
+    private SourceGraphResponse limitGraph(SourceGraphResponse graph, String projectId) {
+        if (graph == null) {
+            return SourceGraphResponse.empty(null);
+        }
+        List<SourceGraphNodeResponse> nodes = graph.nodes().stream()
+                .filter(node -> matchesProject(node, projectId))
+                .limit(properties.hybridMaxGraphNodes())
+                .toList();
+        Set<String> nodeIds = new HashSet<>(nodes.stream().map(SourceGraphNodeResponse::id).toList());
+        List<SourceGraphRelationshipResponse> relationships = graph.relationships().stream()
+                .filter(relationship -> nodeIds.contains(relationship.sourceId())
+                        && nodeIds.contains(relationship.targetId()))
+                .limit(properties.hybridMaxGraphRelationships())
+                .toList();
+        return new SourceGraphResponse(graph.historyId(), nodes, relationships);
+    }
+
+    private boolean matchesProject(SourceGraphNodeResponse node, String projectId) {
+        if (!StringUtils.hasText(projectId)) {
+            return true;
+        }
+        Object nodeProjectId = node.properties() == null ? null : node.properties().get("projectId");
+        return projectId.trim().equals(String.valueOf(nodeProjectId));
     }
 
     private Set<String> evidenceChunkIds(List<RagChunkResult> vectorChunks, SourceGraphResponse graph) {
@@ -106,15 +171,27 @@ public class HybridSearchService {
 
     private String buildContext(SourceGraphResponse graph, List<RagChunkResult> chunks) {
         List<String> sections = new ArrayList<>();
-        if (graph != null && (!graph.nodes().isEmpty() || !graph.relationships().isEmpty())) {
-            sections.add("GRAPH CONTEXT:\n" + graphJson(graph));
-        }
         if (!chunks.isEmpty()) {
             sections.add("EVIDENCE CHUNKS:\n" + String.join("\n\n", chunks.stream()
                     .map(this::formatChunk)
                     .toList()));
         }
-        return String.join("\n\n", sections);
+        if (graph != null && (!graph.nodes().isEmpty() || !graph.relationships().isEmpty())) {
+            sections.add("GRAPH CONTEXT:\n" + graphJson(graph));
+        }
+        return truncateContext(String.join("\n\n", sections));
+    }
+
+    private String truncateContext(String context) {
+        int limit = properties.maxContextCharacters();
+        if (context.length() <= limit) {
+            return context;
+        }
+        if (limit <= TRUNCATION_MARKER.length()) {
+            return context.substring(0, limit);
+        }
+        int contentLimit = limit - TRUNCATION_MARKER.length();
+        return context.substring(0, contentLimit) + TRUNCATION_MARKER;
     }
 
     private String graphJson(SourceGraphResponse graph) {

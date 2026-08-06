@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 const backendProxy = {
   '/api': {
-    target: 'http://localhost:8081',
+    target: 'http://localhost:28081',
     changeOrigin: true,
   },
 };

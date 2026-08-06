@@ -18,9 +18,17 @@ public interface RagDocumentMapper {
     List<RagDocument> findPageByProjectKey(
             @Param("projectKey") String projectKey, @Param("limit") int limit, @Param("offset") int offset);
 
+    List<RagDocument> findPageFiltered(
+            @Param("projectKey") String projectKey,
+            @Param("indexStatus") String indexStatus,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
     long countAll();
 
     long countByProjectKey(@Param("projectKey") String projectKey);
+
+    long countFiltered(@Param("projectKey") String projectKey, @Param("indexStatus") String indexStatus);
 
     boolean projectExists(@Param("projectKey") String projectKey);
 

@@ -1,11 +1,12 @@
 import { apiRequest } from './apiClient.js';
 
-export async function fetchDocuments({ page = 0, size = 30, projectKey } = {}) {
+export async function fetchDocuments({ page = 0, size = 30, projectKey, indexStatus } = {}) {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
   });
   if (projectKey) params.set('projectKey', projectKey);
+  if (indexStatus) params.set('indexStatus', indexStatus);
   const payload = await apiRequest(`/api/documents/page?${params.toString()}`, {
     errorMessage: '문서 목록을 불러오지 못했습니다.',
   });

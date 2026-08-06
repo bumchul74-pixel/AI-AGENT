@@ -123,6 +123,20 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="findPageFiltered" resultMap="ragDocumentResultMap">
+        SELECT <include refid="ragDocumentColumns" />
+        FROM rag_document
+        WHERE deleted_at IS NULL
+        <if test="projectKey != null and projectKey != ''">
+            AND project_key = #{projectKey}
+        </if>
+        <if test="indexStatus != null and indexStatus != ''">
+            AND index_status = #{indexStatus}
+        </if>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <select id="countAll" resultType="long">
         SELECT count(*)
         FROM rag_document
@@ -132,6 +146,17 @@
     <select id="countByProjectKey" resultType="long">
         SELECT count(*) FROM rag_document
         WHERE deleted_at IS NULL AND project_key = #{projectKey}
+    </select>
+
+    <select id="countFiltered" resultType="long">
+        SELECT count(*) FROM rag_document
+        WHERE deleted_at IS NULL
+        <if test="projectKey != null and projectKey != ''">
+            AND project_key = #{projectKey}
+        </if>
+        <if test="indexStatus != null and indexStatus != ''">
+            AND index_status = #{indexStatus}
+        </if>
     </select>
 
     <select id="projectExists" resultType="boolean">

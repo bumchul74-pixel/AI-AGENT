@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { API_ERROR_EVENT } from '../../api/apiClient.js';
+import { APP_NOTIFICATION_EVENT } from '../../api/apiClient.js';
 import { Toast } from './Toast.jsx';
 
 export function ToastHost() {
@@ -7,24 +7,26 @@ export function ToastHost() {
   const lastToastRef = useRef({ message: '', createdAt: 0 });
 
   useEffect(() => {
-    function handleApiError(event) {
+    function handleNotification(event) {
       const message = event.detail?.message;
+      const variant = event.detail?.variant ?? 'error';
       if (!message) return;
 
       const now = Date.now();
       const lastToast = lastToastRef.current;
-      if (lastToast.message === message && now - lastToast.createdAt < 1000) return;
-      lastToastRef.current = { message, createdAt: now };
-      setMessages((current) => [...current, message]);
+      if (lastToast.message === message && lastToast.variant === variant && now - lastToast.createdAt < 1000) return;
+      lastToastRef.current = { message, variant, createdAt: now };
+      setMessages((current) => [...current, { message, variant }]);
     }
 
-    window.addEventListener(API_ERROR_EVENT, handleApiError);
-    return () => window.removeEventListener(API_ERROR_EVENT, handleApiError);
+    window.addEventListener(APP_NOTIFICATION_EVENT, handleNotification);
+    return () => window.removeEventListener(APP_NOTIFICATION_EVENT, handleNotification);
   }, []);
 
   return (
     <Toast
-      message={messages[0] || ''}
+      message={messages[0]?.message || ''}
+      variant={messages[0]?.variant}
       onClose={() => setMessages((current) => current.slice(1))}
     />
   );

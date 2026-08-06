@@ -50,7 +50,7 @@ generation:
 source-graph:
   enabled: ${SOURCE_GRAPH_ENABLED:true}
 server:
-  port: 8081
+  port: 28081
 
 llm:
   provider: ${LLM_PROVIDER:gemini}
@@ -73,6 +73,11 @@ rag:
   base-url: ${RAG_SERVER_BASE_URL:http://localhost:8000}
   search-path: /api/search
   top-k: ${RAG_SEARCH_TOP_K:5}
+  hybrid-graph-depth: ${RAG_HYBRID_GRAPH_DEPTH:2}
+  hybrid-max-graph-nodes: ${RAG_HYBRID_MAX_GRAPH_NODES:50}
+  hybrid-max-graph-relationships: ${RAG_HYBRID_MAX_GRAPH_RELATIONSHIPS:200}
+  hybrid-max-evidence-chunks: ${RAG_HYBRID_MAX_EVIDENCE_CHUNKS:12}
+  max-context-characters: ${RAG_MAX_CONTEXT_CHARACTERS:60000}
   watch:
     enabled: ${RAG_WATCH_ENABLED:true}
     directory: ${RAG_WATCH_DIR:rag-server/inbox}

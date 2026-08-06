@@ -64,6 +64,7 @@ class RagToolsTest(unittest.TestCase):
         self.assertEqual("commerce", chunk.project_id)
         self.assertEqual("UserService", chunk.symbol)
         self.assertEqual({"moduleName": "backend"}, chunk.metadata)
+        self.assertEqual(1, self.store.java_file_count())
         self.assertEqual(
             ["file:commerce:src/main/java/com/example/UserService.java"],
             chunk.entity_ids,
@@ -75,6 +76,20 @@ class RagToolsTest(unittest.TestCase):
         self.assertIn("embedding", payload)
         self.assertNotIn("source", payload)
         self.assertNotIn("vector", payload)
+
+    def test_java_file_count_deduplicates_chunks_for_document_source_key(self) -> None:
+        self.store.add_document(
+            source="document:10",
+            content="public class UserService {\n" + "  void execute() {}\n" * 20 + "}",
+            chunk_size=80,
+            overlap=10,
+            project_id="commerce",
+            file_path="src/main/java/com/example/UserService.java",
+            document_id=10,
+        )
+
+        self.assertGreater(len(self.store.chunks), 1)
+        self.assertEqual(1, self.store.java_file_count())
 
     def test_legacy_vector_chunks_load_with_empty_metadata(self) -> None:
         store_path = Path(self.temp_dir.name) / "legacy-vector-store.json"

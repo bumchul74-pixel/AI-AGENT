@@ -267,3 +267,9 @@ Vector DB
 - `liveTest`: 기본 gate에서 제외된 외부 시스템 검증
 
 전체 검증을 실행하지 못하면 가능한 가장 큰 범위를 실행하고 생략한 명령과 이유를 보고한다. build 결과, runtime log, upload 데이터, credential, 무관한 변경을 포함하지 않는다.
+
+## Frontend Feedback Policy
+
+- UI 작업의 처리 성공, 부분 실패, 오류 메시지는 모두 동일한 전역 Toast UI로 노출한다.
+- 성공, 경고, 오류는 Toast의 위치와 닫기 방식은 통일하고 상태별 색상과 아이콘으로 구분한다.
+- 같은 메시지를 화면 내부 인라인 영역과 Toast에 중복 노출하지 않는다.

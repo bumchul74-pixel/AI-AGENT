@@ -27,6 +27,16 @@ public interface SourceGraphService {
 
     SourceGraphResponse findNeighborhoodByEntityIds(List<String> entityIds, int depth);
 
+    default SourceGraphResponse findNeighborhoodByEntityIds(
+            List<String> entityIds,
+            int depth,
+            String projectId,
+            int maxNodes,
+            int maxRelationships
+    ) {
+        return findNeighborhoodByEntityIds(entityIds, depth);
+    }
+
     SourceGraphNodeSourceResponse findNodeSource(String nodeId);
 
     void deleteBySourceKey(String sourceKey);

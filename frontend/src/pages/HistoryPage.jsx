@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { FileCode2, RotateCcw, Search, ScrollText } from 'lucide-react';
+import { RotateCcw, Search, ScrollText } from 'lucide-react';
 import { fetchGenerationHistory, fetchGenerationHistoryDetail } from '../api/generateApi.js';
-import { isApiRequestError } from '../api/apiClient.js';
+import { isApiRequestError, notifyApp } from '../api/apiClient.js';
 import { Loading } from '../components/common/Loading.jsx';
+import { Modal } from '../components/common/Modal.jsx';
 import { formatDateTime } from '../utils/dateUtils.js';
 
 const TEXT = {
@@ -74,8 +75,6 @@ export function HistoryPage() {
   const [history, setHistory] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedHistory, setSelectedHistory] = useState(null);
-  const [error, setError] = useState('');
-  const [detailError, setDetailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
@@ -90,14 +89,16 @@ export function HistoryPage() {
     }
 
     setIsDetailLoading(true);
-    setDetailError('');
 
     try {
       const detail = await fetchGenerationHistoryDetail(id);
       setSelectedHistory(detail);
     } catch (exception) {
       setSelectedHistory(null);
-      setDetailError(isApiRequestError(exception) ? '' : exception.message);
+      setSelectedId(null);
+      if (!isApiRequestError(exception)) {
+        notifyApp(exception.message || '\uC0C1\uC138 \uC774\uB825\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+      }
     } finally {
       setIsDetailLoading(false);
     }
@@ -105,28 +106,30 @@ export function HistoryPage() {
 
   async function selectHistory(id) {
     setSelectedId(id);
+    setSelectedHistory(null);
     await loadDetail(id);
+  }
+
+  function closeDetail() {
+    setSelectedId(null);
+    setSelectedHistory(null);
   }
 
   async function loadHistory(nextFilters = filters) {
     setIsLoading(true);
-    setError('');
-    setDetailError('');
+    setSelectedId(null);
     setSelectedHistory(null);
 
     try {
       const nextHistory = await fetchGenerationHistory(nextFilters);
-      const nextSelectedId = nextHistory[0]?.id ?? null;
       setHistory(nextHistory);
-      setSelectedId(nextSelectedId);
-      if (nextSelectedId) {
-        await loadDetail(nextSelectedId);
-      }
     } catch (exception) {
       setHistory([]);
       setSelectedHistory(null);
       setSelectedId(null);
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      if (!isApiRequestError(exception)) {
+        notifyApp(exception.message || '\uC0DD\uC131 \uC774\uB825\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -195,8 +198,6 @@ export function HistoryPage() {
             </div>
           </div>
 
-          {error && <p className="error-text">{error}</p>}
-
           {isLoading ? (
             <Loading />
           ) : history.length === 0 ? (
@@ -233,18 +234,16 @@ export function HistoryPage() {
             </div>
           )}
         </section>
+      </section>
 
-        <section className="card history-detail-panel">
-          <div className="panel-title">
-            <FileCode2 size={18} />
-            <div>
-              <h2>{TEXT.detailTitle}</h2>
-              <p>#{selectedId ?? '-'}</p>
-            </div>
-          </div>
-
-          {detailError && <p className="error-text">{detailError}</p>}
-
+      <Modal
+        backdropClassName="history-detail-modal-backdrop"
+        className="history-detail-modal-shell"
+        open={selectedId != null}
+        onClose={closeDetail}
+        title={`${TEXT.detailTitle} #${selectedId ?? '-'}`}
+      >
+        <div className="history-detail-modal">
           {isDetailLoading ? (
             <Loading />
           ) : selectedHistory ? (
@@ -302,14 +301,9 @@ export function HistoryPage() {
                 </section>
               )}
             </div>
-          ) : (
-            <div className="empty-result">
-              <strong>{TEXT.noSelectionTitle}</strong>
-              <span>{TEXT.noSelectionDescription}</span>
-            </div>
-          )}
-        </section>
-      </section>
+          ) : null}
+        </div>
+      </Modal>
     </section>
   );
 }

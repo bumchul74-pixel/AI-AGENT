@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteDocument, fetchDocuments, reindexDocument, uploadDocument, uploadProjectArchive } from '../api/documentApi.js';
-import { isApiRequestError } from '../api/apiClient.js';
+import { isApiRequestError, notifyApp } from '../api/apiClient.js';
 
 const DOCUMENT_PAGE_SIZE = 30;
 
@@ -12,14 +12,18 @@ function appendUniqueDocuments(currentDocuments, nextDocuments) {
   return Array.from(nextById.values());
 }
 
-export function useDocument(projectKey) {
+function notifyUnexpectedError(exception) {
+  if (!isApiRequestError(exception)) {
+    notifyApp(exception.message || '\uC694\uCCAD\uC744 \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+  }
+}
+
+export function useDocument(projectKey, indexStatus = '') {
   const [documents, setDocuments] = useState([]);
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [workingDocumentId, setWorkingDocumentId] = useState(null);
-  const [archiveResult, setArchiveResult] = useState(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [hasNext, setHasNext] = useState(false);
@@ -32,10 +36,9 @@ export function useDocument(projectKey) {
       return [];
     }
     setIsLoading(true);
-    setError('');
 
     try {
-      const result = await fetchDocuments({ page: 0, size: DOCUMENT_PAGE_SIZE, projectKey });
+      const result = await fetchDocuments({ page: 0, size: DOCUMENT_PAGE_SIZE, projectKey, indexStatus });
       const nextDocuments = result.documents ?? [];
       setDocuments(nextDocuments);
       setPage(result.page ?? 0);
@@ -43,7 +46,7 @@ export function useDocument(projectKey) {
       setHasNext(Boolean(result.hasNext));
       return nextDocuments;
     } catch (exception) {
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      notifyUnexpectedError(exception);
       setDocuments([]);
       setPage(0);
       setTotalCount(0);
@@ -52,7 +55,7 @@ export function useDocument(projectKey) {
     } finally {
       setIsLoading(false);
     }
-  }, [projectKey]);
+  }, [indexStatus, projectKey]);
 
   const loadMoreDocuments = useCallback(async () => {
     if (isLoading || isLoadingMore || loadingMoreRef.current || !hasNext) {
@@ -62,10 +65,9 @@ export function useDocument(projectKey) {
     const nextPage = page + 1;
     loadingMoreRef.current = true;
     setIsLoadingMore(true);
-    setError('');
 
     try {
-      const result = await fetchDocuments({ page: nextPage, size: DOCUMENT_PAGE_SIZE, projectKey });
+      const result = await fetchDocuments({ page: nextPage, size: DOCUMENT_PAGE_SIZE, projectKey, indexStatus });
       const nextDocuments = result.documents ?? [];
       setDocuments((currentDocuments) => appendUniqueDocuments(currentDocuments, nextDocuments));
       setPage(result.page ?? nextPage);
@@ -73,13 +75,13 @@ export function useDocument(projectKey) {
       setHasNext(Boolean(result.hasNext));
       return nextDocuments;
     } catch (exception) {
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      notifyUnexpectedError(exception);
       return [];
     } finally {
       loadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [hasNext, isLoading, isLoadingMore, page, projectKey, totalCount]);
+  }, [hasNext, indexStatus, isLoading, isLoadingMore, page, projectKey, totalCount]);
 
   useEffect(() => {
     loadDocuments();
@@ -87,11 +89,11 @@ export function useDocument(projectKey) {
 
   async function upload({ file, documentType }) {
     if (!projectKey) {
-      setError('먼저 프로젝트를 선택해 주세요.');
+      notifyApp('먼저 프로젝트를 선택해 주세요.', 'warning');
       return null;
     }
     if (!file) {
-      setError('\uC5C5\uB85C\uB4DC\uD560 \uD30C\uC77C\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.');
+      notifyApp('\uC5C5\uB85C\uB4DC\uD560 \uD30C\uC77C\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.', 'warning');
       return null;
     }
 
@@ -101,19 +103,16 @@ export function useDocument(projectKey) {
     uploadInFlightRef.current = true;
 
     setIsUploading(true);
-    setError('');
-    setArchiveResult(null);
 
     try {
       const isArchive = file.name?.toLowerCase().endsWith('.zip');
       const uploadedDocument = isArchive
         ? await uploadProjectArchive(file, projectKey)
         : await uploadDocument({ file, documentType, projectKey });
-      if (isArchive) setArchiveResult(uploadedDocument);
       await loadDocuments();
       return uploadedDocument;
     } catch (exception) {
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      notifyUnexpectedError(exception);
       return null;
     } finally {
       uploadInFlightRef.current = false;
@@ -123,14 +122,13 @@ export function useDocument(projectKey) {
 
   async function reindex(id) {
     setWorkingDocumentId(id);
-    setError('');
 
     try {
       const indexedDocument = await reindexDocument(id);
       await loadDocuments();
       return indexedDocument;
     } catch (exception) {
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      notifyUnexpectedError(exception);
       return null;
     } finally {
       setWorkingDocumentId(null);
@@ -139,14 +137,13 @@ export function useDocument(projectKey) {
 
   async function remove(id) {
     setWorkingDocumentId(id);
-    setError('');
 
     try {
       await deleteDocument(id);
       await loadDocuments();
       return true;
     } catch (exception) {
-      setError(isApiRequestError(exception) ? '' : exception.message);
+      notifyUnexpectedError(exception);
       return false;
     } finally {
       setWorkingDocumentId(null);
@@ -155,8 +152,6 @@ export function useDocument(projectKey) {
 
   return {
     documents,
-    archiveResult,
-    error,
     hasNext,
     isLoading,
     isLoadingMore,

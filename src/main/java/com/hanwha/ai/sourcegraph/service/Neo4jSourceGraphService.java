@@ -354,6 +354,17 @@ public class Neo4jSourceGraphService implements SourceGraphService {
 
     @Override
     public SourceGraphResponse findNeighborhoodByEntityIds(List<String> entityIds, int depth) {
+        return findNeighborhoodByEntityIds(entityIds, depth, null, 600, 5000);
+    }
+
+    @Override
+    public SourceGraphResponse findNeighborhoodByEntityIds(
+            List<String> entityIds,
+            int depth,
+            String projectId,
+            int maxNodes,
+            int maxRelationships
+    ) {
         if (!properties.enabled() || entityIds == null || entityIds.isEmpty()) {
             return SourceGraphResponse.empty(null);
         }
@@ -367,22 +378,30 @@ public class Neo4jSourceGraphService implements SourceGraphService {
             return SourceGraphResponse.empty(null);
         }
         int safeDepth = Math.max(1, Math.min(depth, 6));
+        int safeNodeLimit = Math.max(1, Math.min(maxNodes, 600));
+        int safeRelationshipLimit = Math.max(1, Math.min(maxRelationships, 5000));
+        String normalizedProjectId = StringUtils.hasText(projectId) ? projectId.trim() : "";
         List<SourceGraphNodeResponse> nodes = fetchNodes("""
                 MATCH path=(seed:SourceGraphEntity)-[pathRelationships*0..%d]-(node:SourceGraphEntity)
                 WHERE seed.uid IN $entityIds
                   AND all(relationship IN pathRelationships
                           WHERE type(relationship) IN $relationshipTypes)
+                  AND ($projectId = '' OR all(pathNode IN nodes(path)
+                          WHERE pathNode.projectId = $projectId))
                 WITH DISTINCT node
-                LIMIT 600
+                LIMIT $nodeLimit
                 RETURN node.uid AS id,
                        head([nodeLabel IN labels(node) WHERE nodeLabel <> 'SourceGraphEntity']) AS label,
                        coalesce(node.name, node.simpleName, node.fileName, node.fqn, node.uid) AS name,
                        properties(node) AS properties
                 """.formatted(safeDepth), Map.of(
                 "entityIds", normalizedIds,
-                "relationshipTypes", List.copyOf(HYBRID_SEARCH_RELATIONSHIPS)
+                "relationshipTypes", List.copyOf(HYBRID_SEARCH_RELATIONSHIPS),
+                "projectId", normalizedProjectId,
+                "nodeLimit", safeNodeLimit
         ));
-        return new SourceGraphResponse(null, nodes, fetchRelationshipsForNodes(nodes));
+        return new SourceGraphResponse(
+                null, nodes, fetchRelationshipsForNodes(nodes, safeRelationshipLimit));
     }
 
     private SourceGraphResponse findTypeNeighborhood(String fqn, String direction) {
@@ -848,7 +867,17 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 .toList();
     }
 
-    private List<SourceGraphRelationshipResponse> fetchRelationshipsForNodes(List<SourceGraphNodeResponse> nodes) {
+    private List<SourceGraphRelationshipResponse> fetchRelationshipsForNodes(
+            List<SourceGraphNodeResponse> nodes
+    ) {
+        int relationshipLimit = Math.max(200, Math.min(nodes.size() * 6, 5000));
+        return fetchRelationshipsForNodes(nodes, relationshipLimit);
+    }
+
+    private List<SourceGraphRelationshipResponse> fetchRelationshipsForNodes(
+            List<SourceGraphNodeResponse> nodes,
+            int maxRelationships
+    ) {
         List<String> nodeIds = nodes.stream()
                 .map(SourceGraphNodeResponse::id)
                 .filter(StringUtils::hasText)
@@ -868,7 +897,7 @@ public class Neo4jSourceGraphService implements SourceGraphService {
                 LIMIT $relationshipLimit
                 """, Map.of(
                 "nodeIds", nodeIds,
-                "relationshipLimit", Math.max(200, Math.min(nodeIds.size() * 6, 5000))
+                "relationshipLimit", Math.max(1, Math.min(maxRelationships, 5000))
         ));
     }
     private List<SourceGraphRelationshipResponse> fetchRelationships(String cypher, Map<String, Object> parameters) {

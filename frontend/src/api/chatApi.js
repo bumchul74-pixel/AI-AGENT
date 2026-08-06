@@ -1,6 +1,11 @@
 import { apiRequest } from './apiClient.js';
 
-export async function sendChatMessage(message, file = null, conversationId = null) {
+export async function sendChatMessage(
+  message,
+  file = null,
+  conversationId = null,
+  signal = undefined,
+) {
   const body = file ? new FormData() : JSON.stringify({ message, conversationId });
   if (file) {
     body.append('message', message);
@@ -14,6 +19,7 @@ export async function sendChatMessage(message, file = null, conversationId = nul
     headers: file ? undefined : { 'Content-Type': 'application/json' },
     body,
     errorMessage: '채팅 요청에 실패했습니다.',
+    signal,
   });
 }
 
@@ -27,8 +33,11 @@ export async function fetchChatAttachment(messageId, fileName) {
   return new File([data], fileName, { type: contentType });
 }
 
-export async function fetchChatConversations() {
-  return apiRequest('/api/chat/conversations', { errorMessage: '대화 목록을 불러오지 못했습니다.' });
+export async function fetchChatConversations(signal = undefined) {
+  return apiRequest('/api/chat/conversations', {
+    errorMessage: '대화 목록을 불러오지 못했습니다.',
+    signal,
+  });
 }
 
 export async function fetchChatProjects() {

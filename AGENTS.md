@@ -273,3 +273,15 @@ Vector DB
 - UI 작업의 처리 성공, 부분 실패, 오류 메시지는 모두 동일한 전역 Toast UI로 노출한다.
 - 성공, 경고, 오류는 Toast의 위치와 닫기 방식은 통일하고 상태별 색상과 아이콘으로 구분한다.
 - 같은 메시지를 화면 내부 인라인 영역과 Toast에 중복 노출하지 않는다.
+
+## Frontend Table/List Policy
+
+- 모든 표 형식 목록은 `frontend/src/components/common/DataTable.jsx`를 사용하고, 독립 스크롤과 footer가 필요한 목록은 `ScrollableListLayout.jsx`를 함께 사용한다.
+- 테이블 헤더는 스크롤 영역 상단에 고정하고 완전히 불투명한 배경, 본문보다 높은 z-index, 하단 경계 또는 그림자를 적용한다.
+- 스크롤 중 행 데이터가 헤더를 통해 보이거나 헤더 텍스트와 겹치면 안 된다.
+- 대용량 목록은 [프런트엔드 목록 페이징 표준](docs/references/frontend-list-pagination.md)의 서버 페이지 append 방식을 따른다.
+## Frontend Navigation Policy
+
+- Dashboard는 독립 직접 이동 메뉴로 유지하고, 나머지 1Depth는 업무 목적별 group, 2Depth는 실제 화면으로 구성한다.
+- 메뉴 Depth는 자식 개수로 추론하지 않고 `navigation.js`의 명시적 `type`으로 결정한다.
+- 메뉴 분류와 변경은 [좌측 메뉴 정보구조 표준](docs/references/navigation-information-architecture.md)을 따른다.

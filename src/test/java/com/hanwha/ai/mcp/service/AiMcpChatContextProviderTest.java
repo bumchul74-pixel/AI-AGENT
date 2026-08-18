@@ -2,9 +2,13 @@ package com.hanwha.ai.mcp.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import com.hanwha.ai.generation.service.ProjectStructureAnalyzer;
 import com.hanwha.ai.mcp.gateway.AiMcpGatewayService;
+import com.hanwha.ai.mcp.orchestration.AgentOrchestrator;
+import com.hanwha.ai.mcp.repository.AgentExecutionHistoryRepository;
+import com.hanwha.ai.mcp.router.AgentRouterTestFixture;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +28,7 @@ class AiMcpChatContextProviderTest {
                 return new McpSchema.CallToolResult(List.of(), false, null, Map.of());
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -87,7 +91,7 @@ class AiMcpChatContextProviderTest {
                 return new McpSchema.CallToolResult(List.of(), false, null, Map.of());
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -108,7 +112,7 @@ class AiMcpChatContextProviderTest {
                 return new McpSchema.CallToolResult(List.of(), false, null, Map.of());
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -135,7 +139,7 @@ class AiMcpChatContextProviderTest {
                 );
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -163,7 +167,7 @@ class AiMcpChatContextProviderTest {
                 return new McpSchema.CallToolResult(List.of(), false, null, Map.of());
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -190,7 +194,7 @@ class AiMcpChatContextProviderTest {
                 );
             }
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 gateway,
                 (projectPath, targetTypes) -> ""
         );
@@ -221,7 +225,7 @@ class AiMcpChatContextProviderTest {
                     Java version: 21
                     """.formatted(projectPath);
         };
-        AiMcpChatContextProvider provider = new AiMcpChatContextProvider(
+        AiMcpChatContextProvider provider = provider(
                 new AiMcpGatewayService(null),
                 projectStructureAnalyzer
         );
@@ -239,5 +243,45 @@ class AiMcpChatContextProviderTest {
                 "Spring Boot version: 3.2.0",
                 "Java version: 21"
         );
+    }
+
+    @Test
+    void routesAtMentionedToolNameToToolsCall() {
+        AtomicReference<String> toolName = new AtomicReference<>();
+        AiMcpGatewayService gateway = new AiMcpGatewayService(null) {
+            @Override
+            public McpSchema.CallToolResult callTool(String name, Map<String, Object> toolArguments) {
+                toolName.set(name);
+                return new McpSchema.CallToolResult(List.of(), false, null, Map.of());
+            }
+        };
+        AiMcpChatContextProvider provider = provider(
+                gateway,
+                (projectPath, targetTypes) -> ""
+        );
+        String message = "@list_rules 보안 규칙 목록을 보여줘";
+
+        assertThat(provider.supports(message)).isTrue();
+
+        List<String> contexts = provider.resolveContext(message);
+
+        assertThat(toolName.get()).isEqualTo("list_rules");
+        assertThat(contexts).singleElement().asString().contains(
+                "tools/call list_rules"
+        );
+    }
+
+    private AiMcpChatContextProvider provider(
+            AiMcpGatewayService gateway,
+            ProjectStructureAnalyzer projectStructureAnalyzer
+    ) {
+        AgentOrchestrator orchestrator = new AgentOrchestrator(
+                AgentRouterTestFixture.router(),
+                AgentRouterTestFixture.registry(),
+                gateway,
+                projectStructureAnalyzer,
+                mock(AgentExecutionHistoryRepository.class)
+        );
+        return new AiMcpChatContextProvider(orchestrator);
     }
 }

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.sourcequality.mapper.SourceQualityMapper">
+    <resultMap id="thresholdResult" type="com.hanwha.ai.sourcequality.domain.SourceQualityThreshold">
+        <id column="project_key" property="projectKey" />
+        <result column="cyclomatic_complexity" property="cyclomaticComplexity" />
+        <result column="cognitive_complexity" property="cognitiveComplexity" />
+        <result column="duplicate_ratio" property="duplicateRatio" />
+        <result column="minimum_duplicate_lines" property="minimumDuplicateLines" />
+    </resultMap>
+
+    <resultMap id="snapshotResult" type="com.hanwha.ai.sourcequality.domain.SourceQualitySnapshot">
+        <id column="id" property="id" />
+        <result column="project_key" property="projectKey" />
+        <result column="total_method_count" property="totalMethodCount" />
+        <result column="duplicate_method_count" property="duplicateMethodCount" />
+        <result column="duplicate_group_count" property="duplicateGroupCount" />
+        <result column="duplicate_ratio" property="duplicateRatio" />
+        <result column="high_complexity_count" property="highComplexityCount" />
+        <result column="max_cyclomatic_complexity" property="maxCyclomaticComplexity" />
+        <result column="max_cognitive_complexity" property="maxCognitiveComplexity" />
+        <result column="gate_status" property="gateStatus" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <select id="findThreshold" resultMap="thresholdResult">
+        SELECT project_key, cyclomatic_complexity, cognitive_complexity,
+               duplicate_ratio, minimum_duplicate_lines
+        FROM source_quality_threshold
+        WHERE project_key = #{projectKey}
+    </select>
+
+    <insert id="upsertThreshold" parameterType="com.hanwha.ai.sourcequality.domain.SourceQualityThreshold">
+        INSERT INTO source_quality_threshold (
+            project_key, cyclomatic_complexity, cognitive_complexity,
+            duplicate_ratio, minimum_duplicate_lines, updated_at
+        ) VALUES (
+            #{projectKey}, #{cyclomaticComplexity}, #{cognitiveComplexity},
+            #{duplicateRatio}, #{minimumDuplicateLines}, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (project_key) DO UPDATE SET
+            cyclomatic_complexity = EXCLUDED.cyclomatic_complexity,
+            cognitive_complexity = EXCLUDED.cognitive_complexity,
+            duplicate_ratio = EXCLUDED.duplicate_ratio,
+            minimum_duplicate_lines = EXCLUDED.minimum_duplicate_lines,
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
+    <sql id="snapshotColumns">
+        id, project_key, total_method_count, duplicate_method_count, duplicate_group_count,
+        duplicate_ratio, high_complexity_count, max_cyclomatic_complexity,
+        max_cognitive_complexity, gate_status, created_at
+    </sql>
+
+    <select id="findLatestSnapshot" resultMap="snapshotResult">
+        SELECT <include refid="snapshotColumns" />
+        FROM source_quality_snapshot
+        WHERE project_key = #{projectKey}
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findSnapshots" resultMap="snapshotResult">
+        SELECT <include refid="snapshotColumns" />
+        FROM source_quality_snapshot
+        WHERE project_key = #{projectKey}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <insert id="insertSnapshot" parameterType="com.hanwha.ai.sourcequality.domain.SourceQualitySnapshot"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO source_quality_snapshot (
+            project_key, total_method_count, duplicate_method_count, duplicate_group_count,
+            duplicate_ratio, high_complexity_count, max_cyclomatic_complexity,
+            max_cognitive_complexity, gate_status
+        ) VALUES (
+            #{projectKey}, #{totalMethodCount}, #{duplicateMethodCount}, #{duplicateGroupCount},
+            #{duplicateRatio}, #{highComplexityCount}, #{maxCyclomaticComplexity},
+            #{maxCognitiveComplexity}, #{gateStatus}
+        )
+    </insert>
+</mapper>

@@ -41,6 +41,20 @@ mcp:
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
 
+agent:
+  orchestration:
+    config:
+      database-enabled: ${AGENT_CONFIGURATION_DATABASE_ENABLED:true}
+      seed-enabled: ${AGENT_CONFIGURATION_SEED_ENABLED:true}
+      fallback-on-startup: ${AGENT_CONFIGURATION_FALLBACK_ON_STARTUP:true}
+      refresh-mode: ${AGENT_CONFIGURATION_REFRESH_MODE:POLLING}
+      refresh-interval-ms: ${AGENT_CONFIGURATION_REFRESH_INTERVAL_MS:30000}
+      bootstrap-location: classpath:agent-orchestration-bootstrap.json
+      admin-api-enabled: ${AGENT_CONFIGURATION_ADMIN_API_ENABLED:true}
+      tool-sync-enabled: ${AGENT_CONFIGURATION_TOOL_SYNC_ENABLED:true}
+      tool-sync-interval-ms: ${AGENT_CONFIGURATION_TOOL_SYNC_INTERVAL_MS:30000}
+      tool-sync-initial-delay-ms: ${AGENT_CONFIGURATION_TOOL_SYNC_INITIAL_DELAY_MS:30000}
+      # admin-token: ${AGENT_CONFIGURATION_ADMIN_TOKEN:} # 로그인/권한 기능 도입 시 사용
 generation:
   project-structures:
     - name: Management Old Module
@@ -118,3 +132,8 @@ ocr-chat:
     - tif
     - tiff
     - webp
+
+system-status:
+  refresh-interval: ${SYSTEM_STATUS_REFRESH_INTERVAL:30s}
+  initial-delay: ${SYSTEM_STATUS_INITIAL_DELAY:2s}
+  connect-timeout: ${SYSTEM_STATUS_CONNECT_TIMEOUT:2s}

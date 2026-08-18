@@ -60,6 +60,47 @@ export async function reindexDocument(id) {
   });
 }
 
+export async function reindexProjectJavaDocuments(projectKey, onProgress) {
+  const documents = [];
+  let page = 0;
+  let hasNext = false;
+
+  do {
+    const result = await fetchDocuments({ page, size: 100, projectKey });
+    documents.push(...result.documents);
+    hasNext = result.hasNext;
+    page += 1;
+  } while (hasNext);
+
+  const javaDocuments = documents.filter((document) => {
+    const path = String(document.originalFileName ?? '').replaceAll('\\', '/').toLowerCase();
+    return path.endsWith('.java') && !path.includes('/src/test/');
+  });
+  const failures = [];
+
+  for (let index = 0; index < javaDocuments.length; index += 1) {
+    const document = javaDocuments[index];
+    onProgress?.({ completed: index, total: javaDocuments.length, currentFile: document.originalFileName });
+    try {
+      await reindexDocument(document.id);
+    } catch (error) {
+      failures.push({
+        documentId: document.id,
+        fileName: document.originalFileName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+    onProgress?.({ completed: index + 1, total: javaDocuments.length, currentFile: document.originalFileName });
+  }
+
+  return {
+    total: javaDocuments.length,
+    successCount: javaDocuments.length - failures.length,
+    failureCount: failures.length,
+    failures,
+  };
+}
+
 export async function deleteDocument(id) {
   return apiRequest(`/api/documents/${id}`, {
     method: 'DELETE',

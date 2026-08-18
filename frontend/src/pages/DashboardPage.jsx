@@ -1,36 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Activity,
   ArrowRight,
-  Bot,
-  DatabaseZap,
   FileCode2,
   FileStack,
   FolderKanban,
-  GitFork,
   History,
   LayoutDashboard,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Trash2,
 } from 'lucide-react';
 import { fetchGenerationHistory } from '../api/generateApi.js';
 import { fetchKnowledgeProjects } from '../api/projectApi.js';
 import { fetchRagStats } from '../api/ragApi.js';
 import { getLatestSecureCodingScan } from '../api/secureCodingApi.js';
+import { fetchSystemStatus } from '../api/systemStatusApi.js';
 import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
+import { SystemStatusBadge } from '../components/system/SystemStatusBadge.jsx';
 import { formatDateTime } from '../utils/dateUtils.js';
 
-const QUICK_ACTIONS = [
-  { id: 'generate', label: '소스 생성', description: '프로젝트 표준을 기반으로 Java 소스를 생성합니다.', icon: Bot },
-  { id: 'projects', label: '프로젝트 관리', description: 'Knowledge 프로젝트를 생성하고 범위를 관리합니다.', icon: FolderKanban },
-  { id: 'documents', label: '문서 관리', description: '소스와 표준 문서를 업로드하고 색인합니다.', icon: FileStack },
-  { id: 'rag', label: 'RAG 조회', description: 'VectorDB에 저장된 코드와 문서를 검색합니다.', icon: DatabaseZap },
-  { id: 'javaGraph', label: 'Ontology', description: 'Neo4j 타입·메서드·DB 관계를 탐색합니다.', icon: GitFork },
-  { id: 'secureCoding', label: '코드 품질·보안 점검', description: 'Semgrep으로 프로젝트 소스의 취약점을 점검합니다.', icon: ShieldCheck },
-  { id: 'dataCleanup', label: 'Data Operations', description: '프로젝트 단위로 색인 데이터를 정리합니다.', icon: Trash2 },
-];
 
 const SCAN_STATUS_LABELS = {
   QUEUED: '대기 중',
@@ -53,6 +43,7 @@ export function DashboardPage({ onNavigate }) {
   const [javaFileCount, setJavaFileCount] = useState(0);
   const [history, setHistory] = useState([]);
   const [secureCodingScans, setSecureCodingScans] = useState([]);
+  const [systemStatus, setSystemStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -61,10 +52,11 @@ export function DashboardPage({ onNavigate }) {
 
     async function loadDashboard() {
       setIsLoading(true);
-      const [projectResult, statsResult, historyResult] = await Promise.allSettled([
+      const [projectResult, statsResult, historyResult, systemStatusResult] = await Promise.allSettled([
         fetchKnowledgeProjects(),
         fetchRagStats(),
         fetchGenerationHistory(),
+        fetchSystemStatus(),
       ]);
       if (cancelled) return;
 
@@ -74,6 +66,8 @@ export function DashboardPage({ onNavigate }) {
         ? statsResult.value.javaFileCount ?? statsResult.value.java_file_count ?? 0
         : 0);
       setHistory(historyResult.status === 'fulfilled' ? historyResult.value : []);
+      setSystemStatus(systemStatusResult.status === 'fulfilled' ? systemStatusResult.value : null);
+
 
       const scanResults = await Promise.allSettled(
         loadedProjects.map((project) => getLatestSecureCodingScan(project.projectKey)),
@@ -152,6 +146,38 @@ export function DashboardPage({ onNavigate }) {
         ))}
       </section>
 
+
+      <section className="card dashboard-system-status">
+        <div className="dashboard-system-status-heading">
+          <span className="dashboard-system-status-icon"><Activity size={19} /></span>
+          <div>
+            <h2>연계 시스템 상태</h2>
+            <p>캐시된 최근 점검 결과입니다.</p>
+          </div>
+          {systemStatus && <SystemStatusBadge status={systemStatus.status} />}
+        </div>
+        {isLoading ? <Loading /> : !systemStatus ? (
+          <div className="dashboard-system-status-empty">상태 정보를 불러오지 못했습니다.</div>
+        ) : (
+          <div className="dashboard-system-status-content">
+            <div>
+              <strong>{systemStatus.upCount} / {systemStatus.totalCount}</strong>
+              <span>정상 시스템</span>
+            </div>
+            <div>
+              <strong>{systemStatus.downCount}</strong>
+              <span>장애 시스템</span>
+            </div>
+            <div>
+              <strong>{systemStatus.checkedAt ? formatDateTime(systemStatus.checkedAt) : '-'}</strong>
+              <span>최근 점검</span>
+            </div>
+            <button className="dashboard-text-link" type="button" onClick={() => onNavigate('systemStatus')}>
+              상세 보기 <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+      </section>
       <section className="dashboard-main-grid">
         <article className="card dashboard-list-panel">
           <div className="page-heading">
@@ -236,18 +262,6 @@ export function DashboardPage({ onNavigate }) {
         )}
       </section>
 
-      <section className="card dashboard-actions-panel">
-        <div className="page-heading"><div><h2>빠른 작업</h2><p>현재 업무에 필요한 화면으로 바로 이동합니다.</p></div></div>
-        <div className="dashboard-action-grid">
-          {QUICK_ACTIONS.map((action) => (
-            <button type="button" key={action.id} onClick={() => onNavigate(action.id)}>
-              <span><action.icon size={19} /></span>
-              <div><strong>{action.label}</strong><small>{action.description}</small></div>
-              <ArrowRight size={16} />
-            </button>
-          ))}
-        </div>
-      </section>
     </section>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, LayoutDashboard } from 'lucide-react';
 import { findNavigationSection, NAVIGATION_SECTIONS } from '../../constants/navigation.js';
 
-export function Sidebar({ activePage, collapsed, onNavigate }) {
+export function Sidebar({ activePage, collapsed, onNavigate, onExpandNavigation }) {
   const activeSection = findNavigationSection(activePage);
   const [expandedSections, setExpandedSections] = useState(
     () => new Set(activeSection ? [activeSection.id] : []),
@@ -24,6 +24,22 @@ export function Sidebar({ activePage, collapsed, onNavigate }) {
       else next.add(sectionId);
       return next;
     });
+  }
+
+  function handleSectionClick(section, isDirect) {
+    if (isDirect) {
+      onNavigate(section.defaultPage);
+      return;
+    }
+    if (collapsed) {
+      setExpandedSections((current) => {
+        if (current.has(section.id)) return current;
+        return new Set([...current, section.id]);
+      });
+      onExpandNavigation();
+      return;
+    }
+    toggleSection(section.id);
   }
 
   return (
@@ -61,7 +77,7 @@ export function Sidebar({ activePage, collapsed, onNavigate }) {
 
         {NAVIGATION_SECTIONS.map((section) => {
           const isActive = activeSection?.id === section.id;
-          const isDirect = section.children.length === 1;
+          const isDirect = section.type === 'page';
           const isExpanded = !isDirect && expandedSections.has(section.id) && !collapsed;
           return (
             <section className={isActive ? 'gnb-group active' : 'gnb-group'} key={section.id}>
@@ -71,9 +87,7 @@ export function Sidebar({ activePage, collapsed, onNavigate }) {
                 className="gnb-depth1"
                 type="button"
                 title={collapsed ? section.label : undefined}
-                onClick={() => isDirect || collapsed
-                  ? onNavigate(section.defaultPage)
-                  : toggleSection(section.id)}
+                onClick={() => handleSectionClick(section, isDirect)}
               >
                 <span className="gnb-depth1-icon"><section.icon size={19} /></span>
                 <span className="gnb-depth1-copy">

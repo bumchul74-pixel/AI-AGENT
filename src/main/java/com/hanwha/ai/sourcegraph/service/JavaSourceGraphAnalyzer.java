@@ -51,6 +51,7 @@ public class JavaSourceGraphAnalyzer {
             "LocalDate", "LocalDateTime", "BigDecimal", "BigInteger", "Void"
     );
     private final StructuredSourceGraphAnalyzer structuredAnalyzer = new StructuredSourceGraphAnalyzer();
+    private final JavaMethodQualityAnalyzer methodQualityAnalyzer = new JavaMethodQualityAnalyzer();
 
     public SourceGraphResponse analyzeSource(JavaSourceGraphIngestRequest request) {
         String fileName = request == null ? "" : firstText(request.fileName(), request.filePath());
@@ -554,8 +555,10 @@ public class JavaSourceGraphAnalyzer {
             String signature = methodSignature(method);
             String declaringFqn = stringProperty(nodes.get(sourceTypeUid), "fqn");
             String methodUid = SourceGraphIdentity.methodUid(target.projectId(), declaringFqn, signature);
+            JavaMethodQualityAnalyzer.MethodQuality quality = methodQualityAnalyzer.analyze(method);
             addNode(nodes, methodUid, "Method", method.getNameAsString(), properties(
                     "uid", methodUid,
+                    "methodUid", methodUid,
                     "graphKey", target.graphKey(),
                     "historyId", target.historyId(),
                     "projectId", target.projectId(),
@@ -566,9 +569,25 @@ public class JavaSourceGraphAnalyzer {
                     "source", target.source(),
                     "name", method.getNameAsString(),
                     "signature", signature,
+                    "contentType", "java-method",
                     "declaringType", declaringFqn,
                     "annotations", annotationNames(method),
-                    "transactional", hasAnnotation(method, "Transactional")
+                    "transactional", hasAnnotation(method, "Transactional"),
+                    "startLine", quality.startLine(),
+                    "endLine", quality.endLine(),
+                    "lineCount", quality.lineCount(),
+                    "methodBody", quality.methodBody(),
+                    "normalizedBody", quality.normalizedBody(),
+                    "methodHash", quality.methodHash(),
+                    "structuralHash", quality.structuralHash(),
+                    "cyclomaticComplexity", quality.cyclomaticComplexity(),
+                    "cognitiveComplexity", quality.cognitiveComplexity(),
+                    "maxNestingDepth", quality.maxNestingDepth(),
+                    "parameterCount", quality.parameterCount(),
+                    "returnCount", quality.returnCount(),
+                    "throwCount", quality.throwCount(),
+                    "branchCount", quality.branchCount(),
+                    "callCount", quality.callCount()
             ));
             addRelationship(relationships, sourceTypeUid, methodUid, "HAS_METHOD", target);
             addApiEndpoint(nodes, relationships, target, type, method, methodUid);

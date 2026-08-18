@@ -1,12 +1,13 @@
 import { Blocks, Bot, Repeat2, UserRound } from 'lucide-react';
 import { formatDateTime } from '../../utils/dateUtils.js';
+import { AgentExecutionSteps } from './AgentExecutionSteps.jsx';
 
-export function ChatMessage({ message, onResend, resendDisabled, isResending }) {
+export function ChatMessage({ message, messageRef, onResend, resendDisabled, isResending }) {
   const isUser = message.role === 'user';
   const Icon = isUser ? UserRound : Bot;
 
   return (
-    <article className={isUser ? 'chat-message user' : 'chat-message assistant'}>
+    <article ref={messageRef} className={isUser ? 'chat-message user' : 'chat-message assistant'}>
       <div className="chat-avatar">
         <Icon size={17} />
       </div>
@@ -35,6 +36,7 @@ export function ChatMessage({ message, onResend, resendDisabled, isResending }) 
           </span>
         )}
         <p>{message.content}</p>
+        {!isUser && <AgentExecutionSteps execution={message.agentExecution} />}
         {isUser && onResend && (
           <button
             className="chat-resend-button"

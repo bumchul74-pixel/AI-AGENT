@@ -181,6 +181,35 @@ CREATE INDEX IF NOT EXISTS idx_generation_history_target_type
 CREATE INDEX IF NOT EXISTS idx_generation_history_target_types_gin
     ON generation_history USING GIN (target_types);
 
+CREATE TABLE IF NOT EXISTS agent_execution_history (
+    id BIGSERIAL PRIMARY KEY,
+    execution_id VARCHAR(36) NOT NULL UNIQUE,
+    agent_id VARCHAR(120),
+    capability_id VARCHAR(160),
+    configuration_version VARCHAR(36) NOT NULL DEFAULT 'legacy',
+    route_kind VARCHAR(50) NOT NULL,
+    target VARCHAR(255) NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('STARTED', 'SUCCEEDED', 'FAILED')),
+    duration_ms BIGINT,
+    error_type VARCHAR(255),
+    error_message VARCHAR(500),
+    started_at TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP
+);
+
+ALTER TABLE agent_execution_history
+    ADD COLUMN IF NOT EXISTS configuration_version VARCHAR(36) NOT NULL DEFAULT 'legacy';
+
+CREATE INDEX IF NOT EXISTS idx_agent_execution_history_started_at
+    ON agent_execution_history (started_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_agent_execution_history_status
+    ON agent_execution_history (status, started_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_agent_execution_history_capability
+    ON agent_execution_history (agent_id, capability_id, started_at DESC);
+
 CREATE TABLE IF NOT EXISTS chat_project (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(80) NOT NULL,
@@ -287,3 +316,47 @@ CREATE INDEX IF NOT EXISTS idx_secure_coding_file_job_status
     ON secure_coding_scan_file (scan_job_id, status);
 CREATE INDEX IF NOT EXISTS idx_secure_coding_result_job
     ON secure_coding_scan_result (scan_job_id, id);
+
+CREATE TABLE IF NOT EXISTS source_quality_threshold (
+    project_key VARCHAR(64) PRIMARY KEY REFERENCES knowledge_project(project_key) ON DELETE CASCADE,
+    cyclomatic_complexity INTEGER NOT NULL DEFAULT 10 CHECK (cyclomatic_complexity > 0),
+    cognitive_complexity INTEGER NOT NULL DEFAULT 15 CHECK (cognitive_complexity > 0),
+    duplicate_ratio NUMERIC(5, 2) NOT NULL DEFAULT 10.00 CHECK (duplicate_ratio BETWEEN 0 AND 100),
+    minimum_duplicate_lines INTEGER NOT NULL DEFAULT 5 CHECK (minimum_duplicate_lines > 0),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS source_quality_snapshot (
+    id BIGSERIAL PRIMARY KEY,
+    project_key VARCHAR(64) NOT NULL REFERENCES knowledge_project(project_key) ON DELETE CASCADE,
+    total_method_count INTEGER NOT NULL,
+    duplicate_method_count INTEGER NOT NULL,
+    duplicate_group_count INTEGER NOT NULL,
+    duplicate_ratio NUMERIC(5, 2) NOT NULL,
+    high_complexity_count INTEGER NOT NULL,
+    max_cyclomatic_complexity INTEGER NOT NULL,
+    max_cognitive_complexity INTEGER NOT NULL,
+    gate_status VARCHAR(16) NOT NULL CHECK (gate_status IN ('PASS', 'FAIL')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_source_quality_snapshot_project_created
+    ON source_quality_snapshot (project_key, created_at DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS agent_configuration_version (
+    id BIGSERIAL PRIMARY KEY,
+    version_key VARCHAR(36) NOT NULL UNIQUE,
+    status VARCHAR(16) NOT NULL CHECK (status IN ('DRAFT', 'ACTIVE', 'ARCHIVED')),
+    max_parallelism INTEGER NOT NULL CHECK (max_parallelism > 0),
+    configuration_json TEXT NOT NULL,
+    created_by VARCHAR(120) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    activated_at TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_configuration_active
+    ON agent_configuration_version (status) WHERE status = 'ACTIVE';
+
+CREATE INDEX IF NOT EXISTS idx_agent_configuration_created
+    ON agent_configuration_version (created_at DESC, id DESC);

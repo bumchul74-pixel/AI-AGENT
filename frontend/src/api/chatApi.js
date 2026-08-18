@@ -44,6 +44,15 @@ export async function fetchChatProjects() {
   return apiRequest('/api/chat/projects', { errorMessage: '요청을 처리하지 못했습니다.' });
 }
 
+export async function fetchMcpTools(signal = undefined) {
+  const response = await apiRequest('/api/mcp/agent-tools', {
+    errorMessage: 'DB Agent 설정의 MCP tool 목록을 불러오지 못했습니다.',
+    signal,
+  });
+  return Array.isArray(response?.tools) ? response.tools : [];
+}
+
+
 export async function createChatProject(name) {
   return sendProjectRequest('/api/chat/projects', 'POST', name);
 }

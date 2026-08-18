@@ -26,7 +26,10 @@ export function useChat() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [resendingMessageId, setResendingMessageId] = useState(null);
   const [projectError, setProjectError] = useState('');
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [isProjectLoading, setIsProjectLoading] = useState(false);
+  const pendingRequestsRef = useRef([]);
+  const activeConversationIdRef = useRef(null);
   const requestControllerRef = useRef(null);
 
   const refreshConversations = useCallback(async (signal = undefined) => {
@@ -42,7 +45,10 @@ export function useChat() {
   }, []);
 
   useEffect(() => () => {
-    requestControllerRef.current?.abort();
+    pendingRequestsRef.current = [];
+    const requestController = requestControllerRef.current;
+    requestControllerRef.current = null;
+    requestController?.abort();
   }, []);
 
   useEffect(() => {
@@ -77,8 +83,15 @@ export function useChat() {
     setMessages((current) => [...current, createMessage(message)]);
   }
 
+  function updatePendingRequests(next) {
+    pendingRequestsRef.current = next;
+    setPendingRequests(next);
+  }
+
   async function selectConversation(conversationId) {
-    if (isLoading || conversationId === activeConversationId) return;
+
+    if (requestControllerRef.current || pendingRequestsRef.current.length > 0 || conversationId === activeConversationId) return;
+    activeConversationIdRef.current = conversationId;
     setActiveConversationId(conversationId);
     setMessages([]);
     setIsHistoryLoading(true);
@@ -92,13 +105,14 @@ export function useChat() {
   }
 
   function startNewConversation() {
-    if (isLoading) return;
+    if (requestControllerRef.current || pendingRequestsRef.current.length > 0) return;
+    activeConversationIdRef.current = null;
     setActiveConversationId(null);
     setMessages([]);
   }
 
   async function removeConversation(conversationId) {
-    if (isLoading) return;
+    if (requestControllerRef.current || pendingRequestsRef.current.length > 0) return;
     await deleteChatConversation(conversationId);
     const items = await refreshConversations();
     await refreshProjects();
@@ -111,6 +125,7 @@ export function useChat() {
     }
     setActiveConversationId(next.id);
     setMessages(await fetchConversationMessages(next.id));
+    activeConversationIdRef.current = next.id;
   }
 
   async function createProject(name) {
@@ -170,30 +185,51 @@ export function useChat() {
     }
   }
 
-  async function submit(content, file = null) {
+  function submit(content, file = null) {
     const trimmed = content.trim()
       || (file ? '첨부파일에서 텍스트를 추출해 주세요.' : '');
-    if (!trimmed || isLoading) return;
+    if (!trimmed) return Promise.resolve({ queued: false });
 
+    const request = {
+      id: crypto.randomUUID(),
+      content: trimmed,
+      file,
+      attachmentName: file?.name ?? null,
+    };
+    if (requestControllerRef.current) {
+      updatePendingRequests([...pendingRequestsRef.current, request]);
+      return Promise.resolve({ queued: true });
+    }
+    return executeRequest(request);
+  }
+
+  async function executeRequest(request) {
     appendMessage({
       role: 'user',
-      content: trimmed,
-      attachmentName: file?.name,
-      attachmentFile: file,
+      content: request.content,
+      attachmentName: request.attachmentName,
+      attachmentFile: request.file,
     });
     const requestController = new AbortController();
     requestControllerRef.current = requestController;
     setIsLoading(true);
     try {
-      const response = await sendChatMessage(trimmed, file, activeConversationId, requestController.signal);
+      const response = await sendChatMessage(
+        request.content,
+        request.file,
+        activeConversationIdRef.current,
+        requestController.signal,
+      );
       appendMessage({
         role: 'assistant',
         content: response.message ?? response.content ?? '응답 메시지가 비어 있습니다.',
         mcpContextApplied: Boolean(response.mcpContextApplied),
         mcpReference: response.mcpReference || null,
+        agentExecution: response.agentExecution || null,
       });
       if (response.conversationId != null) {
         setActiveConversationId(response.conversationId);
+        activeConversationIdRef.current = response.conversationId;
       }
       await refreshConversations(requestController.signal);
     } catch (exception) {
@@ -208,22 +244,39 @@ export function useChat() {
     } finally {
       if (requestControllerRef.current === requestController) {
         requestControllerRef.current = null;
-        setIsLoading(false);
+        const [nextRequest, ...remainingRequests] = pendingRequestsRef.current;
+        updatePendingRequests(remainingRequests);
+        if (nextRequest) {
+          void executeRequest(nextRequest);
+        } else {
+          setIsLoading(false);
+        }
       }
     }
   }
 
+
+  function updatePendingRequest(requestId, content) {
+    const trimmed = content.trim();
+    if (!trimmed) return false;
+    updatePendingRequests(pendingRequestsRef.current.map((request) => (
+      request.id === requestId ? { ...request, content: trimmed } : request
+    )));
+    return true;
+  }
+
+  function removePendingRequest(requestId) {
+    updatePendingRequests(pendingRequestsRef.current.filter((request) => request.id !== requestId));
+  }
   function stopResponse() {
     const requestController = requestControllerRef.current;
     if (!requestController) return;
-    requestControllerRef.current = null;
     requestController.abort();
-    setIsLoading(false);
     notifyApp('응답 요청을 중지했습니다.', 'warning');
   }
 
   async function resend(message) {
-    if (message.role !== 'user' || isLoading || resendingMessageId != null) return;
+    if (message.role !== 'user' || requestControllerRef.current || pendingRequestsRef.current.length > 0 || resendingMessageId != null) return;
     setResendingMessageId(message.id);
     try {
       let file = message.attachmentFile ?? null;
@@ -257,6 +310,7 @@ export function useChat() {
     resendingMessageId,
     projectError,
     isProjectLoading,
+    pendingRequests,
     appendMessage,
     selectConversation,
     startNewConversation,
@@ -266,6 +320,8 @@ export function useChat() {
     deleteProject,
     moveConversation,
     submit,
+    removePendingRequest,
+    updatePendingRequest,
     resend,
     stopResponse,
   };

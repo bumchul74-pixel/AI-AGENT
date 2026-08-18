@@ -8,13 +8,15 @@ const HEADER_HIDE_DISTANCE = 48;
 const HEADER_SHOW_DISTANCE = 32;
 const HEADER_TRANSITION_LOCK_MS = 240;
 const MOBILE_NAVIGATION_QUERY = '(max-width: 960px)';
+const AI_CHAT_PAGE = 'chat';
 
 export function MainLayout({ activePage, children, onNavigate, onRefresh, refreshKey = 0 }) {
   const [navigationOpen, setNavigationOpen] = useState(
-    () => !window.matchMedia(MOBILE_NAVIGATION_QUERY).matches,
+    () => activePage !== AI_CHAT_PAGE && !window.matchMedia(MOBILE_NAVIGATION_QUERY).matches,
   );
   const [headerVisible, setHeaderVisible] = useState(true);
   const workspaceRef = useRef(null);
+  const collapseAfterNavigationRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const scrollDistanceRef = useRef(0);
   const headerVisibleRef = useRef(true);
@@ -22,11 +24,20 @@ export function MainLayout({ activePage, children, onNavigate, onRefresh, refres
 
   useEffect(() => {
     const mobileNavigation = window.matchMedia(MOBILE_NAVIGATION_QUERY);
-    const handleViewportChange = (event) => setNavigationOpen(!event.matches);
+    const handleViewportChange = (event) => {
+      collapseAfterNavigationRef.current = false;
+      setNavigationOpen(activePage !== AI_CHAT_PAGE && !event.matches);
+    };
 
     mobileNavigation.addEventListener('change', handleViewportChange);
     return () => mobileNavigation.removeEventListener('change', handleViewportChange);
-  }, []);
+  }, [activePage]);
+
+  useEffect(() => {
+    if (activePage !== AI_CHAT_PAGE) return;
+    collapseAfterNavigationRef.current = false;
+    setNavigationOpen(false);
+  }, [activePage]);
 
   useEffect(() => {
     if (!navigationOpen) return undefined;
@@ -92,9 +103,22 @@ export function MainLayout({ activePage, children, onNavigate, onRefresh, refres
 
   function handleNavigate(pageId) {
     onNavigate(pageId);
-    if (window.matchMedia(MOBILE_NAVIGATION_QUERY).matches) {
+    if (pageId === AI_CHAT_PAGE
+      || window.matchMedia(MOBILE_NAVIGATION_QUERY).matches
+      || collapseAfterNavigationRef.current) {
+      collapseAfterNavigationRef.current = false;
       setNavigationOpen(false);
     }
+  }
+
+  function handleExpandNavigation() {
+    collapseAfterNavigationRef.current = true;
+    setNavigationOpen(true);
+  }
+
+  function handleToggleNavigation() {
+    collapseAfterNavigationRef.current = false;
+    setNavigationOpen((current) => !current);
   }
 
   return (
@@ -103,6 +127,7 @@ export function MainLayout({ activePage, children, onNavigate, onRefresh, refres
         activePage={activePage}
         collapsed={!navigationOpen}
         onNavigate={handleNavigate}
+        onExpandNavigation={handleExpandNavigation}
       />
       {navigationOpen && (
         <button
@@ -116,7 +141,7 @@ export function MainLayout({ activePage, children, onNavigate, onRefresh, refres
         <Header
           activePage={activePage}
           navigationOpen={navigationOpen}
-          onToggleNavigation={() => setNavigationOpen((current) => !current)}
+          onToggleNavigation={handleToggleNavigation}
           onRefresh={onRefresh}
         />
         <ToastHost />

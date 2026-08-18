@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.mcp.mapper.AgentExecutionHistoryMapper">
+    <insert id="insert" parameterType="com.hanwha.ai.mcp.domain.AgentExecutionHistory">
+        INSERT INTO agent_execution_history (
+            execution_id,
+            agent_id,
+            capability_id,
+            configuration_version,
+            route_kind,
+            target,
+            request_hash,
+            status,
+            started_at
+        ) VALUES (
+            #{executionId},
+            #{agentId},
+            #{capabilityId},
+            #{configurationVersion},
+            #{routeKind},
+            #{target},
+            #{requestHash},
+            #{status},
+            #{startedAt}
+        )
+    </insert>
+
+    <update id="markSucceeded">
+        UPDATE agent_execution_history
+        SET status = 'SUCCEEDED',
+            completed_at = #{completedAt},
+            duration_ms = #{durationMs}
+        WHERE execution_id = #{executionId}
+          AND status = 'STARTED'
+    </update>
+
+    <update id="markFailed">
+        UPDATE agent_execution_history
+        SET status = 'FAILED',
+            completed_at = #{completedAt},
+            duration_ms = #{durationMs},
+            error_type = #{errorType},
+            error_message = #{errorMessage}
+        WHERE execution_id = #{executionId}
+          AND status = 'STARTED'
+    </update>
+</mapper>

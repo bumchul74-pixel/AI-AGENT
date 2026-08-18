@@ -13,6 +13,7 @@ import com.hanwha.ai.global.exception.BusinessException;
 import com.hanwha.ai.llm.dto.LlmGenerateRequest;
 import com.hanwha.ai.llm.service.LlmClientFactory;
 import com.hanwha.ai.mcp.service.McpChatContextProvider;
+import com.hanwha.ai.mcp.service.McpChatContextResult;
 import com.hanwha.ai.rag.dto.RagSearchRequest;
 import com.hanwha.ai.rag.dto.HybridSearchResult;
 import com.hanwha.ai.rag.service.HybridSearchService;
@@ -78,7 +79,8 @@ public class ChatServiceImpl implements ChatService {
             ChatConversation conversation,
             List<ChatMessage> history
     ) {
-        List<String> mcpContexts = mcpChatContextProvider.resolveContext(request.message());
+        McpChatContextResult mcpResult = mcpChatContextProvider.resolve(request.message());
+        List<String> mcpContexts = mcpResult.contexts();
         String context = String.join("\n\n--- MCP RESULT ---\n\n", mcpContexts);
         String prompt = buildMcpPrompt(request, formatHistory(history));
         String answer = generateAnswer(prompt, context);
@@ -86,7 +88,7 @@ public class ChatServiceImpl implements ChatService {
 
         saveMessages(conversation.getId(), request.message(), answer, true, mcpReference);
 
-        return new ChatResponse(answer, mcpContexts, conversation.getId(), true, mcpReference);
+        return new ChatResponse(answer, mcpContexts, conversation.getId(), true, mcpReference, mcpResult.execution());
     }
 
     private String generateAnswer(String prompt, String context) {

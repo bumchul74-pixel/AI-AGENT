@@ -1,13 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { forceCollide, forceX, forceY } from 'd3-force-3d';
 import ForceGraph2D from 'react-force-graph-2d';
-import { FileCode, FolderTree, Network, RotateCcw, Search, X } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Boxes,
+  ChevronDown,
+  ChevronRight,
+  FileCode,
+  Folder,
+  FolderOpen,
+  FolderTree,
+  Network,
+  RotateCcw,
+  Search,
+  Table2,
+  Workflow,
+  X,
+} from 'lucide-react';
 import { fetchSourceGraphNodeSource, fetchSourceGraphOverview } from '../api/sourceGraphApi.js';
 import { isApiRequestError } from '../api/apiClient.js';
 import { Loading } from '../components/common/Loading.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { fetchKnowledgeProjects } from '../api/projectApi.js';
 import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
+import { PackageDependencyMatrix } from '../components/graph/PackageDependencyMatrix.jsx';
+import {
+  FLOW_COLUMNS,
+  buildClassImpactGraph,
+  buildLayerFlowGraph,
+  buildPackageContainerGraph,
+  buildPackageDependencyAnalysis,
+} from '../utils/sourceGraphAnalysis.js';
+
+const GRAPH_VIEWS = {
+  hierarchy: { label: '패키지 계층', description: '패키지 컨테이너와 내부 클래스를 함께 표시합니다.', icon: Boxes },
+  impact: { label: '클래스 영향도', description: '유입 의존성은 왼쪽, 유출 의존성은 오른쪽에 표시합니다.', icon: ArrowLeftRight },
+  flow: { label: '계층 흐름', description: 'Controller에서 Service와 Data Access를 거쳐 DB로 이어지는 흐름입니다.', icon: Workflow },
+  matrix: { label: 'Dependency Matrix', description: '패키지 간 방향별 의존 건수와 순환 의존성을 분석합니다.', icon: Table2 },
+};
 
 const TEXT = {
   title: 'Java Graph',
@@ -162,6 +191,27 @@ function graphNodeTextLines(node) {
   return [label.slice(0, 9), `${label.slice(9, 17)}..`];
 }
 
+function fitCanvasText(ctx, value, maxWidth) {
+  const text = String(value ?? '');
+  if (!text || ctx.measureText(text).width <= maxWidth) return text;
+  let low = 1;
+  let high = text.length;
+  let fitted = '...';
+  while (low <= high) {
+    const visibleLength = Math.floor((low + high) / 2);
+    const leadingLength = Math.ceil(visibleLength / 2);
+    const trailingLength = Math.floor(visibleLength / 2);
+    const candidate = `${text.slice(0, leadingLength)}...${text.slice(text.length - trailingLength)}`;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      fitted = candidate;
+      low = visibleLength + 1;
+    } else {
+      high = visibleLength - 1;
+    }
+  }
+  return fitted;
+}
+
 function estimateGraphNodeRadius(node) {
   const baseRadius = NODE_RADIUS_BY_ROLE[graphNodeRole(node)] ?? 34;
   const lines = graphNodeTextLines(node);
@@ -170,6 +220,55 @@ function estimateGraphNodeRadius(node) {
   const lineRadius = lines.length > 1 ? 40 : 32;
 
   return Math.ceil(Math.max(baseRadius, textRadius, lineRadius));
+}
+
+function visualNodeRadius(node) {
+  if (node.nodeKind === 'class') return 27;
+  if (node.nodeKind === 'impact') return node.impactSide === 'selected' ? 46 : 36;
+  if (node.nodeKind === 'flow') return 36;
+  if (node.nodeKind === 'database') return 40;
+  return estimateGraphNodeRadius(node);
+}
+
+function graphNodeBoundaryPoint(node, toward) {
+  const x = node.x ?? node.fx ?? 0;
+  const y = node.y ?? node.fy ?? 0;
+  const deltaX = (toward.x ?? 0) - x;
+  const deltaY = (toward.y ?? 0) - y;
+  const distance = Math.hypot(deltaX, deltaY) || 1;
+
+  if (node.nodeKind === 'package') {
+    const halfWidth = node.containerWidth / 2;
+    const halfHeight = node.containerHeight / 2;
+    const scale = Math.min(
+      deltaX === 0 ? Number.POSITIVE_INFINITY : halfWidth / Math.abs(deltaX),
+      deltaY === 0 ? Number.POSITIVE_INFINITY : halfHeight / Math.abs(deltaY),
+    );
+    return { x: x + deltaX * scale, y: y + deltaY * scale };
+  }
+
+  const radius = visualNodeRadius(node) + 1;
+  return { x: x + (deltaX / distance) * radius, y: y + (deltaY / distance) * radius };
+}
+
+function graphLinkBoundaryPoints(link) {
+  const { source, target } = link;
+  if (!source || !target || typeof source !== 'object' || typeof target !== 'object') return null;
+  const sourceCenter = { x: source.x ?? source.fx ?? 0, y: source.y ?? source.fy ?? 0 };
+  const targetCenter = { x: target.x ?? target.fx ?? 0, y: target.y ?? target.fy ?? 0 };
+
+  if (link.linkKind === 'contains' && source.nodeKind === 'package') {
+    const start = {
+      x: targetCenter.x,
+      y: (source.y ?? source.fy ?? 0) - source.containerHeight / 2 + 48,
+    };
+    return { start, end: graphNodeBoundaryPoint(target, start) };
+  }
+
+  return {
+    start: graphNodeBoundaryPoint(source, targetCenter),
+    end: graphNodeBoundaryPoint(target, sourceCenter),
+  };
 }
 
 function graphLinkNodeId(node) {
@@ -215,7 +314,127 @@ function buildPackageCatalog(graph) {
         .sort((left, right) => graphNodeDisplayName(left).localeCompare(graphNodeDisplayName(right))),
     };
   });
-  return { root, entries };
+  const entryByName = new Map(entries.map((entry) => [entry.name, entry]));
+  const tree = [];
+  const nodeByPath = new Map();
+
+  packageNames.forEach((packageName) => {
+    if (packageName === '(default package)') {
+      const defaultNode = {
+        id: packageName,
+        label: packageName,
+        path: packageName,
+        entry: entryByName.get(packageName),
+        children: [],
+      };
+      tree.push(defaultNode);
+      nodeByPath.set(packageName, defaultNode);
+      return;
+    }
+
+    let parentChildren = tree;
+    let path = '';
+    packageName.split('.').filter(Boolean).forEach((segment) => {
+      path = path ? `${path}.${segment}` : segment;
+      let node = nodeByPath.get(path);
+      if (!node) {
+        node = {
+          id: path,
+          label: segment,
+          path,
+          entry: null,
+          children: [],
+        };
+        nodeByPath.set(path, node);
+        parentChildren.push(node);
+      }
+      parentChildren = node.children;
+    });
+
+    const packageNode = nodeByPath.get(packageName);
+    if (packageNode) packageNode.entry = entryByName.get(packageName);
+  });
+
+  function countTreeTypes(node) {
+    const childTypeCount = node.children.reduce((sum, child) => sum + countTreeTypes(child), 0);
+    node.typeCount = (node.entry?.types.length ?? 0) + childTypeCount;
+    return node.typeCount;
+  }
+  tree.forEach(countTreeTypes);
+
+  return {
+    root,
+    entries,
+    tree,
+    expandableIds: [...nodeByPath.values()]
+      .filter((node) => node.children.length > 0)
+      .map((node) => node.id),
+  };
+}
+
+function PackageTreeNode({ node, depth, effectivePackage, expandedIds, onSelect, onToggle }) {
+  const hasChildren = node.children.length > 0;
+  const isExpanded = hasChildren && expandedIds.has(node.id);
+  const isActive = node.entry?.name === effectivePackage;
+
+  return (
+    <div
+      className="java-package-tree-node"
+      role="treeitem"
+      aria-expanded={hasChildren ? isExpanded : undefined}
+      aria-level={depth + 1}
+    >
+      <div className="java-package-tree-row" style={{ '--package-depth': depth }}>
+        {hasChildren ? (
+          <button
+            className="java-package-node-toggle"
+            type="button"
+            title={`${node.path} ${isExpanded ? '접기' : '펼치기'}`}
+            aria-label={`${node.path} ${isExpanded ? '접기' : '펼치기'}`}
+            onClick={() => onToggle(node.id)}
+          >
+            {isExpanded
+              ? <ChevronDown size={13} aria-hidden="true" />
+              : <ChevronRight size={13} aria-hidden="true" />}
+          </button>
+        ) : (
+          <span className="java-package-node-spacer" aria-hidden="true" />
+        )}
+        <button
+          className={`java-package-item${isActive ? ' is-active' : ''}${node.entry ? '' : ' is-branch'}`}
+          type="button"
+          title={node.entry ? node.entry.name : node.path}
+          aria-current={isActive ? 'true' : undefined}
+          onClick={() => (node.entry ? onSelect(node.entry.name) : onToggle(node.id))}
+        >
+          {isExpanded
+            ? <FolderOpen size={14} aria-hidden="true" />
+            : <Folder size={14} aria-hidden="true" />}
+          <span>
+            <strong>{node.label}</strong>
+            <small title={node.entry ? '이 패키지의 클래스 수' : '하위 패키지의 클래스 수'}>
+              {node.entry?.types.length ?? node.typeCount}
+            </small>
+          </span>
+        </button>
+      </div>
+      {isExpanded && (
+        <div role="group">
+          {node.children.map((child) => (
+            <PackageTreeNode
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              effectivePackage={effectivePackage}
+              expandedIds={expandedIds}
+              onSelect={onSelect}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function transformPackageGraph(graph, selectedPackage, showRelatedPackages = true) {
@@ -378,13 +597,17 @@ export function JavaGraphPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [graph, setGraph] = useState({ nodes: [], relationships: [] });
   const [selectedNode, setSelectedNode] = useState(null);
+  const [impactNodeId, setImpactNodeId] = useState('');
+  const [viewMode, setViewMode] = useState('hierarchy');
+  const [hierarchyLayoutRevision, setHierarchyLayoutRevision] = useState(0);
   const [focusedRole, setFocusedRole] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState([]);
   const [projectKey, setProjectKey] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('');
-  const [showRelatedPackages, setShowRelatedPackages] = useState(true);
+  const [expandedPackageNodes, setExpandedPackageNodes] = useState(() => new Set());
+  const [showClassDependencies, setShowClassDependencies] = useState(true);
   const [sourceModal, setSourceModal] = useState({
     open: false,
     node: null,
@@ -399,10 +622,62 @@ export function JavaGraphPage() {
     ? selectedPackage
     : packageCatalog.entries[0]?.name ?? '';
   const selectedPackageEntry = packageCatalog.entries.find((entry) => entry.name === effectivePackage);
-  const graphData = useMemo(
-    () => transformPackageGraph(graph, effectivePackage, showRelatedPackages),
-    [graph, effectivePackage, showRelatedPackages],
+  const hierarchyLayout = useMemo(
+    () => buildPackageContainerGraph(graph),
+    [graph, hierarchyLayoutRevision],
   );
+  const hierarchyGraph = useMemo(() => (
+    showClassDependencies ? hierarchyLayout : {
+      ...hierarchyLayout,
+      links: hierarchyLayout.links.filter((link) => link.linkKind !== 'dependency'),
+    }
+  ), [hierarchyLayout, showClassDependencies]);
+  const impactGraph = useMemo(
+    () => buildClassImpactGraph(graph, impactNodeId),
+    [graph, impactNodeId],
+  );
+  const flowGraph = useMemo(() => buildLayerFlowGraph(graph), [graph]);
+  const dependencyAnalysis = useMemo(() => buildPackageDependencyAnalysis(graph), [graph]);
+  const graphData = viewMode === 'impact'
+    ? impactGraph
+    : viewMode === 'flow' ? flowGraph : hierarchyGraph;
+  const viewMeta = GRAPH_VIEWS[viewMode];
+  const viewStats = viewMode === 'hierarchy'
+    ? [
+      ['패키지', hierarchyGraph.packageCount],
+      ['클래스', hierarchyGraph.classCount],
+      ['의존 관계', hierarchyGraph.dependencyCount],
+    ]
+    : viewMode === 'impact'
+      ? [
+        ['유입', impactGraph.incomingCount],
+        ['유출', impactGraph.outgoingCount],
+        ['관계', impactGraph.links.length],
+      ]
+      : viewMode === 'flow'
+        ? [
+          ['Controller', flowGraph.controllerCount],
+          ['Service', flowGraph.serviceCount],
+          ['DB', flowGraph.databaseCount],
+        ]
+        : [
+          ['패키지', dependencyAnalysis.packages.length],
+          ['의존 관계', dependencyAnalysis.dependencyCount],
+          ['순환 그룹', dependencyAnalysis.cycles.length],
+        ];
+
+  useEffect(() => {
+    setExpandedPackageNodes(new Set(packageCatalog.expandableIds));
+  }, [packageCatalog]);
+
+  function handlePackageNodeToggle(nodeId) {
+    setExpandedPackageNodes((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }
 
   async function loadGraph(nextQuery = submittedQuery) {
     setIsLoading(true);
@@ -413,10 +688,14 @@ export function JavaGraphPage() {
       const result = await fetchSourceGraphOverview({ query: nextQuery, limit: 1500, projectKey });
       setGraph(result);
       setSelectedNode(null);
+      setImpactNodeId('');
+      setViewMode('hierarchy');
       setFocusedRole(null);
     } catch (exception) {
       setGraph({ nodes: [], relationships: [] });
       setSelectedNode(null);
+      setImpactNodeId('');
+      setViewMode('hierarchy');
       setFocusedRole(null);
       setError(isApiRequestError(exception) ? '' : exception.message);
     } finally {
@@ -496,7 +775,84 @@ export function JavaGraphPage() {
   }
 
   function handleNodeClick(node) {
-    setSelectedNode(node);
+    if (node.nodeKind === 'package') {
+      handlePackageSelect(node.packageName);
+      return;
+    }
+    const rawNode = node.rawNode ?? node;
+    if (rawNode.label === 'JavaType') {
+      setImpactNodeId(rawNode.id);
+      setSelectedNode(null);
+      setFocusedRole(null);
+      setViewMode('impact');
+      return;
+    }
+    setSelectedNode(rawNode);
+  }
+
+  function handleViewModeChange(nextMode) {
+    if (nextMode === 'impact' && !impactNodeId) return;
+    setViewMode(nextMode);
+    setSelectedNode(null);
+    setFocusedRole(null);
+    closeSourceModal();
+  }
+
+  function fixGraphNodePosition(node, x, y) {
+    node.x = x;
+    node.y = y;
+    node.fx = x;
+    node.fy = y;
+  }
+
+  function handleHierarchyNodeDrag(node, translate = {}) {
+    if (viewMode !== 'hierarchy') return;
+
+    if (node.nodeKind === 'package') {
+      const deltaX = Number.isFinite(translate.x) ? translate.x : 0;
+      const deltaY = Number.isFinite(translate.y) ? translate.y : 0;
+      fixGraphNodePosition(node, node.x ?? node.fx ?? 0, node.y ?? node.fy ?? 0);
+      hierarchyLayout.nodes
+        .filter((candidate) => (
+          candidate.nodeKind === 'class' && candidate.packageName === node.packageName
+        ))
+        .forEach((child) => {
+          fixGraphNodePosition(
+            child,
+            (child.fx ?? child.x ?? 0) + deltaX,
+            (child.fy ?? child.y ?? 0) + deltaY,
+          );
+        });
+    } else if (node.nodeKind === 'class') {
+      const container = hierarchyLayout.nodes.find((candidate) => (
+        candidate.nodeKind === 'package' && candidate.packageName === node.packageName
+      ));
+      if (!container) return;
+      const containerX = container.fx ?? container.x ?? 0;
+      const containerY = container.fy ?? container.y ?? 0;
+      const radius = visualNodeRadius(node);
+      const minX = containerX - container.containerWidth / 2 + radius + 10;
+      const maxX = containerX + container.containerWidth / 2 - radius - 10;
+      const minY = containerY - container.containerHeight / 2 + radius + 48;
+      const maxY = containerY + container.containerHeight / 2 - radius - 10;
+      fixGraphNodePosition(
+        node,
+        Math.min(maxX, Math.max(minX, node.x ?? node.fx ?? 0)),
+        Math.min(maxY, Math.max(minY, node.y ?? node.fy ?? 0)),
+      );
+    }
+
+    forceGraphRef.current?.refresh?.();
+  }
+
+  function handleHierarchyNodeDragEnd(node) {
+    if (viewMode !== 'hierarchy') return;
+    fixGraphNodePosition(node, node.fx ?? node.x ?? 0, node.fy ?? node.y ?? 0);
+    forceGraphRef.current?.refresh?.();
+  }
+
+  function handleHierarchyLayoutReset() {
+    setHierarchyLayoutRevision((current) => current + 1);
   }
 
   function handleLegendClick(role) {
@@ -554,29 +910,31 @@ export function JavaGraphPage() {
   }, [selectedNode, sourceModal.open]);
 
   useEffect(() => {
-    if (!forceGraphRef.current || graphData.nodes.length === 0) {
+    if (!forceGraphRef.current || graphData.nodes.length === 0 || viewMode === 'matrix') {
       return undefined;
     }
 
     const graphInstance = forceGraphRef.current;
     const linkForce = graphInstance.d3Force('link');
     const chargeForce = graphInstance.d3Force('charge');
-
-    linkForce?.distance(graphLinkDistance).strength(0.18);
-    chargeForce?.strength(-900).distanceMin(120).distanceMax(1200);
-    graphInstance.d3Force('collide', forceCollide((node) => estimateGraphNodeRadius(node) + 30).strength(1).iterations(4));
-    graphInstance.d3Force('x', forceX((node) => (
-      node.graphScope === 'related-package' ? 300 : -80
-    )).strength(0.035));
-    graphInstance.d3Force('y', forceY(0).strength(0.018));
+    linkForce?.distance((link) => {
+      if (link.linkKind === 'contains') return 30;
+      if (link.linkKind === 'package-hierarchy') return 220;
+      if (link.linkKind === 'impact') return 320;
+      return 180;
+    }).strength(0);
+    chargeForce?.strength(0);
+    graphInstance.d3Force('collide', null);
+    graphInstance.d3Force('x', null);
+    graphInstance.d3Force('y', null);
     graphInstance.d3ReheatSimulation?.();
 
     const timer = window.setTimeout(() => {
-      graphInstance.zoomToFit?.(700, 90);
-    }, 900);
+      graphInstance.zoomToFit?.(500, viewMode === 'hierarchy' ? 48 : 100);
+    }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [graphData, graphSize.width, graphSize.height]);
+  }, [graphData, graphSize.width, graphSize.height, viewMode]);
 
   useEffect(() => {
     if (!forceGraphRef.current || graphData.nodes.length === 0) return undefined;
@@ -600,6 +958,7 @@ export function JavaGraphPage() {
 
   const sourceDetail = sourceModal.source;
   const sourceTitle = sourceDetail?.name || (sourceModal.node ? graphNodeName(sourceModal.node) : TEXT.sourceModalTitle);
+  const ActiveViewIcon = viewMeta.icon;
 
   return (
     <section className="java-graph-page">
@@ -645,45 +1004,79 @@ export function JavaGraphPage() {
         <section className="card java-graph-panel">
           <div className="java-graph-toolbar">
             <div className="panel-title">
-              <Network size={18} />
+              <ActiveViewIcon size={18} />
               <div>
-                <h2>{TEXT.graphTitle}</h2>
-                <p>{effectivePackage || (submittedQuery ? submittedQuery : '패키지를 선택해 주세요.')}</p>
+                <h2>{viewMeta.label}</h2>
+                <p>{viewMeta.description}</p>
               </div>
             </div>
             <div className="java-graph-toolbar-side">
               <div className="java-graph-stats">
-                <span>패키지 클래스: <strong>{graphData.selectedTypeCount}</strong></span>
-                <span>외부 연결: <strong>{graphData.relatedTypeCount}</strong></span>
-                <span>{TEXT.links}: <strong>{graphData.links.length}</strong></span>
+                {viewStats.map(([label, value]) => (
+                  <span key={label}>{label}: <strong>{value}</strong></span>
+                ))}
               </div>
-              <div className="java-graph-legend" aria-label="Node color legend">
-                {NODE_LEGEND.map((item) => {
-                  const role = LEGEND_ROLE_BY_LABEL[item.label];
-                  return (
-                  <button
-                    className={`java-graph-legend-item${focusedRole === role ? ' is-active' : ''}`}
-                    key={item.label}
-                    type="button"
-                    title={item.meaning}
-                    aria-label={`${item.label}: ${item.meaning}`}
-                    aria-pressed={focusedRole === role}
-                    onClick={() => handleLegendClick(role)}
-                  >
-                    <i style={{ backgroundColor: item.color }} aria-hidden="true" />
-                    <strong>{item.label}</strong>
-                  </button>
-                  );
-                })}
-              </div>
+              {viewMode !== 'matrix' && (
+                <div className="java-graph-legend" aria-label="Node color legend">
+                  {NODE_LEGEND.map((item) => {
+                    const role = LEGEND_ROLE_BY_LABEL[item.label];
+                    return (
+                    <button
+                      className={`java-graph-legend-item${focusedRole === role ? ' is-active' : ''}`}
+                      key={item.label}
+                      type="button"
+                      title={item.meaning}
+                      aria-label={`${item.label}: ${item.meaning}`}
+                      aria-pressed={focusedRole === role}
+                      onClick={() => handleLegendClick(role)}
+                    >
+                      <i style={{ backgroundColor: item.color }} aria-hidden="true" />
+                      <strong>{item.label}</strong>
+                    </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
+
+          <div className="java-graph-view-tabs" role="tablist" aria-label="Java Graph 보기">
+            {Object.entries(GRAPH_VIEWS).map(([mode, meta]) => {
+              const ViewIcon = meta.icon;
+              return (
+                <button
+                  key={mode}
+                  className={viewMode === mode ? 'is-active' : ''}
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === mode}
+                  disabled={mode === 'impact' && !impactNodeId}
+                  onClick={() => handleViewModeChange(mode)}
+                >
+                  <ViewIcon size={15} aria-hidden="true" />
+                  <span>{meta.label}</span>
+                  {mode === 'matrix' && dependencyAnalysis.cycles.length > 0 && (
+                    <small>{dependencyAnalysis.cycles.length}</small>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {viewMode === 'hierarchy' && (
+            <div className="java-graph-layout-actions">
+              <span>패키지를 끌면 내부 클래스가 함께 이동합니다.</span>
+              <button type="button" onClick={handleHierarchyLayoutReset}>
+                <RotateCcw size={13} aria-hidden="true" />
+                레이아웃 초기화
+              </button>
+            </div>
+          )}
 
           {error && <p className="error-text">{error}</p>}
 
           {isLoading ? (
             <Loading />
-          ) : graphData.nodes.length === 0 ? (
+          ) : hierarchyGraph.nodes.length === 0 ? (
             <div className="empty-result">
               <strong>{TEXT.emptyTitle}</strong>
               <span>{TEXT.emptyDescription}</span>
@@ -699,35 +1092,29 @@ export function JavaGraphPage() {
                   </div>
                 </div>
 
-                <div className="java-package-tree">
-                  {packageCatalog.entries.map((entry) => (
-                    <button
-                      className={`java-package-item${entry.name === effectivePackage ? ' is-active' : ''}`}
-                      key={entry.name}
-                      type="button"
-                      title={entry.name}
-                      aria-pressed={entry.name === effectivePackage}
-                      style={{ '--package-depth': Math.min(entry.depth, 4) }}
-                      onClick={() => handlePackageSelect(entry.name)}
-                    >
-                      <FolderTree size={14} aria-hidden="true" />
-                      <span>
-                        <strong>{entry.relativeName}</strong>
-                        <small>{entry.types.length}</small>
-                      </span>
-                    </button>
+                <div className="java-package-tree" role="tree" aria-label="프로젝트 패키지 계층">
+                  {packageCatalog.tree.map((node) => (
+                    <PackageTreeNode
+                      key={node.id}
+                      node={node}
+                      depth={0}
+                      effectivePackage={effectivePackage}
+                      expandedIds={expandedPackageNodes}
+                      onSelect={handlePackageSelect}
+                      onToggle={handlePackageNodeToggle}
+                    />
                   ))}
                 </div>
 
                 <label className="java-related-package-toggle">
                   <input
                     type="checkbox"
-                    checked={showRelatedPackages}
-                    onChange={(event) => setShowRelatedPackages(event.target.checked)}
+                    checked={showClassDependencies}
+                    onChange={(event) => setShowClassDependencies(event.target.checked)}
                   />
                   <span>
-                    <strong>외부 패키지 관계</strong>
-                    <small>직접 연결된 내부 소스만 표시</small>
+                    <strong>클래스 의존 관계</strong>
+                    <small>패키지 간 클래스 연결선 표시</small>
                   </span>
                 </label>
 
@@ -741,8 +1128,8 @@ export function JavaGraphPage() {
                       <button
                         key={node.id}
                         type="button"
-                        title={`${graphNodeDisplayName(node)} 원문 보기`}
-                        onClick={() => openNodeSource(node)}
+                        title={`${graphNodeDisplayName(node)} 영향도 보기`}
+                        onClick={() => handleNodeClick(node)}
                       >
                         <FileCode size={13} aria-hidden="true" />
                         <span>
@@ -756,102 +1143,267 @@ export function JavaGraphPage() {
 
                 <div className="java-package-scope-legend">
                   <span><i />선택 패키지</span>
-                  <span><i className="is-related" />외부 패키지</span>
+                  <span><i className="is-related" />클래스 의존</span>
                 </div>
               </aside>
 
-              <div className="java-graph-canvas" ref={graphRef}>
-              <ForceGraph2D
-                ref={forceGraphRef}
-                width={graphSize.width}
-                height={graphSize.height}
-                graphData={graphData}
-                nodeLabel={(node) => `${node.graphScope === 'related-package' ? '외부 패키지 · ' : ''}${graphNodeRole(node)}: ${graphNodeName(node)}${node.packageName ? `\n${node.packageName}` : ''}`}
-                nodeColor={graphNodeColor}
-                nodeRelSize={11}
-                nodeVal={(node) => Math.max(10, estimateGraphNodeRadius(node) / 3)}
-                d3AlphaDecay={0.018}
-                d3VelocityDecay={0.28}
-                linkDistance={graphLinkDistance}
-                linkWidth={(link) => {
-                  const sourceId = graphLinkNodeId(link.source);
-                  const targetId = graphLinkNodeId(link.target);
-                  const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
-                  const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
-                  if (focusedRole) return sourceRole === focusedRole || targetRole === focusedRole ? 2 : 0.7;
-                  return selectedNode && (sourceId === selectedNode.id || targetId === selectedNode.id) ? 2.4 : 1.1;
-                }}
-                linkColor={(link) => {
-                  const sourceId = graphLinkNodeId(link.source);
-                  const targetId = graphLinkNodeId(link.target);
-                  const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
-                  const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
-                  if (focusedRole) {
-                    return sourceRole === focusedRole || targetRole === focusedRole
-                      ? 'rgba(17, 24, 39, 0.62)'
-                      : 'rgba(148, 163, 184, 0.12)';
-                  }
-                  return selectedNode && (sourceId === selectedNode.id || targetId === selectedNode.id)
-                    ? 'rgba(17, 24, 39, 0.72)'
-                    : 'rgba(71, 85, 105, 0.38)';
-                }}
-                linkDirectionalArrowLength={7}
-                linkDirectionalArrowRelPos={1}
-                linkLabel={(link) => link.type}
-                warmupTicks={80}
-                cooldownTicks={260}
-                enableNodeDrag
-                onNodeClick={handleNodeClick}
-                onNodeDragEnd={(node) => {
-                  node.fx = node.x;
-                  node.fy = node.y;
-                }}
-                onBackgroundClick={() => {
-                  setSelectedNode(null);
-                }}
-                nodePointerAreaPaint={(node, color, ctx) => {
-                  const radius = estimateGraphNodeRadius(node) + 10;
-                  ctx.fillStyle = color;
-                  ctx.beginPath();
-                  ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
-                  ctx.fill();
-                }}
-                nodeCanvasObject={(node, ctx, globalScale) => {
-                  const lines = graphNodeTextLines(node);
-                  const radius = estimateGraphNodeRadius(node);
-                  const fontSize = Math.max(9, Math.min(12, 12 / Math.sqrt(globalScale)));
-                  const lineHeight = fontSize + 2;
-                  const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
+              <div className={`java-graph-main-view is-${viewMode}`}>
+                {viewMode === 'matrix' ? (
+                  <PackageDependencyMatrix
+                    analysis={dependencyAnalysis}
+                    selectedPackage={effectivePackage}
+                    onSelectPackage={handlePackageSelect}
+                  />
+                ) : graphData.nodes.length === 0 ? (
+                  <div className="empty-result java-graph-mode-empty">
+                    <strong>{viewMode === 'impact'
+                      ? '선택한 클래스의 직접 영향 관계가 없습니다.'
+                      : 'Controller → Service → DB 흐름을 구성할 관계가 없습니다.'}</strong>
+                    <span>Source Graph에 해당 방향 관계가 적재되었는지 확인해 주세요.</span>
+                  </div>
+                ) : (
+                  <div className="java-graph-canvas" ref={graphRef}>
+                    {viewMode === 'impact' && impactGraph.selected && (
+                      <>
+                        <div className="java-impact-selected">
+                          <span>선택 클래스</span>
+                          <strong>{graphNodeDisplayName(impactGraph.selected)}</strong>
+                          <small>{graphNodeRole(impactGraph.selected)} · {javaTypePackage(impactGraph.selected)}</small>
+                          <button type="button" onClick={() => openNodeSource(impactGraph.selected)}>
+                            <FileCode size={13} aria-hidden="true" />
+                            원문 보기
+                          </button>
+                        </div>
+                        <div className="java-impact-axis" aria-hidden="true">
+                          <span>유입 의존성</span>
+                          <span>선택 클래스</span>
+                          <span>유출 의존성</span>
+                        </div>
+                      </>
+                    )}
+                    {viewMode === 'flow' && (
+                      <div className="java-flow-axis" aria-hidden="true">
+                        {FLOW_COLUMNS.map((column) => <span key={column.key}>{column.label}</span>)}
+                      </div>
+                    )}
+                    <ForceGraph2D
+                      ref={forceGraphRef}
+                      width={graphSize.width}
+                      height={graphSize.height}
+                      graphData={graphData}
+                      nodeLabel={(node) => node.nodeKind === 'package'
+                        ? `${node.packageName} · ${node.classCount} classes`
+                        : `${graphNodeRole(node)}: ${graphNodeName(node)}${node.packageName ? `\n${node.packageName}` : ''}`}
+                      nodeColor={graphNodeColor}
+                      nodeRelSize={8}
+                      nodeVal={(node) => node.nodeKind === 'package' ? 1 : visualNodeRadius(node) / 3}
+                      d3AlphaDecay={1}
+                      d3VelocityDecay={1}
+                      linkCanvasObjectMode={() => 'replace'}
+                      linkCanvasObject={(link, ctx, globalScale) => {
+                        const points = graphLinkBoundaryPoints(link);
+                        if (!points) return;
+                        const { start, end } = points;
+                        const deltaX = end.x - start.x;
+                        const deltaY = end.y - start.y;
+                        const distance = Math.hypot(deltaX, deltaY);
+                        if (distance < 1) return;
+                        const unitX = deltaX / distance;
+                        const unitY = deltaY / distance;
+                        const hasArrow = link.linkKind !== 'contains' && link.linkKind !== 'package-hierarchy';
+                        const arrowLength = hasArrow ? 8 : 0;
+                        const lineEndX = end.x - unitX * arrowLength;
+                        const lineEndY = end.y - unitY * arrowLength;
+                        const sourceRole = graphNodeRole(link.source);
+                        const targetRole = graphNodeRole(link.target);
+                        const isFocused = !focusedRole || sourceRole === focusedRole || targetRole === focusedRole;
+                        const color = link.linkKind === 'contains'
+                          ? 'rgba(148, 163, 184, 0.22)'
+                          : link.linkKind === 'package-hierarchy'
+                            ? 'rgba(37, 99, 235, 0.38)'
+                            : link.linkKind === 'impact'
+                              ? 'rgba(15, 118, 110, 0.72)'
+                              : link.linkKind === 'flow'
+                                ? 'rgba(37, 99, 235, 0.68)'
+                                : isFocused ? 'rgba(71, 85, 105, 0.48)' : 'rgba(148, 163, 184, 0.08)';
+                        const width = link.linkKind === 'contains'
+                          ? 0.45
+                          : link.linkKind === 'package-hierarchy'
+                            ? 1.8
+                            : link.linkKind === 'impact' || link.linkKind === 'flow'
+                              ? 2.1
+                              : focusedRole ? (isFocused ? 2 : 0.35) : 0.9;
 
-                  ctx.save();
-                  const isRelatedPackage = node.graphScope === 'related-package';
-                  if (isRelatedPackage) ctx.globalAlpha = 0.72;
-                  if (focusedRole && graphNodeRole(node) !== focusedRole) ctx.globalAlpha = 0.16;
-                  ctx.beginPath();
-                  ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
-                  ctx.fillStyle = graphNodeColor(node);
-                  ctx.fill();
-                  ctx.lineWidth = selectedNode?.id === node.id ? 4 : 2;
-                  ctx.strokeStyle = selectedNode?.id === node.id
-                    ? '#111827'
-                    : isRelatedPackage ? '#334155' : '#ffffff';
-                  ctx.setLineDash(isRelatedPackage ? [6, 4] : []);
-                  ctx.stroke();
-                  ctx.setLineDash([]);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(start.x, start.y);
+                        ctx.lineTo(lineEndX, lineEndY);
+                        ctx.lineWidth = Math.max(width, 0.75 / globalScale);
+                        ctx.strokeStyle = color;
+                        ctx.stroke();
+                        if (hasArrow) {
+                          const arrowWidth = 4.5;
+                          const baseX = end.x - unitX * arrowLength;
+                          const baseY = end.y - unitY * arrowLength;
+                          ctx.beginPath();
+                          ctx.moveTo(end.x, end.y);
+                          ctx.lineTo(baseX - unitY * arrowWidth, baseY + unitX * arrowWidth);
+                          ctx.lineTo(baseX + unitY * arrowWidth, baseY - unitX * arrowWidth);
+                          ctx.closePath();
+                          ctx.fillStyle = color;
+                          ctx.fill();
+                        }
+                        ctx.restore();
+                      }}
+                      linkWidth={(link) => {
+                        if (link.linkKind === 'contains') return 0.45;
+                        if (link.linkKind === 'package-hierarchy') return 1.8;
+                        if (link.linkKind === 'impact' || link.linkKind === 'flow') return 2.1;
+                        const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
+                        const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
+                        if (focusedRole) return sourceRole === focusedRole || targetRole === focusedRole ? 2 : 0.35;
+                        return 0.9;
+                      }}
+                      linkColor={(link) => {
+                        if (link.linkKind === 'contains') return 'rgba(148, 163, 184, 0.22)';
+                        if (link.linkKind === 'package-hierarchy') return 'rgba(37, 99, 235, 0.38)';
+                        if (link.linkKind === 'impact') return 'rgba(15, 118, 110, 0.72)';
+                        if (link.linkKind === 'flow') return 'rgba(37, 99, 235, 0.68)';
+                        if (focusedRole) {
+                          const sourceRole = typeof link.source === 'object' ? graphNodeRole(link.source) : null;
+                          const targetRole = typeof link.target === 'object' ? graphNodeRole(link.target) : null;
+                          return sourceRole === focusedRole || targetRole === focusedRole
+                            ? 'rgba(17, 24, 39, 0.58)'
+                            : 'rgba(148, 163, 184, 0.08)';
+                        }
+                        return 'rgba(71, 85, 105, 0.28)';
+                      }}
+                      linkDirectionalArrowLength={0}
+                      linkLabel={(link) => link.type}
+                      warmupTicks={1}
+                      cooldownTicks={1}
+                      enableNodeDrag={viewMode === 'hierarchy'}
+                      onNodeDrag={handleHierarchyNodeDrag}
+                      onNodeDragEnd={handleHierarchyNodeDragEnd}
+                      onNodeClick={handleNodeClick}
+                      onBackgroundClick={() => setSelectedNode(null)}
+                      nodePointerAreaPaint={(node, color, ctx) => {
+                        const x = node.x ?? node.fx ?? 0;
+                        const y = node.y ?? node.fy ?? 0;
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        if (node.nodeKind === 'package') {
+                          ctx.rect(
+                            x - node.containerWidth / 2,
+                            y - node.containerHeight / 2,
+                            node.containerWidth,
+                            node.containerHeight,
+                          );
+                        } else if (node.nodeKind === 'class') {
+                          const radius = visualNodeRadius(node);
+                          ctx.rect(x - 62, y - radius - 8, 124, radius * 2 + 48);
+                        } else {
+                          ctx.arc(x, y, visualNodeRadius(node) + 8, 0, 2 * Math.PI, false);
+                        }
+                        ctx.fill();
+                      }}
+                      nodeCanvasObject={(node, ctx, globalScale) => {
+                        const x = node.x ?? node.fx ?? 0;
+                        const y = node.y ?? node.fy ?? 0;
+                        ctx.save();
+                        if (node.nodeKind === 'package') {
+                          const left = x - node.containerWidth / 2;
+                          const top = y - node.containerHeight / 2;
+                          const isSelectedPackage = node.packageName === effectivePackage;
+                          ctx.beginPath();
+                          ctx.roundRect(left, top, node.containerWidth, node.containerHeight, 18);
+                          ctx.fillStyle = isSelectedPackage
+                            ? 'rgba(37, 99, 235, 0.13)'
+                            : 'rgba(226, 232, 240, 0.72)';
+                          ctx.fill();
+                          ctx.lineWidth = isSelectedPackage ? 4 : 2;
+                          ctx.strokeStyle = isSelectedPackage ? '#2563eb' : '#94a3b8';
+                          ctx.stroke();
+                          ctx.beginPath();
+                          ctx.roundRect(left + 3, top + 3, node.containerWidth - 6, 44, 14);
+                          ctx.fillStyle = isSelectedPackage ? 'rgba(239, 246, 255, 0.98)' : 'rgba(255, 255, 255, 0.94)';
+                          ctx.fill();
+                          ctx.beginPath();
+                          ctx.moveTo(left + 12, top + 48);
+                          ctx.lineTo(left + node.containerWidth - 12, top + 48);
+                          ctx.lineWidth = 1;
+                          ctx.strokeStyle = isSelectedPackage ? '#93c5fd' : '#cbd5e1';
+                          ctx.stroke();
+                          const countText = `${node.classCount} classes`;
+                          ctx.font = '800 11px Segoe UI, sans-serif';
+                          const countWidth = Math.ceil(ctx.measureText(countText).width) + 18;
+                          const countLeft = left + node.containerWidth - countWidth - 14;
+                          ctx.beginPath();
+                          ctx.roundRect(countLeft, top + 13, countWidth, 22, 11);
+                          ctx.fillStyle = isSelectedPackage ? '#dbeafe' : '#e2e8f0';
+                          ctx.fill();
+                          ctx.fillStyle = isSelectedPackage ? '#1d4ed8' : '#475569';
+                          ctx.textAlign = 'center';
+                          ctx.textBaseline = 'middle';
+                          ctx.fillText(countText, countLeft + countWidth / 2, top + 24);
+                          ctx.fillStyle = isSelectedPackage ? '#1d4ed8' : '#334155';
+                          ctx.font = '800 17px Segoe UI, sans-serif';
+                          ctx.textAlign = 'left';
+                          const packageLabel = fitCanvasText(ctx, node.packageName, Math.max(60, countLeft - left - 30));
+                          ctx.fillText(packageLabel, left + 16, top + 24);
+                          ctx.restore();
+                          return;
+                        }
 
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  ctx.font = `800 ${fontSize}px Segoe UI, sans-serif`;
-                  ctx.fillStyle = '#ffffff';
-                  ctx.shadowColor = 'rgba(15, 23, 42, 0.5)';
-                  ctx.shadowBlur = 2;
-                  lines.forEach((line, index) => {
-                    ctx.fillText(line, node.x, startY + index * lineHeight);
-                  });
-                  ctx.shadowBlur = 0;
-                  ctx.restore();
-                }}
-              />
+                        const lines = graphNodeTextLines(node);
+                        const radius = visualNodeRadius(node);
+                        const fontSize = Math.max(9, Math.min(12, 12 / Math.sqrt(globalScale)));
+                        const lineHeight = fontSize + 2;
+                        const startY = y - ((lines.length - 1) * lineHeight) / 2;
+                        if (focusedRole && graphNodeRole(node) !== focusedRole) ctx.globalAlpha = 0.14;
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = graphNodeColor(node);
+                        ctx.fill();
+                        ctx.lineWidth = node.impactSide === 'selected' ? 5 : 2;
+                        ctx.strokeStyle = node.impactSide === 'selected' ? '#111827' : '#ffffff';
+                        ctx.stroke();
+                        if (node.nodeKind === 'class') {
+                          const labelTop = y + radius + 7;
+                          ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+                          ctx.shadowBlur = 5;
+                          ctx.font = '800 13px Segoe UI, sans-serif';
+                          const classLabel = fitCanvasText(ctx, graphNodeDisplayName(node), 104);
+                          const labelWidth = Math.max(66, Math.ceil(ctx.measureText(classLabel).width) + 18);
+                          ctx.beginPath();
+                          ctx.roundRect(x - labelWidth / 2, labelTop, labelWidth, 25, 8);
+                          ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+                          ctx.fill();
+                          ctx.shadowBlur = 0;
+                          ctx.lineWidth = 1.5;
+                          ctx.strokeStyle = '#94a3b8';
+                          ctx.stroke();
+                          ctx.fillStyle = '#0f172a';
+                          ctx.textAlign = 'center';
+                          ctx.textBaseline = 'middle';
+                          ctx.fillText(classLabel, x, labelTop + 12.5);
+                          ctx.restore();
+                          return;
+                        }
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = `800 ${fontSize}px Segoe UI, sans-serif`;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = 'rgba(15, 23, 42, 0.5)';
+                        ctx.shadowBlur = 2;
+                        lines.forEach((line, index) => {
+                          ctx.fillText(line, x, startY + index * lineHeight);
+                        });
+                        ctx.restore();
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -860,8 +1412,7 @@ export function JavaGraphPage() {
         {selectedNode && (
           <aside
             className="card java-graph-detail-panel"
-            role="dialog"
-            aria-modal="true"
+            role="region"
             aria-labelledby="java-graph-detail-title"
           >
           <div className="panel-title">

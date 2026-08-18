@@ -5,6 +5,7 @@ import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
+import { HighlightedSourceViewer } from '../components/rag/HighlightedSourceViewer.jsx';
 import { useRagSearch } from '../hooks/useRagSearch.js';
 import { fetchKnowledgeProjects } from '../api/projectApi.js';
 
@@ -34,6 +35,7 @@ export function RagSearchPage() {
   const [query, setQuery] = useState('');
   const [topK, setTopK] = useState('5');
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const [javaFileCount, setJavaFileCount] = useState(0);
   const [projects, setProjects] = useState([]);
   const [projectKey, setProjectKey] = useState('');
@@ -74,6 +76,9 @@ export function RagSearchPage() {
     });
 
     setSelectedIndex(result && result.length > 0 ? 0 : null);
+    if (result) {
+      setSubmittedQuery(query.trim());
+    }
     loadStats();
   }
 
@@ -165,7 +170,7 @@ export function RagSearchPage() {
           </div>
 
           {selectedDocument ? (
-            <pre className="rag-detail-content">{selectedDocument}</pre>
+            <HighlightedSourceViewer source={selectedDocument} query={submittedQuery} />
           ) : (
             <div className="empty-result">{TEXT.emptyDetail}</div>
           )}

@@ -1,0 +1,288 @@
+{
+  "maxParallelism": 4,
+  "agents": [
+    {
+      "id": "source-agent",
+      "name": "Source Analysis Agent",
+      "enabled": true,
+      "executor": "mcp",
+      "server": "ai-mcp",
+      "capabilities": [
+        {
+          "id": "source.search",
+          "tool": "search_source_ontology",
+          "enabled": true,
+          "intents": ["java-source-search", "dependency-search", "impact-analysis"],
+          "argumentResolver": "source-ontology",
+          "priority": 110,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 2,
+          "retryBackoffMs": 200,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "project.structure",
+          "tool": "analyze_project_structure",
+          "enabled": true,
+          "intents": ["project-structure-analysis"],
+          "argumentResolver": "project-path",
+          "priority": 90,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        }
+      ]
+    },
+    {
+      "id": "database-agent",
+      "name": "Database Agent",
+      "enabled": true,
+      "executor": "mcp",
+      "server": "ai-mcp",
+      "capabilities": [
+        {
+          "id": "database.foreign-keys",
+          "tool": "describe_database_foreign_keys",
+          "enabled": true,
+          "intents": ["database-foreign-key-detail"],
+          "argumentResolver": "database-table",
+          "priority": 160,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.columns",
+          "tool": "describe_database_table_columns",
+          "enabled": true,
+          "intents": ["database-column-detail"],
+          "argumentResolver": "database-table",
+          "priority": 150,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.mybatis-mapper",
+          "tool": "generate_mybatis_mapper",
+          "enabled": true,
+          "intents": ["mybatis-mapper-generation"],
+          "argumentResolver": "mybatis-mapper",
+          "priority": 140,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": ["database.columns"],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.comments",
+          "tool": "describe_database_comments",
+          "enabled": true,
+          "intents": ["database-comment-detail"],
+          "argumentResolver": "database-table",
+          "priority": 130,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.indexes",
+          "tool": "describe_database_indexes",
+          "enabled": true,
+          "intents": ["database-index-detail"],
+          "argumentResolver": "database-table",
+          "priority": 120,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.search",
+          "tool": "search_database_tables",
+          "enabled": true,
+          "intents": ["database-table-search"],
+          "argumentResolver": "database-search",
+          "priority": 100,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "database.table-list",
+          "tool": "list_database_tables",
+          "enabled": true,
+          "intents": ["database-table-list"],
+          "argumentResolver": "database-table-list",
+          "priority": 80,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        }
+      ]
+    },
+    {
+      "id": "secure-coding-agent",
+      "name": "Secure Coding Agent",
+      "enabled": true,
+      "executor": "mcp",
+      "server": "ai-mcp",
+      "capabilities": [
+        {
+          "id": "security.project-scan",
+          "tool": "scan_project",
+          "enabled": true,
+          "intents": ["secure-project-scan"],
+          "argumentResolver": "scan-path",
+          "priority": 50,
+          "timeoutMs": 120000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "security.source-scan",
+          "tool": "scan_source",
+          "enabled": true,
+          "intents": ["secure-source-scan"],
+          "argumentResolver": "scan-source",
+          "priority": 40,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "security.file-scan",
+          "tool": "scan_file",
+          "enabled": true,
+          "intents": ["secure-file-scan"],
+          "argumentResolver": "scan-path",
+          "priority": 30,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "security.rule-list",
+          "tool": "list_rules",
+          "enabled": true,
+          "intents": ["secure-rule-list"],
+          "argumentResolver": "none",
+          "priority": 10,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 2,
+          "retryBackoffMs": 200,
+          "fallbackCapabilityIds": []
+        }
+      ]
+    },
+    {
+      "id": "ocr-agent",
+      "name": "OCR Agent",
+      "enabled": true,
+      "executor": "mcp",
+      "server": "ai-mcp",
+      "capabilities": [
+        {
+          "id": "ocr.document",
+          "tool": "ocr_document_base64",
+          "enabled": true,
+          "intents": ["ocr-document"],
+          "argumentResolver": "ocr-document-base64",
+          "priority": 170,
+          "timeoutMs": 120000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "ocr.image-base64",
+          "tool": "ocr_image_base64",
+          "enabled": true,
+          "intents": ["ocr-image-base64"],
+          "argumentResolver": "ocr-image-base64",
+          "priority": 70,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        },
+        {
+          "id": "ocr.image-file",
+          "tool": "ocr_image_file",
+          "enabled": true,
+          "intents": ["ocr-image-file"],
+          "argumentResolver": "ocr-image-file",
+          "priority": 60,
+          "timeoutMs": 60000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 1,
+          "retryBackoffMs": 100,
+          "fallbackCapabilityIds": []
+        }
+      ]
+    },
+    {
+      "id": "system-agent",
+      "name": "MCP System Agent",
+      "enabled": true,
+      "executor": "mcp",
+      "server": "ai-mcp",
+      "capabilities": [
+        {
+          "id": "server.info",
+          "tool": "get_server_info",
+          "enabled": true,
+          "intents": ["server-information"],
+          "argumentResolver": "server-info",
+          "priority": 20,
+          "timeoutMs": 30000,
+          "requiresApproval": false,
+          "dependencies": [],
+          "maxAttempts": 2,
+          "retryBackoffMs": 200,
+          "fallbackCapabilityIds": []
+        }
+      ]
+    }
+  ]
+}

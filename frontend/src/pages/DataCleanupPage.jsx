@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-reac
 import { deleteCleanupTargets, fetchCleanupTargets } from '../api/dataOperationApi.js';
 import { isApiRequestError } from '../api/apiClient.js';
 import { Button } from '../components/common/Button.jsx';
+import { DataTable } from '../components/common/DataTable.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 import { formatDateTime } from '../utils/dateUtils.js';
@@ -188,30 +189,53 @@ export function DataCleanupPage() {
           <div><h2>삭제 대상 선택</h2><p>전체 {totalCount}개 중 {documents.length}개 로드 · {selectedIds.length}개 선택</p></div>
           <Button icon={RefreshCw} variant="secondary" onClick={() => loadTargets()} disabled={!projectKey || isLoading || isLoadingMore || isDeleting}>새로고침</Button>
         </div>
+        <div className="cleanup-count-summary" aria-label={'\uC0AD\uC81C \uB300\uC0C1 \uAC74\uC218 \uC694\uC57D'}>
+          <article className="cleanup-count-total">
+            <span>{'\uC804\uCCB4 \uC0AD\uC81C \uB300\uC0C1'}</span>
+            <strong>{totalCount.toLocaleString()}{'\uAC74'}</strong>
+          </article>
+          <article>
+            <span>{'\uD604\uC7AC \uD654\uBA74 \uB85C\uB4DC'}</span>
+            <strong>{documents.length.toLocaleString()}{'\uAC74'}</strong>
+          </article>
+          <article className={selectedIds.length ? 'cleanup-count-selected' : ''}>
+            <span>{'\uC120\uD0DD\uD55C \uB300\uC0C1'}</span>
+            <strong>{selectedIds.length.toLocaleString()}{'\uAC74'}</strong>
+          </article>
+        </div>
         {error && <p className="error-text">{error}</p>}
         {isLoading ? <Loading /> : visibleDocuments.length === 0 ? (
           <div className="empty-result"><strong>삭제할 색인 소스가 없습니다.</strong></div>
         ) : (
           <div className="cleanup-table-wrap" onScroll={handleTargetScroll}>
-            <table className="cleanup-table">
-              <thead><tr><th><input aria-label="현재 목록 전체 선택" type="checkbox" checked={isAllVisibleSelected} onChange={toggleAllVisible} /></th><th>파일명</th><th>Source Key</th><th>저장소</th><th>Chunk / Node</th><th>등록 일시</th></tr></thead>
-              <tbody>
-                {visibleDocuments.map((document) => (
-                  <tr className={selectedIds.includes(document.id) ? 'selected' : ''} key={document.id}>
-                    <td><input aria-label={`${document.originalFileName} 선택`} type="checkbox" checked={selectedIds.includes(document.id)} onChange={() => toggleDocument(document.id)} /></td>
-                    <td><strong>{document.originalFileName}</strong></td><td><code>{document.sourceKey}</code></td>
-                    <td><div className="cleanup-store-statuses">
-                      {document.postgresTracked && <span className="cleanup-link-status postgres">PostgreSQL</span>}
-                      {document.vectorTracked && <span className="cleanup-link-status vector">VectorDB</span>}
-                      {document.graphTracked && <span className="cleanup-link-status graph">Neo4j</span>}
-                      {!document.postgresTracked && !document.vectorTracked && !document.graphTracked && <span className="cleanup-link-status orphan">미연결</span>}
-                    </div></td>
-                    <td>{`${document.chunkCount ?? 0} / ${document.graphNodeCount ?? 0}`}</td><td>{document.createdAt ? formatDateTime(document.createdAt) : '-'}</td>
-                  </tr>
-                ))}
-                {isLoadingMore && <tr className="cleanup-loading-row"><td colSpan={6}><Loading /></td></tr>}
-              </tbody>
-            </table>
+            <DataTable
+              className="cleanup-table"
+              columns={[
+                { key: 'select', header: <input aria-label="현재 목록 전체 선택" type="checkbox" checked={isAllVisibleSelected} onChange={toggleAllVisible} /> },
+                { key: 'fileName', header: '파일명' },
+                { key: 'sourceKey', header: 'Source Key' },
+                { key: 'stores', header: '저장소' },
+                { key: 'counts', header: 'Chunk / Node' },
+                { key: 'createdAt', header: '등록 일시' },
+              ]}
+              rows={visibleDocuments}
+              rowKey={(document) => document.id}
+              rowClassName={(document) => selectedIds.includes(document.id) ? 'selected' : ''}
+              renderCells={(document) => (
+                <>
+                  <td><input aria-label={`${document.originalFileName} 선택`} type="checkbox" checked={selectedIds.includes(document.id)} onChange={() => toggleDocument(document.id)} /></td>
+                  <td><strong>{document.originalFileName}</strong></td><td><code>{document.sourceKey}</code></td>
+                  <td><div className="cleanup-store-statuses">
+                    {document.postgresTracked && <span className="cleanup-link-status postgres">PostgreSQL</span>}
+                    {document.vectorTracked && <span className="cleanup-link-status vector">VectorDB</span>}
+                    {document.graphTracked && <span className="cleanup-link-status graph">Neo4j</span>}
+                    {!document.postgresTracked && !document.vectorTracked && !document.graphTracked && <span className="cleanup-link-status orphan">미연결</span>}
+                  </div></td>
+                  <td>{`${document.chunkCount ?? 0} / ${document.graphNodeCount ?? 0}`}</td><td>{document.createdAt ? formatDateTime(document.createdAt) : '-'}</td>
+                </>
+              )}
+              trailingRows={isLoadingMore ? <tr className="cleanup-loading-row"><td colSpan={6}><Loading /></td></tr> : null}
+            />
           </div>
         )}
       </section>

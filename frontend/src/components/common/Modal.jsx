@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 
 export function Modal({ backdropClassName = '', children, className = '', onClose, open, title }) {
+  const titleId = useId();
+
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -37,16 +39,16 @@ export function Modal({ backdropClassName = '', children, className = '', onClos
         className={className ? `modal ${className}` : 'modal'}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="modal-header">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button className="icon-button" type="button" onClick={onClose} aria-label="\uB2EB\uAE30">
             <X size={18} />
           </button>
         </header>
-        {children}
+        <div className="modal-body">{children}</div>
       </section>
     </div>
   );

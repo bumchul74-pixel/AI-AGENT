@@ -6,6 +6,7 @@ import com.hanwha.ai.generation.domain.GenerationHistory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hanwha.ai.sourcegraph.dto.JavaSourceGraphIngestRequest;
 import com.hanwha.ai.sourcegraph.dto.SourceGraphResponse;
+import java.util.Map;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -264,6 +265,87 @@ class JavaSourceGraphAnalyzerTest {
         assertThat(violating.relationships()).anyMatch(relationship ->
                 relationship.sourceId().equals("type:commerce:com.example.OrderServiceImpl")
                         && relationship.type().equals("VIOLATES"));
+    }
+
+    @Test
+    void storesMethodQualityMetadataForDuplicateAndComplexityAnalysis() {
+        SourceGraphResponse graph = analyzer.analyzeJavaSource(new JavaSourceGraphIngestRequest(
+                "document:80",
+                "QualityService.java",
+                """
+                        package com.example;
+                        public class QualityService {
+                            public int calculate(int value) {
+                                // formatting-only comments must not affect the exact hash
+                                int result = 0;
+                                if (value > 0) {
+                                    for (int index = 0; index < value; index++) {
+                                        if (index % 2 == 0 && value > 1) {
+                                            result += helper(index);
+                                        }
+                                    }
+                                } else {
+                                    throw new IllegalArgumentException();
+                                }
+                                return result;
+                            }
+                            private int helper(int value) { return value; }
+                        }
+                        """,
+                "commerce", "backend", "src/main/java/com/example/QualityService.java", "hash80"
+        ));
+
+        var method = graph.nodes().stream()
+                .filter(node -> node.id().equals(
+                        "method:commerce:com.example.QualityService:calculate(int)"))
+                .findFirst()
+                .orElseThrow();
+        Map<String, Object> properties = method.properties();
+
+        assertThat(properties)
+                .containsEntry("contentType", "java-method")
+                .containsEntry("methodUid", method.id())
+                .containsEntry("parameterCount", 1)
+                .containsEntry("returnCount", 1)
+                .containsEntry("throwCount", 1)
+                .containsEntry("branchCount", 3)
+                .containsEntry("callCount", 1)
+                .containsEntry("cyclomaticComplexity", 5)
+                .containsEntry("cognitiveComplexity", 7)
+                .containsEntry("maxNestingDepth", 3);
+        assertThat((Integer) properties.get("startLine")).isPositive();
+        assertThat((Integer) properties.get("endLine"))
+                .isGreaterThanOrEqualTo((Integer) properties.get("startLine"));
+        assertThat(properties.get("lineCount")).isEqualTo(
+                (Integer) properties.get("endLine") - (Integer) properties.get("startLine") + 1);
+        assertThat((String) properties.get("methodBody")).doesNotContain("formatting-only comments");
+        assertThat((String) properties.get("normalizedBody")).doesNotContain("\n", "\r");
+        assertThat((String) properties.get("methodHash")).matches("[0-9a-f]{64}");
+        assertThat((String) properties.get("structuralHash")).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void structuralHashNormalizesParameterVariableNamesAndLiterals() {
+        SourceGraphResponse first = analyzer.analyzeJavaSource(new JavaSourceGraphIngestRequest(
+                "document:81", "First.java",
+                "package com.example; class First { int normalize(int input) { int result = input + 1; return result; } }",
+                "commerce", "backend", "src/main/java/com/example/First.java", "hash81"
+        ));
+        SourceGraphResponse second = analyzer.analyzeJavaSource(new JavaSourceGraphIngestRequest(
+                "document:82", "Second.java",
+                "package com.example; class Second { int normalize(int value) { int total = value + 999; return total; } }",
+                "commerce", "backend", "src/main/java/com/example/Second.java", "hash82"
+        ));
+
+        Map<String, Object> firstProperties = first.nodes().stream()
+                .filter(node -> "Method".equals(node.label()))
+                .findFirst().orElseThrow().properties();
+        Map<String, Object> secondProperties = second.nodes().stream()
+                .filter(node -> "Method".equals(node.label()))
+                .findFirst().orElseThrow().properties();
+
+        assertThat(firstProperties.get("methodHash")).isNotEqualTo(secondProperties.get("methodHash"));
+        assertThat(firstProperties.get("structuralHash")).isEqualTo(secondProperties.get("structuralHash"));
     }
 
     private SourceGraphResponse analyze(String source, String filePath) {

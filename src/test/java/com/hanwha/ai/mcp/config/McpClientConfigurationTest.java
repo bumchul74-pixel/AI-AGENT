@@ -2,6 +2,7 @@ package com.hanwha.ai.mcp.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.hanwha.ai.mcp.router.AgentRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,12 @@ import org.springframework.core.env.Environment;
 class McpClientConfigurationTest {
     @Autowired
     private Environment environment;
+
+    @Autowired
+    private AgentConfigurationService agentConfigurationService;
+
+    @Autowired
+    private AgentRegistry agentRegistry;
 
     @Test
     void loadsMcpClientConfiguration() {
@@ -41,6 +48,15 @@ class McpClientConfigurationTest {
     }
 
     @Test
+    void seedsAndLoadsTheActiveAgentConfigurationFromDatabase() {
+        AgentConfigurationView active = agentConfigurationService.active();
+
+        assertThat(active.source()).isEqualTo("DATABASE");
+        assertThat(active.version()).isEqualTo(agentRegistry.version());
+        assertThat(agentRegistry.capabilities()).isNotEmpty();
+    }
+
+    @Test
     void findsSpecificJavaFileFromConfiguredFilesystemRoot() throws IOException {
         Path filesystemRoot = Path.of(environment.getRequiredProperty(
                 "mcp.filesystem.root"
@@ -50,7 +66,10 @@ class McpClientConfigurationTest {
                 filesystemRoot,
                 10,
                 (path, attributes) -> attributes.isRegularFile()
-                        && path.endsWith(Path.of("src", "main", "java", "com", "hanwha", "ai", "AiAgentApplication.java"))
+                        && path.endsWith(Path.of(
+                                "src", "main", "java", "com", "hanwha", "ai",
+                                "AiAgentApplication.java"
+                        ))
         )) {
             assertThat(paths.toList())
                     .singleElement()

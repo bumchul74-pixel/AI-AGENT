@@ -4,19 +4,217 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="소스 내용 수정">
+    <list default="true" id="103f62c5-e0dd-41b2-b64f-7fc7eeec332b" name="변경" comment="기능 추가">
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-003-agent-routing-boundary.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-004-agent-capability-registry.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-005-single-task-agent-orchestration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-006-agent-workflow-orchestration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-007-database-agent-configuration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-008-agent-configuration-admin.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-009-agent-configuration-feature-gate.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-010-agent-configuration-local-access.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-011-db-backed-chat-tool-catalog.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-012-automatic-mcp-tool-sync.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/design-docs/decisions/ADR-013-neo4j-data-explorer.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-06-document-status-filter.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-06-mcp-chat-tool-routing.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-07-ai-chat-tool-mentions.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-07-system-status-monitoring.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-11-java-graph-architecture-views.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-11-java-method-quality-metadata.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-12-source-quality-workbench.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-14-agent-capability-registry.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-14-agent-router-extraction.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-14-single-task-agent-orchestrator.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-14-source-quality-complex-method-detail.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-14-source-quality-duplicate-detail.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-agent-configuration-local-access.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-agent-configuration-management-ui.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-agent-configuration-without-token.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-agent-workflow-orchestration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-automatic-mcp-tool-sync.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-database-agent-configuration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-18-db-backed-chat-tool-catalog.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/exec-plans/completed/2026-08-19-neo4j-data-explorer.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/agent-configuration.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/ai-chat.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/java-source-graph-explorer.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/neo4j-data-explorer.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/rag-search.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/source-quality.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/product-specs/system-status-monitoring.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/references/frontend-list-pagination.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/references/java-method-quality-metrics.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/references/mcp-chat-tools.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/references/navigation-information-architecture.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/docs/product-specs/ai-chat.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/api/agentConfigurationApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/api/neo4jExplorerApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/api/sourceQualityApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/api/systemStatusApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/chat/AgentExecutionSteps.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/chat/ChatNavigator.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/common/DataTable.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/common/ScrollableListLayout.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/graph/PackageDependencyMatrix.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/rag/HighlightedSourceViewer.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/system/SystemStatusBadge.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/config/apiProperties.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/config/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/AgentConfigurationPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Neo4jExplorerPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/SourceQualityPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/SystemStatusPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/styles/java-graph-views.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/styles/neo4j-explorer.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/styles/source-quality.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/utils/sourceGraphAnalysis.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/workflow/task/JavaMethodVectorChunkFactory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationAdminAccessGuard.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationBootstrapLoader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationCodec.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationDocument.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationValidator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationVersion.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentConfigurationView.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/AgentOrchestrationProperties.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/config/McpToolConfigurationSynchronizer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/controller/AgentConfigurationAdminController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/controller/AgentToolCatalogController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/domain/AgentExecutionHistory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/dto/AgentConfigurationUpdateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/dto/AgentToolCatalogResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/exception/AgentConfigurationAdminAccessException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/exception/AgentConfigurationValidationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/mapper/AgentConfigurationMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/mapper/AgentExecutionHistoryMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentExecutionResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentExecutionStepView.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentExecutionView.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentOrchestrator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentPlan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentPlanStep.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentPlanner.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/orchestration/AgentStepExecution.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/repository/AgentConfigurationRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/repository/AgentExecutionHistoryRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/repository/MyBatisAgentConfigurationRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/repository/MyBatisAgentExecutionHistoryRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentArgumentResolver.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentCapability.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentRegistry.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentRegistrySnapshot.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentRoute.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/AgentRouter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/router/DefaultAgentArgumentResolver.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/AgentToolCatalogService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/McpChatContextResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/controller/Neo4jExplorerController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/dto/Neo4jNodeDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/dto/Neo4jNodePageResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/dto/Neo4jNodeSummary.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/dto/Neo4jRelationshipResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/repository/Neo4jClientExplorerRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/repository/Neo4jExplorerRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/neo4jexplorer/service/Neo4jExplorerService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/JavaMethodQualityAnalyzer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/controller/SourceQualityController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/domain/SourceQualityMethod.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/domain/SourceQualityMethodDetail.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/domain/SourceQualitySnapshot.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/domain/SourceQualityThreshold.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityDashboardResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityDuplicateGroupDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityDuplicateGroupResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityGateResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityMethodDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityMethodResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualitySummaryResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityThresholdRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityThresholdResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/dto/SourceQualityTrendResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/mapper/SourceQualityMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/service/Neo4jSourceQualityGraphReader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/service/SourceQualityGraphReader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcequality/service/SourceQualityService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/config/SystemStatusProbeConfiguration.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/config/SystemStatusProperties.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/controller/SystemStatusController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/domain/SystemDependencyDescriptor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/domain/SystemHealthStatus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/domain/SystemProbeOutcome.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/dto/SystemDependencyStatusResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/dto/SystemStatusResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/service/DefaultSystemDependencyProbe.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/service/SystemDependencyProbe.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/systemstatus/service/SystemStatusService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/agent-orchestration-bootstrap.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/mapper/mcp/AgentConfigurationMapper.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/mapper/mcp/AgentExecutionHistoryMapper.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/mapper/sourcequality/SourceQualityMapper.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/document/workflow/task/JavaMethodVectorChunkFactoryTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/document/workflow/task/RagVectorIngestTaskTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/AgentConfigurationAdminAccessGuardTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/AgentConfigurationServiceTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/AgentOrchestrationPropertiesTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/McpToolConfigurationSynchronizerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/controller/AgentConfigurationAdminControllerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/controller/AgentToolCatalogControllerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/orchestration/AgentOrchestratorTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/orchestration/AgentWorkflowOrchestrationTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/router/AgentRegistryTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/router/AgentRouterTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/router/AgentRouterTestFixture.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/service/AgentToolCatalogServiceTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/neo4jexplorer/controller/Neo4jExplorerControllerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/neo4jexplorer/service/Neo4jExplorerServiceTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/sourcequality/controller/SourceQualityControllerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/sourcequality/service/SourceQualityServiceTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/systemstatus/controller/SystemStatusControllerTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/systemstatus/service/SystemStatusServiceTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ARCHITECTURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/ARCHITECTURE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/FRONTEND.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/FRONTEND.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/RELIABILITY.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/RELIABILITY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/SECURITY.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/SECURITY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/design-docs/decisions/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/design-docs/decisions/index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/exec-plans/completed/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/exec-plans/completed/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/product-specs/document-indexing.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/product-specs/document-indexing.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/product-specs/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/product-specs/index.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/references/configuration.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/references/configuration.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/references/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/references/index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/chatApi.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/chatApi.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/documentApi.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/documentApi.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/chat/ChatInput.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/chat/ChatInput.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/chat/ChatMessage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/chat/ChatMessage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/common/Modal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/common/Modal.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/MainLayout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/MainLayout.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/constants/navigation.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/constants/navigation.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useChat.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/hooks/useChat.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/main.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/ChatPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/ChatPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DataCleanupPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DataCleanupPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/JavaGraphPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/JavaGraphPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/RagSearchPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/RagSearchPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/TemplateGeneratePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/TemplateGeneratePage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/styles/components.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles/components.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/dto/ChatResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/dto/ChatResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/chat/service/ChatServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/workflow/task/RagVectorIngestTask.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/document/workflow/task/RagVectorIngestTask.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/global/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/global/exception/GlobalExceptionHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/AiMcpChatContextProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/AiMcpChatContextProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/chat/service/ChatServiceImplTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/gateway/AiMcpGatewayServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/McpChatContextProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/mcp/service/McpChatContextProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/JavaSourceGraphAnalyzer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanwha/ai/sourcegraph/service/JavaSourceGraphAnalyzer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/McpClientConfigurationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/config/McpClientConfigurationTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/service/AiMcpChatContextProviderTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/mcp/service/AiMcpChatContextProviderTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/sourcegraph/service/JavaSourceGraphAnalyzerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/hanwha/ai/sourcegraph/service/JavaSourceGraphAnalyzerTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -124,7 +322,11 @@
       <workItem from="1785741454574" duration="2191000" />
       <workItem from="1785906122490" duration="15904000" />
       <workItem from="1786003517612" duration="720000" />
-      <workItem from="1786004286413" duration="1917000" />
+      <workItem from="1786004286413" duration="7294000" />
+      <workItem from="1786341369667" duration="1062000" />
+      <workItem from="1786430665785" duration="3424000" />
+      <workItem from="1786693968249" duration="1380000" />
+      <workItem from="1787006869043" duration="10031000" />
     </task>
     <task id="LOCAL-00001" summary="수정 작업 진행">
       <option name="closed" value="true" />
@@ -158,7 +360,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785998458276</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="기능 추가">
+      <option name="closed" value="true" />
+      <created>1786006896127</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1786006896127</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -168,7 +378,8 @@
     <MESSAGE value="수정 작업 진행" />
     <MESSAGE value="harness engineering 적용" />
     <MESSAGE value="소스 내용 수정" />
-    <option name="LAST_COMMIT_MESSAGE" value="소스 내용 수정" />
+    <MESSAGE value="기능 추가" />
+    <option name="LAST_COMMIT_MESSAGE" value="기능 추가" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

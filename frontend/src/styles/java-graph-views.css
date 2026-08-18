@@ -1,0 +1,474 @@
+/* Java Graph architecture views */
+.java-graph-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 14px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  scrollbar-width: thin;
+}
+
+.java-graph-view-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.java-graph-view-tabs button:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.java-graph-view-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--line));
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 2px 7px rgba(15, 23, 42, 0.08);
+}
+
+.java-graph-view-tabs button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.java-graph-view-tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.java-graph-view-tabs small {
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: var(--danger);
+  font-size: 9px;
+}
+
+.java-graph-layout-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: -8px 0 14px;
+}
+
+.java-graph-layout-actions span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.java-graph-layout-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.java-graph-layout-actions button:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--line));
+  color: var(--primary);
+}
+
+.java-graph-layout-actions button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.java-graph-main-view.is-hierarchy canvas {
+  cursor: grab;
+}
+
+.java-graph-main-view.is-hierarchy canvas:active {
+  cursor: grabbing;
+}
+
+.java-graph-main-view {
+  min-width: 0;
+  min-height: 720px;
+}
+
+.java-graph-main-view .java-graph-canvas {
+  position: relative;
+}
+
+.java-graph-mode-empty,
+.java-dependency-empty {
+  min-height: 720px;
+}
+
+.java-impact-axis,
+.java-flow-axis {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  left: 14px;
+  z-index: 3;
+  display: grid;
+  pointer-events: none;
+}
+
+.java-impact-axis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.java-flow-axis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.java-impact-axis span,
+.java-flow-axis span {
+  justify-self: center;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+.java-impact-selected {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  min-width: min(300px, calc(100% - 28px));
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+}
+
+.java-impact-selected > span {
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.java-impact-selected > strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.java-impact-selected > small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.java-impact-selected button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  transform: translateY(-50%);
+}
+
+.java-dependency-analysis {
+  display: grid;
+  gap: 12px;
+  min-height: 720px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
+}
+
+.java-dependency-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.java-dependency-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 54px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--primary);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.java-dependency-summary span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.java-dependency-summary strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.java-dependency-summary .has-cycle {
+  border-left-color: var(--danger);
+}
+
+.java-dependency-summary .has-cycle strong {
+  color: var(--danger);
+}
+
+.java-dependency-summary .is-clean {
+  border-left-color: #059669;
+}
+
+.java-dependency-matrix-wrap {
+  max-width: 100%;
+  max-height: 500px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  scrollbar-width: thin;
+}
+
+.java-dependency-matrix {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.java-dependency-matrix caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.java-dependency-matrix th,
+.java-dependency-matrix td {
+  min-width: 58px;
+  height: 42px;
+  padding: 5px 7px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+
+.java-dependency-matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-subtle);
+}
+
+.java-dependency-matrix thead th:first-child {
+  left: 0;
+  z-index: 4;
+  min-width: 190px;
+}
+
+.java-dependency-matrix tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 190px;
+  max-width: 260px;
+  background: var(--surface-subtle);
+  text-align: left;
+}
+
+.java-dependency-matrix tr.is-selected th {
+  box-shadow: inset 3px 0 var(--primary);
+}
+
+.java-dependency-matrix th.is-cyclic {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.java-dependency-matrix th button {
+  width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.java-dependency-matrix td.has-dependency {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.java-dependency-matrix td.is-diagonal {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--surface-subtle),
+    var(--surface-subtle) 4px,
+    var(--surface) 4px,
+    var(--surface) 8px
+  );
+  color: var(--line-strong);
+}
+
+.java-cycle-panel {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.java-cycle-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.java-cycle-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.java-cycle-heading strong {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.java-cycle-heading span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.java-cycle-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.java-cycle-list li {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-left: 3px solid var(--danger);
+  border-radius: 5px;
+  background: #fff7ed;
+}
+
+.java-cycle-list strong {
+  color: #c2410c;
+  font-size: 10px;
+}
+
+.java-cycle-list code {
+  overflow-wrap: anywhere;
+  color: #7c2d12;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .java-graph-main-view,
+  .java-dependency-analysis {
+    min-height: 560px;
+  }
+
+  .java-dependency-matrix-wrap {
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .java-graph-view-tabs button {
+    flex: 0 0 auto;
+  }
+
+  .java-graph-layout-actions span {
+    display: none;
+  }
+
+  .java-impact-axis,
+  .java-flow-axis {
+    display: none;
+  }
+
+  .java-impact-selected {
+    bottom: 8px;
+  }
+
+  .java-dependency-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .java-dependency-analysis {
+    padding: 9px;
+  }
+}

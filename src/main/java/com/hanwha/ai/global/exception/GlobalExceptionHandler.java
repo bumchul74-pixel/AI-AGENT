@@ -1,6 +1,7 @@
 package com.hanwha.ai.global.exception;
 
 import com.hanwha.ai.llm.exception.LlmRateLimitException;
+import com.hanwha.ai.mcp.exception.AgentConfigurationAdminAccessException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,16 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.badRequest().body(ErrorResponse.of(exception.getMessage()));
+    }
+
+    @ExceptionHandler(AgentConfigurationAdminAccessException.class)
+    public ResponseEntity<ErrorResponse> handleAgentConfigurationAdminAccessException(
+            AgentConfigurationAdminAccessException exception
+    ) {
+        log.warn("Agent configuration admin API unavailable. status={}", exception.status());
+        return ResponseEntity
+                .status(exception.status())
+                .body(ErrorResponse.of(exception.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -4,20 +4,23 @@ import { Button } from '../components/common/Button.jsx';
 import { Loading } from '../components/common/Loading.jsx';
 import { ProjectSelect } from '../components/common/ProjectSelect.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
-import { ChatInput } from '../components/chat/ChatInput.jsx';
 import { ChatResult } from '../components/chat/ChatResult.jsx';
 import { fetchKnowledgeProjects } from '../api/projectApi.js';
 import { GENERATION_TARGETS } from '../constants/apiConstants.js';
 import { useGenerate } from '../hooks/useGenerate.js';
+import { AgentConfigurationPage } from './AgentConfigurationPage.jsx';
 import { ChatPage } from './ChatPage.jsx';
 import { DocumentManagePage } from './DocumentManagePage.jsx';
 import { DataCleanupPage } from './DataCleanupPage.jsx';
 import { DashboardPage } from './DashboardPage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
 import { JavaGraphPage } from './JavaGraphPage.jsx';
+import { Neo4jExplorerPage } from './Neo4jExplorerPage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
 import { ProjectManagePage } from './ProjectManagePage.jsx';
 import { SecureCodingPage } from './SecureCodingPage.jsx';
+import { SourceQualityPage } from './SourceQualityPage.jsx';
+import { SystemStatusPage } from './SystemStatusPage.jsx';
 
 const TEXT = {
   defaultPrompt: 'User CRUD API\uB97C \uC0DD\uC131\uD574\uC918.',
@@ -119,10 +122,25 @@ export function TemplateGeneratePage() {
       return <JavaGraphPage />;
     }
 
+    if (activePage === 'sourceQuality') {
+      return <SourceQualityPage />;
+    }
+
+    if (activePage === 'neo4jExplorer') {
+      return <Neo4jExplorerPage />;
+    }
+
     if (activePage === 'history') {
       return <HistoryPage />;
     }
 
+    if (activePage === 'systemStatus') {
+      return <SystemStatusPage />;
+    }
+
+    if (activePage === 'agentConfiguration') {
+      return <AgentConfigurationPage />;
+    }
     if (activePage === 'dataCleanup') {
       return <DataCleanupPage />;
     }
@@ -156,8 +174,16 @@ export function TemplateGeneratePage() {
             ))}
           </div>
 
-          <ChatInput value={prompt} onChange={setPrompt} />
+          <label className="field prompt-field">
+            <span>{'\uC0DD\uC131 \uC694\uCCAD'}</span>
+            <textarea
+              value={prompt}
+              placeholder={TEXT.defaultPrompt}
+              aria-label={'Java \uC18C\uC2A4 \uC0DD\uC131 \uC694\uCCAD'}
+              onChange={(event) => setPrompt(event.target.value)}
+            />
 
+          </label>
           <ProjectSelect
             projects={projects}
             value={projectKey}

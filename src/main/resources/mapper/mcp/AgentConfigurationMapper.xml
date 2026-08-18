@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.ai.mcp.mapper.AgentConfigurationMapper">
+    <resultMap id="agentConfigurationVersionMap"
+               type="com.hanwha.ai.mcp.config.AgentConfigurationVersion">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="version_key" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="max_parallelism" javaType="_int"/>
+            <arg column="configuration_json" javaType="java.lang.String"/>
+            <arg column="created_by" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="activated_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <select id="findActive" resultMap="agentConfigurationVersionMap">
+        SELECT id, version_key, status, max_parallelism, configuration_json,
+               created_by, created_at, activated_at
+        FROM agent_configuration_version
+        WHERE status = 'ACTIVE'
+        ORDER BY activated_at DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByVersionKey" resultMap="agentConfigurationVersionMap">
+        SELECT id, version_key, status, max_parallelism, configuration_json,
+               created_by, created_at, activated_at
+        FROM agent_configuration_version
+        WHERE version_key = #{versionKey}
+    </select>
+
+    <insert id="insert" parameterType="com.hanwha.ai.mcp.config.AgentConfigurationVersion">
+        INSERT INTO agent_configuration_version (
+            version_key,
+            status,
+            max_parallelism,
+            configuration_json,
+            created_by,
+            created_at,
+            activated_at
+        ) VALUES (
+            #{versionKey},
+            #{status},
+            #{maxParallelism},
+            #{configurationJson},
+            #{createdBy},
+            #{createdAt},
+            #{activatedAt}
+        )
+    </insert>
+
+    <update id="archiveActive">
+        UPDATE agent_configuration_version
+        SET status = 'ARCHIVED'
+        WHERE status = 'ACTIVE'
+    </update>
+
+    <update id="activate">
+        UPDATE agent_configuration_version
+        SET status = 'ACTIVE',
+            activated_at = #{activatedAt}
+        WHERE version_key = #{versionKey}
+          AND status = 'DRAFT'
+    </update>
+</mapper>

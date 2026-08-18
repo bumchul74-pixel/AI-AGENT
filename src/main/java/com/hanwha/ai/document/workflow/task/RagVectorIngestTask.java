@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Component;
 @Order(40)
 public class RagVectorIngestTask implements DocumentIndexTask {
     private final StructuredSourceGraphAnalyzer structuredAnalyzer = new StructuredSourceGraphAnalyzer();
+    private final JavaMethodVectorChunkFactory javaMethodChunkFactory;
     private final PythonDocumentIngestClient ingestClient;
     private final DocumentProperties properties;
     private final RagDocumentRepository repository;
@@ -34,11 +36,13 @@ public class RagVectorIngestTask implements DocumentIndexTask {
     public RagVectorIngestTask(
             PythonDocumentIngestClient ingestClient,
             DocumentProperties properties,
-            RagDocumentRepository repository
+            RagDocumentRepository repository,
+            JavaMethodVectorChunkFactory javaMethodChunkFactory
     ) {
         this.ingestClient = ingestClient;
         this.properties = properties;
         this.repository = repository;
+        this.javaMethodChunkFactory = javaMethodChunkFactory;
     }
 
     @Override
@@ -51,28 +55,10 @@ public class RagVectorIngestTask implements DocumentIndexTask {
         }
 
         try {
-            PythonDocumentIngestResponse response = ingestClient.ingest(
-                    context.filePath(),
-                    context.vectorSourceKey(),
-                    properties.chunkSize(),
-                    properties.overlap(),
-                    context.document().getProjectKey(),
-                    context.logicalFilePath(),
-                    context.document().getFileHash(),
-                    List.of(SourceGraphIdentity.sourceFileUid(
-                            context.document().getProjectKey(),
-                            context.logicalFilePath()
-                    )),
-                    context.document().getId(),
-                    sourceSymbol(context.document().getOriginalFileName()),
-                    vectorMetadata(context)
-            );
-            List<String> baseChunkIds = java.util.stream.IntStream.range(0, response.storedCount())
-                    .mapToObj(index -> context.vectorSourceKey() + ":chunk:" + index)
-                    .toList();
-            context.setStoredChunkIds(baseChunkIds);
+            int baseChunkCount = ingestBaseChunks(context);
             int statementChunkCount = ingestMyBatisStatementChunks(context);
-            int totalChunkCount = response.storedCount() + statementChunkCount;
+            int methodChunkCount = ingestJavaMethodChunks(context);
+            int totalChunkCount = baseChunkCount + statementChunkCount + methodChunkCount;
             context.setStoredChunkCount(totalChunkCount);
             repository.updateVectorIndexResult(
                     context.document().getId(),
@@ -89,9 +75,66 @@ public class RagVectorIngestTask implements DocumentIndexTask {
         }
     }
 
+    private int ingestBaseChunks(DocumentIndexContext context) throws Exception {
+        context.setStoredChunkIds(List.of());
+        if (context.isJavaSourceFile()) {
+            return 0;
+        }
+
+        PythonDocumentIngestResponse response = ingestClient.ingest(
+                context.filePath(),
+                context.vectorSourceKey(),
+                properties.chunkSize(),
+                properties.overlap(),
+                context.document().getProjectKey(),
+                context.logicalFilePath(),
+                context.document().getFileHash(),
+                List.of(SourceGraphIdentity.sourceFileUid(
+                        context.document().getProjectKey(),
+                        context.logicalFilePath()
+                )),
+                context.document().getId(),
+                sourceSymbol(context.document().getOriginalFileName()),
+                vectorMetadata(context)
+        );
+        List<String> baseChunkIds = java.util.stream.IntStream.range(0, response.storedCount())
+                .mapToObj(index -> context.vectorSourceKey() + ":chunk:" + index)
+                .toList();
+        context.setStoredChunkIds(baseChunkIds);
+        return response.storedCount();
+    }
+
+    private int ingestJavaMethodChunks(DocumentIndexContext context) throws Exception {
+        String fileName = context.document().getOriginalFileName();
+        if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".java")) {
+            return 0;
+        }
+
+        String content = Files.readString(context.filePath(), StandardCharsets.UTF_8);
+        JavaSourceGraphIngestRequest request = new JavaSourceGraphIngestRequest(
+                context.graphSourceKey(),
+                fileName,
+                content,
+                context.document().getProjectKey(),
+                properties.moduleName(),
+                context.logicalFilePath(),
+                context.document().getFileHash(),
+                List.of()
+        );
+        List<VectorChunkIngestRequest.VectorChunk> chunks = javaMethodChunkFactory.create(
+                request, context.vectorSourceKey(), context.document().getId());
+        if (chunks.isEmpty()) {
+            return 0;
+        }
+
+        PythonDocumentIngestResponse response = ingestClient.ingestChunks(new VectorChunkIngestRequest(chunks));
+        context.addStoredChunkIds(chunks.stream().map(VectorChunkIngestRequest.VectorChunk::chunkId).toList());
+        return response.storedCount();
+    }
+
     private int ingestMyBatisStatementChunks(DocumentIndexContext context) throws Exception {
         String fileName = context.document().getOriginalFileName();
-        if (fileName == null || !fileName.toLowerCase().endsWith(".xml")) {
+        if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".xml")) {
             return 0;
         }
         String content = Files.readString(context.filePath(), StandardCharsets.UTF_8);

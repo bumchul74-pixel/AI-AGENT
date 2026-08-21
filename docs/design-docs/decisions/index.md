@@ -15,4 +15,4 @@
 
 ADR 상태는 Proposed, Accepted, Superseded 중 하나로 명시한다. 승인된 결정을 바꾸는 ADR은 대체 관계를 연결한다.
 
-- [ADR-013: Separate read-only Neo4j data explorer](ADR-013-neo4j-data-explorer.md)
+- [ADR-014: Python 서비스 구현과 검증의 AI-MCP 소유권](ADR-014-python-services-ai-mcp-ownership.md)

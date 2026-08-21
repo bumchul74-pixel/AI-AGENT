@@ -1,5 +1,6 @@
 package com.hanwha.ai.neo4jexplorer.controller;
 
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelGraphResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeDetailResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodePageResponse;
 import com.hanwha.ai.neo4jexplorer.service.Neo4jExplorerService;
@@ -27,6 +28,11 @@ public class Neo4jExplorerController {
             @RequestParam(defaultValue = "30") int size
     ) {
         return service.findNodes(label, keyword, page, size);
+    }
+
+    @GetMapping("/schema")
+    public Neo4jLabelGraphResponse schema() {
+        return service.findLabelGraph();
     }
 
     @GetMapping("/nodes/{elementId}")

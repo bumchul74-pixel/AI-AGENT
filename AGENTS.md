@@ -225,9 +225,10 @@ Vector DB
 - 생성 판단, RAG ranking, DB 규칙을 프런트엔드에 중복 구현하지 않는다.
 - API의 loading, error, empty state를 명시적으로 처리한다.
 
-### Python RAG Server
+### External Python Services
 
-- 추출, chunk, embedding, vector 저장, 검색은 `rag-server`가 담당한다.
+- 추출, chunk, embedding, vector 저장, 검색은 AI-MCP의 `rag-server`가 담당한다.
+- PPT 생성은 AI-MCP의 `rag-server/ppt-server`가 담당하며 별도 런타임으로 실행한다.
 - Spring Boot는 Python 내부 저장소 구현이 아닌 REST 계약에만 의존한다.
 - 검색 결과에는 생성 근거를 식별할 source/chunk metadata를 유지한다.
 
@@ -252,19 +253,19 @@ Vector DB
 ```powershell
 .\gradlew.bat test
 .\gradlew.bat integrationTest
-.\gradlew.bat ragTest
 .\gradlew.bat frontendCheck
 .\gradlew.bat verifyAll
 ```
 
 - `test`: 외부 서비스 없는 Java 테스트
 - `integrationTest`: `integration` tag Spring/local integration test
-- `ragTest`: Python RAG unittest
 - `frontendCheck`: React/Vite production build
 - `validateHarnessDocs`: 필수 harness 문서와 로컬 Markdown 링크 검증
 - `doctor`: Java 21과 Wrapper/lockfile 검증
 - `verifyAll`: deterministic 기본 gate
 - `liveTest`: 기본 gate에서 제외된 외부 시스템 검증
+
+Python RAG, OCR, PPT 단위 테스트는 AI-MCP 저장소에서 실행한다.
 
 전체 검증을 실행하지 못하면 가능한 가장 큰 범위를 실행하고 생략한 명령과 이유를 보고한다. build 결과, runtime log, upload 데이터, credential, 무관한 변경을 포함하지 않는다.
 

@@ -1,5 +1,6 @@
 package com.hanwha.ai.neo4jexplorer.service;
 
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelGraphResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeDetailResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodePageResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeSummary;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 public class Neo4jExplorerService {
     private static final int DEFAULT_SIZE = 30;
     private static final int MAX_SIZE = 100;
+    private static final int LABEL_GRAPH_LIMIT = 100;
+    private static final int LABEL_RELATIONSHIP_LIMIT = 500;
     private final Neo4jExplorerRepository repository;
 
     public Neo4jExplorerService(Neo4jExplorerRepository repository) {
@@ -32,6 +35,10 @@ public class Neo4jExplorerService {
                 content, safePage, safeSize, total, totalPages,
                 safePage == 0, totalPages == 0 || safePage >= totalPages - 1
         );
+    }
+
+    public Neo4jLabelGraphResponse findLabelGraph() {
+        return repository.findLabelGraph(LABEL_GRAPH_LIMIT, LABEL_RELATIONSHIP_LIMIT);
     }
 
     public Optional<Neo4jNodeDetailResponse> findDetail(String elementId) {

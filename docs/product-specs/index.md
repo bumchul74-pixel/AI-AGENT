@@ -3,6 +3,7 @@
 - [근거 기반 Java 코드 생성](rag-grounded-code-generation.md)
 - [표준 문서와 소스 인덱싱](document-indexing.md)
 - [AI 대화](ai-chat.md)
+- [템플릿 기반 PPT 생성](presentation-generation.md)
 - [연계 시스템 상태 모니터링](system-status-monitoring.md)
 - [Java Source Graph 탐색](java-source-graph-explorer.md)
 - [Java source quality](source-quality.md)

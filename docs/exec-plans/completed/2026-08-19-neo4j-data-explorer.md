@@ -51,3 +51,12 @@ Java Graph와 분리된 조회 전용 Neo4j 노드 목록·상세 화면을 제�
 - Added a shared `DataTable` that owns table, header, body, and row iteration.
 - Migrated Neo4j explorer and integrated data cleanup tables to the shared component.
 - Replaced the undefined transparent header background with the opaque theme surface and standardized stacking and visual separation.
+## Follow-up: plain-language Neo4j glossary
+
+- Added visible explanations and accessible header help for node, label, property, relationship, and direction.
+- Added count units and updated the product-spec navigation path to Data Explorer.
+## Follow-up: modal detail layer
+
+- Removed the simultaneous list/detail split view.
+- Kept the node list full-width and opened node details in the shared `Modal`.
+- Related-node navigation replaces content in the same modal while the fixed modal header and close behavior remain shared.

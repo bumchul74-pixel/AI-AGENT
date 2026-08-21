@@ -87,15 +87,6 @@ val frontendCheck by tasks.registering(Exec::class) {
     commandLine(if (System.getProperty("os.name").lowercase().contains("windows")) "npm.cmd" else "npm", "run", "build")
 }
 
-val ragTest by tasks.registering(Exec::class) {
-    group = "verification"
-    description = "Runs deterministic Python RAG unit tests."
-    workingDir(layout.projectDirectory.dir("rag-server"))
-    val windows = System.getProperty("os.name").lowercase().contains("windows")
-    val venvPython = layout.projectDirectory.file(if (windows) "rag-server/.venv/Scripts/python.exe" else "rag-server/.venv/bin/python").asFile
-    commandLine(if (venvPython.isFile) venvPython.absolutePath else if (windows) "python" else "python3", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py")
-}
-
 val requiredHarnessDocuments = listOf(
     "AGENTS.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "docs/DESIGN.md", "docs/FRONTEND.md",
     "docs/PLANS.md", "docs/PRODUCT_SENSE.md", "docs/QUALITY_SCORE.md", "docs/RELIABILITY.md",
@@ -108,7 +99,7 @@ val validateHarnessDocs by tasks.registering {
     group = "verification"
     description = "Checks required harness documents and local Markdown links."
     inputs.files(requiredHarnessDocuments.map(layout.projectDirectory::file))
-    inputs.files(fileTree(layout.projectDirectory) { include("**/*.md"); exclude("build/**", "frontend/node_modules/**", "rag-server/.venv/**") })
+    inputs.files(fileTree(layout.projectDirectory) { include("**/*.md"); exclude("build/**", "frontend/node_modules/**") })
     doLast {
         val missing = requiredHarnessDocuments.filterNot { layout.projectDirectory.file(it).asFile.isFile }
         if (missing.isNotEmpty()) throw GradleException("Missing required harness documents: ${missing.joinToString()}")
@@ -116,7 +107,7 @@ val validateHarnessDocs by tasks.registering {
         val broken = mutableListOf<String>()
         fileTree(layout.projectDirectory) {
             include("**/*.md")
-            exclude("build/**", "frontend/node_modules/**", "rag-server/.venv/**")
+            exclude("build/**", "frontend/node_modules/**")
         }.forEach { markdown ->
             markdown.readLines().forEachIndexed { index, line ->
                 linkPattern.findAll(line).forEach { match ->
@@ -153,11 +144,10 @@ val doctor by tasks.registering {
 
 tasks.check { dependsOn(validateHarnessDocs) }
 integrationTest { mustRunAfter(tasks.check) }
-ragTest { mustRunAfter(integrationTest) }
-frontendCheck { mustRunAfter(ragTest) }
+frontendCheck { mustRunAfter(integrationTest) }
 
 tasks.register("verifyAll") {
     group = "verification"
-    description = "Runs the deterministic backend, integration, RAG, frontend, and documentation gate."
-    dependsOn(doctor, tasks.check, integrationTest, ragTest, frontendCheck)
+    description = "Runs the deterministic backend, integration, frontend, and documentation gate."
+    dependsOn(doctor, tasks.check, integrationTest, frontendCheck)
 }

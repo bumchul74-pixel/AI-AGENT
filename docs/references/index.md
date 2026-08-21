@@ -3,7 +3,7 @@
 - [구성과 환경변수](configuration.md)
 - [AI 질의 MCP tool 실행](mcp-chat-tools.md)
 - [Java method quality metrics](java-method-quality-metrics.md)
-- [Python RAG 서버 실행](../../rag-server/README.md)
+- [외부 Python 서비스 실행](python-services.md)
 - [프런트엔드 목록 페이징 표준](frontend-list-pagination.md)
 - [좌측 메뉴 정보구조 표준](navigation-information-architecture.md)
 

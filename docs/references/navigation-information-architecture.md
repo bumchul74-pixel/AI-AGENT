@@ -14,7 +14,7 @@
 | 1Depth | 2Depth |
 | --- | --- |
 | Dashboard | 직접 이동 |
-| AI 작업 | AI 대화, 소스 생성, 생성 이력 |
+| AI 작업 | AI 대화, 소스 생성, PPT 생성, 생성 이력 |
 | 지식 관리 | 프로젝트 관리, 문서 관리 |
 | 데이터 탐색 | RAG 조회, Neo4j 데이터 탐색 |
 | 분석 및 품질 | Java Graph, 소스 품질, Secure Coding |

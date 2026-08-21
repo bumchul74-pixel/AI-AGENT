@@ -10,6 +10,13 @@ export function fetchNeo4jNodes({ label = '', keyword = '', page = 0, size = 30 
   });
 }
 
+export function fetchNeo4jLabelGraph(signal) {
+  return apiRequest('/api/neo4j-explorer/schema', {
+    signal,
+    errorMessage: 'Neo4j 라벨 관계 그래프를 불러오지 못했습니다.',
+  });
+}
+
 export function fetchNeo4jNodeDetail(elementId, signal) {
   return apiRequest(`/api/neo4j-explorer/nodes/${encodeURIComponent(elementId)}`, {
     signal,

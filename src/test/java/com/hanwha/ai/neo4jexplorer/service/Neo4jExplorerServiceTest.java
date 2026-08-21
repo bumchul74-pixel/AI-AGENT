@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelGraphResponse;
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelNodeResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeDetailResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodePageResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeSummary;
@@ -45,6 +47,16 @@ class Neo4jExplorerServiceTest {
         assertThat(result.size()).isEqualTo(30);
         assertThat(result.totalPages()).isEqualTo(1);
         assertThat(result.last()).isTrue();
+    }
+
+    @Test
+    void requestsBoundedLabelGraph() {
+        Neo4jLabelGraphResponse graph = new Neo4jLabelGraphResponse(
+                List.of(new Neo4jLabelNodeResponse("Method", 12)), List.of(), false, false);
+        when(repository.findLabelGraph(100, 500)).thenReturn(graph);
+
+        assertThat(service.findLabelGraph()).isEqualTo(graph);
+        verify(repository).findLabelGraph(100, 500);
     }
 
     @Test

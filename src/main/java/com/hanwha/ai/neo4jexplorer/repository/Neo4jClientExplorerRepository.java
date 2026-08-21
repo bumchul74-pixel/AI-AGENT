@@ -1,5 +1,8 @@
 package com.hanwha.ai.neo4jexplorer.repository;
 
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelGraphResponse;
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelNodeResponse;
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelRelationshipResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeDetailResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeSummary;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jRelationshipResponse;
@@ -113,6 +116,56 @@ public class Neo4jClientExplorerRepository implements Neo4jExplorerRepository {
                 maskedProperties(row.get("properties")), longNumber(row.get("relationshipCount")),
                 relationshipRows.stream().map(this::toRelationship).toList()
         ));
+    }
+
+    @Override
+    public Neo4jLabelGraphResponse findLabelGraph(int labelLimit, int relationshipLimit) {
+        int labelFetchLimit = labelLimit + 1;
+        List<Neo4jLabelNodeResponse> fetchedNodes = neo4jClient.query("""
+                MATCH (node)
+                UNWIND labels(node) AS label
+                WITH label, count(*) AS nodeCount
+                ORDER BY toLower(label), label
+                LIMIT $limit
+                RETURN label, nodeCount
+                """)
+                .bind(labelFetchLimit).to("limit")
+                .fetch().all().stream()
+                .map(row -> new Neo4jLabelNodeResponse(text(row.get("label")), longNumber(row.get("nodeCount"))))
+                .toList();
+        boolean labelsTruncated = fetchedNodes.size() > labelLimit;
+        List<Neo4jLabelNodeResponse> nodes = fetchedNodes.stream().limit(labelLimit).toList();
+        List<String> includedLabels = nodes.stream().map(Neo4jLabelNodeResponse::label).toList();
+
+        if (includedLabels.isEmpty()) {
+            return new Neo4jLabelGraphResponse(nodes, List.of(), labelsTruncated, false);
+        }
+
+        int relationshipFetchLimit = relationshipLimit + 1;
+        List<Neo4jLabelRelationshipResponse> fetchedRelationships = neo4jClient.query("""
+                MATCH (source)-[relationship]->(target)
+                UNWIND labels(source) AS sourceLabel
+                UNWIND labels(target) AS targetLabel
+                WITH sourceLabel, targetLabel, type(relationship) AS relationshipType, count(*) AS relationshipCount
+                WHERE sourceLabel IN $labels AND targetLabel IN $labels
+                ORDER BY relationshipCount DESC,
+                         toLower(sourceLabel), sourceLabel,
+                         toLower(relationshipType), relationshipType,
+                         toLower(targetLabel), targetLabel
+                LIMIT $limit
+                RETURN sourceLabel, targetLabel, relationshipType, relationshipCount
+                """)
+                .bind(includedLabels).to("labels")
+                .bind(relationshipFetchLimit).to("limit")
+                .fetch().all().stream()
+                .map(row -> new Neo4jLabelRelationshipResponse(
+                        text(row.get("sourceLabel")), text(row.get("targetLabel")),
+                        text(row.get("relationshipType")), longNumber(row.get("relationshipCount"))))
+                .toList();
+        boolean relationshipsTruncated = fetchedRelationships.size() > relationshipLimit;
+        List<Neo4jLabelRelationshipResponse> relationships =
+                fetchedRelationships.stream().limit(relationshipLimit).toList();
+        return new Neo4jLabelGraphResponse(nodes, relationships, labelsTruncated, relationshipsTruncated);
     }
 
     private Neo4jNodeSummary toSummary(Map<String, Object> row) {

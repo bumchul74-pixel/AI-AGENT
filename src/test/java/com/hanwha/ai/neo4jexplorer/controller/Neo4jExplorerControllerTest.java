@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelGraphResponse;
+import com.hanwha.ai.neo4jexplorer.dto.Neo4jLabelNodeResponse;
 import com.hanwha.ai.neo4jexplorer.dto.Neo4jNodeDetailResponse;
 import com.hanwha.ai.neo4jexplorer.service.Neo4jExplorerService;
 import java.util.List;
@@ -16,6 +18,15 @@ import org.springframework.http.ResponseEntity;
 class Neo4jExplorerControllerTest {
     private final Neo4jExplorerService service = mock(Neo4jExplorerService.class);
     private final Neo4jExplorerController controller = new Neo4jExplorerController(service);
+
+    @Test
+    void returnsLabelGraph() {
+        Neo4jLabelGraphResponse graph = new Neo4jLabelGraphResponse(
+                List.of(new Neo4jLabelNodeResponse("Method", 12)), List.of(), false, false);
+        when(service.findLabelGraph()).thenReturn(graph);
+
+        assertThat(controller.schema()).isEqualTo(graph);
+    }
 
     @Test
     void returnsNotFoundWithoutThrowingThroughGlobalExceptionHandler() {

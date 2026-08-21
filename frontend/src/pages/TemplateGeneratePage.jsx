@@ -16,6 +16,7 @@ import { DashboardPage } from './DashboardPage.jsx';
 import { HistoryPage } from './HistoryPage.jsx';
 import { JavaGraphPage } from './JavaGraphPage.jsx';
 import { Neo4jExplorerPage } from './Neo4jExplorerPage.jsx';
+import { PresentationGeneratePage } from './PresentationGeneratePage.jsx';
 import { RagSearchPage } from './RagSearchPage.jsx';
 import { ProjectManagePage } from './ProjectManagePage.jsx';
 import { SecureCodingPage } from './SecureCodingPage.jsx';
@@ -132,6 +133,10 @@ export function TemplateGeneratePage() {
 
     if (activePage === 'history') {
       return <HistoryPage />;
+    }
+
+    if (activePage === 'presentationGenerate') {
+      return <PresentationGeneratePage />;
     }
 
     if (activePage === 'systemStatus') {

@@ -16,7 +16,7 @@ correlation id, 외부 시스템 종류, 처리 단계, latency, 상태를 구�
 
 - `test`: 외부 시스템 없는 Java 검증
 - `integrationTest`: Spring wiring과 로컬 의존성
-- `ragTest`: Python 검색·인덱싱 단위 동작
+- Python 검색·OCR·PPT 단위 동작은 AI-MCP 저장소에서 검증
 - `frontendCheck`: 배포 가능한 frontend bundle
 - `verifyAll`: merge 전 deterministic gate
 - `liveTest`: 명시적으로 구성된 실제 외부 연동
@@ -62,4 +62,4 @@ Agent DAG는 의존 단계가 모두 성공한 경우에만 후속 단계를 실
 tools/list 변경은 주기적으로 DB 새 version으로 자동 활성화한다. 빈 목록, 연결 실패, validation 또는 commit 실패는 기존 Snapshot을 유지한다. 변경이 없으면 version을 생성하지 않는다. 긴급 중단은 AGENT_CONFIGURATION_TOOL_SYNC_ENABLED=false를 사용한다.
 ## Neo4j explorer query bounds
 
-Node browsing uses deterministic server-side pagination ordered by display name and elementId. Page size defaults to 30 and is capped at 100. Detail responses cap adjacent relationship rows at 500 while returning the total relationship count, preventing an unbounded high-degree node response. Neo4j failures use the shared API failure path and do not fall back to stale or fabricated data.
+Node browsing uses deterministic server-side pagination ordered by display name and elementId. Page size defaults to 30 and is capped at 100. Detail responses cap adjacent relationship rows at 500 while returning the total relationship count, preventing an unbounded high-degree node response. The label relationship graph aggregates stored relationships and returns at most 100 labels and 500 label/type/label relationship groups; truncation flags tell the UI when either limit was exceeded. Neo4j failures use the shared API failure path and do not fall back to stale or fabricated data.

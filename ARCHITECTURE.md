@@ -8,7 +8,7 @@ AI-AGENT는 자연어 요청을 표준 문서와 표준 소스코드에 근거�
 
 ```text
 개발자 -> React/Vite -> Spring Boot REST API
-                         -> Python RAG -> Embedding/Vector Store
+                         -> AI-MCP Python RAG -> Embedding/Vector Store
                          -> LLM Client Strategy -> OpenAI/Gemini
                          -> Agent Router -> Agent Orchestrator -> MCP Gateway -> MCP servers
                          -> MyBatis -> PostgreSQL
@@ -30,7 +30,7 @@ AI-AGENT는 자연어 요청을 표준 문서와 표준 소스코드에 근거�
 - `controller -> service -> repository/mapper` 방향을 유지한다.
 - Domain과 DTO는 외부 LLM, RAG, MCP, Neo4j 구현 타입에 의존하지 않는다.
 - `llm`, `rag`, `mcp`, `sourcegraph`가 외부 시스템 경계를 소유한다.
-- Python RAG 내부 구현을 Spring Boot에서 재구현하지 않는다.
+- Python RAG, OCR과 PPT 생성 구현은 AI-MCP 저장소가 소유하며 AI-AGENT는 REST/MCP 계약에만 의존한다.
 - React는 화면 상태와 API 표현만 담당한다.
 
 ## 패키지 책임

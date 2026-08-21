@@ -9,16 +9,15 @@
 .neo4j-filter-bar label { display:grid; gap:6px; color:var(--text-muted); font-size:12px; font-weight:700; }
 .neo4j-filter-bar input { min-width:0; height:38px; padding:0 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text); }
 .neo4j-search-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; height:38px; padding:0 18px; border:0; border-radius:9px; background:var(--primary); color:white; font-weight:700; cursor:pointer; }
-.neo4j-explorer-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr); align-items:start; gap:16px; min-width:0; }
-.neo4j-list-panel,.neo4j-detail-panel { min-width:0; overflow:hidden; }
-.neo4j-table-wrap { min-height:270px; max-height:calc(100vh - 330px); overflow:auto; }
+.neo4j-list-panel { min-width:0; overflow:hidden; }
+.neo4j-table-wrap { min-height:270px; max-height:calc(100vh - 280px); overflow:auto; }
 .neo4j-node-table { width:100%; font-size:13px; }
 .neo4j-node-table th { position:sticky; top:0; padding:12px 14px; border-bottom:1px solid var(--line); background:var(--surface-subtle); color:var(--text-muted); text-align:left; white-space:nowrap; }
 .neo4j-node-table td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
 .neo4j-node-table tr.selected td { background:color-mix(in srgb,var(--primary) 8%,transparent); }
 .neo4j-node-table td:first-child button { display:grid; gap:3px; width:100%; padding:0; border:0; background:none; color:var(--text); text-align:left; cursor:pointer; }
 .neo4j-node-table td:first-child button:hover strong { color:var(--primary); }
-.neo4j-node-table code,.neo4j-detail-header code { overflow-wrap:anywhere; color:var(--text-muted); font-size:11px; }
+.neo4j-node-table code,.neo4j-detail-summary code { overflow-wrap:anywhere; color:var(--text-muted); font-size:11px; }
 .neo4j-label-list { display:inline-flex; flex-wrap:wrap; gap:4px; }
 .neo4j-label-list>span { padding:3px 7px; border-radius:999px; background:color-mix(in srgb,var(--primary) 11%,var(--surface)); color:var(--primary); font-size:11px; font-weight:700; }
 .neo4j-list-empty { display:grid; min-height:220px; place-items:center; color:var(--text-muted); }
@@ -28,11 +27,9 @@
 .neo4j-pagination>div { display:flex; gap:4px; }
 .neo4j-pagination button { display:grid; width:30px; height:30px; place-items:center; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--text); cursor:pointer; }
 .neo4j-pagination button:disabled { cursor:default; opacity:.38; }
-.neo4j-detail-panel { max-height:calc(100vh - 210px); overflow:auto; }
 .neo4j-detail-empty { display:grid; min-height:320px; place-items:center; align-content:center; gap:8px; color:var(--text-muted); text-align:center; }
 .neo4j-detail-empty p { max-width:330px; margin:0; font-size:13px; }
-.neo4j-detail-header { display:grid; gap:12px; padding:20px; border-bottom:1px solid var(--line); }
-.neo4j-detail-header h2 { margin:3px 0 5px; font-size:20px; overflow-wrap:anywhere; }
+.neo4j-detail-summary { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); background:var(--surface-subtle); }
 .neo4j-detail-section { padding:18px 20px; border-bottom:1px solid var(--line); }
 .neo4j-detail-section:last-child { border-bottom:0; }
 .neo4j-detail-section h3 { display:flex; align-items:center; gap:7px; margin:0 0 12px; font-size:14px; }
@@ -53,8 +50,68 @@
 .neo4j-empty-value,.neo4j-section-empty,.neo4j-limit-note { color:var(--text-muted); font-size:12px; }
 .neo4j-section-empty { margin:0; }
 .neo4j-limit-note { margin:10px 0 0; }
-@media (max-width:1100px) { .neo4j-explorer-grid { grid-template-columns:1fr; } .neo4j-detail-panel { max-height:none; } }
+
 @media (max-width:720px) { .neo4j-explorer-hero { align-items:flex-start; } .neo4j-filter-bar { grid-template-columns:1fr; } .neo4j-search-button { width:100%; } .neo4j-pagination { align-items:flex-start; flex-direction:column; } }
 .neo4j-load-more-status { padding:14px; color:var(--text-muted); font-size:12px; text-align:center; }
 .neo4j-load-more-button { display:block; margin:12px auto; padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--primary); font-weight:700; cursor:pointer; }
 .neo4j-load-more-button:hover { border-color:var(--primary); background:color-mix(in srgb,var(--primary) 6%,var(--surface)); }
+
+.neo4j-detail-modal { width:min(920px,100%); max-height:min(90vh,calc(100dvh - 36px)); }
+.neo4j-detail-modal .modal-body { padding:0; }
+.neo4j-detail-content { min-width:0; }
+.neo4j-detail-loading { display:grid; min-height:280px; place-items:center; }
+
+.neo4j-hero-actions { display:flex; align-items:stretch; gap:10px; }
+.neo4j-schema-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 15px; border:1px solid var(--primary); border-radius:12px; background:color-mix(in srgb,var(--primary) 7%,var(--surface)); color:var(--primary); font-weight:800; cursor:pointer; }
+.neo4j-schema-button:hover { background:color-mix(in srgb,var(--primary) 13%,var(--surface)); }
+.neo4j-schema-modal { width:min(1180px,calc(100vw - 36px)); max-height:min(92vh,calc(100dvh - 28px)); }
+.neo4j-schema-modal .modal-body { padding:0; overflow:hidden; }
+.neo4j-schema-content { display:grid; grid-template-rows:auto minmax(420px,1fr) auto; min-height:0; }
+.neo4j-schema-summary { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:11px 16px; border-bottom:1px solid var(--line); background:var(--surface-subtle); color:var(--text-muted); font-size:12px; }
+.neo4j-schema-summary strong { color:var(--text); font-size:14px; }
+.neo4j-schema-summary button { padding:5px 9px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--primary); font-size:11px; font-weight:800; cursor:pointer; }
+.neo4j-schema-warning { margin-left:auto; color:#b45309; font-weight:700; }
+.neo4j-schema-workbench { display:grid; grid-template-columns:minmax(0,1fr) 310px; width:100%; height:min(68vh,620px); min-height:420px; }
+.neo4j-schema-canvas { width:100%; height:100%; min-width:0; min-height:0; overflow:hidden; background:radial-gradient(circle at center,color-mix(in srgb,var(--primary) 5%,var(--surface)) 0,var(--surface) 70%); }
+.neo4j-schema-canvas canvas { display:block; }
+.neo4j-schema-inspector { display:flex; min-width:0; min-height:0; flex-direction:column; border-left:1px solid var(--line); background:var(--surface); }
+.neo4j-schema-inspector-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:15px; border-bottom:1px solid var(--line); background:var(--surface-subtle); }
+.neo4j-schema-inspector-header>div { display:grid; min-width:0; gap:4px; }
+.neo4j-schema-inspector-header span,.neo4j-schema-inspector-header small { color:var(--text-muted); font-size:11px; }
+.neo4j-schema-inspector-header strong { overflow-wrap:anywhere; font-size:14px; }
+.neo4j-schema-inspector-header button { padding:5px 8px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--primary); font-size:11px; font-weight:800; cursor:pointer; }
+.neo4j-schema-relationship-summary { padding:9px 12px; border-bottom:1px solid var(--line); color:var(--text-muted); font-size:11px; font-weight:700; }
+.neo4j-schema-relationship-details,.neo4j-schema-label-options { min-height:0; overflow:auto; }
+.neo4j-schema-relationship-details { display:grid; align-content:start; gap:8px; padding:10px; }
+.neo4j-schema-relationship-details>p { margin:20px 4px; color:var(--text-muted); font-size:12px; text-align:center; }
+.neo4j-schema-relationship-details article { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:6px 8px; padding:9px; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+.neo4j-schema-relationship-details article>strong { overflow-wrap:anywhere; font-size:12px; }
+.neo4j-schema-relationship-details article>span:not(.neo4j-schema-direction) { color:var(--text-muted); font-size:11px; }
+.neo4j-schema-relationship-details article>button { grid-column:1/-1; padding:6px 8px; border:0; border-radius:6px; background:var(--surface-subtle); color:var(--primary); font-size:11px; font-weight:800; text-align:left; cursor:pointer; }
+.neo4j-schema-relationship-details article>button:disabled { color:var(--text-muted); cursor:default; }
+.neo4j-schema-direction { padding:2px 5px; border-radius:5px; background:color-mix(in srgb,var(--primary) 9%,var(--surface)); color:var(--primary); font-size:9px; font-weight:800; white-space:nowrap; }
+.neo4j-schema-label-options { display:grid; align-content:start; gap:3px; padding:8px; }
+.neo4j-schema-label-options button { display:grid; grid-template-columns:8px minmax(0,1fr) auto; align-items:center; gap:8px; width:100%; padding:8px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
+.neo4j-schema-label-options button:hover { background:var(--surface-subtle); }
+.neo4j-schema-label-options i { width:8px; height:8px; border-radius:50%; }
+.neo4j-schema-label-options span { overflow:hidden; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.neo4j-schema-label-options strong { color:var(--text-muted); font-size:11px; }
+.neo4j-schema-hint { margin:0; padding:10px 16px; border-top:1px solid var(--line); color:var(--text-muted); font-size:12px; }
+.neo4j-schema-loading,.neo4j-schema-empty { display:grid; min-height:520px; place-items:center; align-content:center; gap:9px; color:var(--text-muted); text-align:center; }
+.neo4j-schema-empty span { font-size:12px; }
+
+@media (max-width:900px) {
+  .neo4j-schema-modal .modal-body { overflow:auto; }
+  .neo4j-schema-workbench { grid-template-columns:1fr; grid-template-rows:minmax(400px,55vh) minmax(240px,32vh); height:auto; }
+  .neo4j-schema-inspector { border-top:1px solid var(--line); border-left:0; }
+}
+
+@media (max-width:720px) {
+  .neo4j-explorer-hero { flex-direction:column; }
+  .neo4j-hero-actions { width:100%; }
+  .neo4j-schema-button { flex:1; min-height:48px; }
+  .neo4j-schema-modal { width:calc(100vw - 18px); }
+  .neo4j-schema-summary { gap:10px; }
+  .neo4j-schema-warning { width:100%; margin-left:0; }
+  .neo4j-schema-canvas { height:100%; min-height:0; }
+}
